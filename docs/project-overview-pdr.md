@@ -1,96 +1,79 @@
-# Project Overview and Product Development Requirements (PDR) - kkcli
+# Project Overview and Product Development Requirements (PDR)
 
-## 1. Project Overview
+## Project Overview - Phase 04: Advanced Features Implementation
 
-The `kkcli` project aims to provide a robust and user-friendly command-line interface (CLI) tool for managing Docker Compose environments. It simplifies the setup, deployment, and operation of multi-container applications, focusing on developer productivity and streamlined workflows.
+This document outlines the Product Development Requirements (PDRs) for Phase 04 of the project, focusing on the implementation of advanced features to enhance the `kkcli` command-line tool. This phase introduces critical functionalities like automatic updates, shell completion, and robust build/release automation, significantly improving the tool's usability, maintainability, and deployment process.
 
-### Project Goals:
+### Key Features Implemented in Phase 04:
 
--   **Simplify Docker Compose Management**: Provide intuitive commands for common Docker Compose tasks.
--   **Automate Environment Setup**: Offer pre-flight checks and configuration assistance.
--   **Improve Developer Experience**: Reduce boilerplate, improve error reporting, and provide clear guidance.
--   **Ensure Reliability**: Implement robust validation and error handling.
--   **Extensibility**: Design for easy integration of future features and services.
+1.  **`kk update` command**:
+    *   **Description**: A new command allowing users to pull the latest `kkcli` images, display available updates, and confirm before recreating the `kkcli` environment. This ensures users always have access to the most recent features and bug fixes with controlled updates.
+    *   **Requirements**:
+        *   Ability to check for newer `kkcli` releases.
+        *   Display clear information about the current and new versions.
+        *   Prompt user for confirmation before applying updates.
+        *   Handle image pulling and environment recreation seamlessly.
 
-## 2. Product Development Requirements (PDR)
+2.  **`kk completion` command**:
+    *   **Description**: Integrates shell completion generation for popular shells such as Bash, Zsh, and Fish. This feature greatly enhances developer productivity by providing auto-completion for `kkcli` commands and flags, reducing typing and potential errors.
+    *   **Requirements**:
+        *   Generate valid completion scripts for Bash, Zsh, and Fish.
+        *   Provide clear instructions for users to enable completion in their respective shells.
 
-### Phase 01: Core Foundation (Completed)
+3.  **Build Automation with Makefile**:
+    *   **Description**: Implementation of a `Makefile` to streamline and automate the build process of `kkcli`. This standardizes build procedures, making it easier for developers to compile, test, and package the application consistently.
+    *   **Requirements**:
+        *   Define targets for building the `kkcli` binary.
+        *   Include targets for cleaning build artifacts.
+        *   Support cross-platform compilation if necessary.
 
--   **Functional Requirements**:
-    -   Basic CLI command parsing and execution.
-    -   Project initialization (e.g., generating basic `docker-compose.yml`, `.env`, Caddyfile).
-    -   Template management for common configurations.
--   **Non-functional Requirements**:
-    -   Fast command execution.
-    -   Clear and concise command-line output.
-    -   Cross-platform compatibility (Linux, macOS, Windows).
--   **Acceptance Criteria**:
-    -   Users can initialize a new project with default configurations.
-    -   Templates are correctly applied based on user input.
-    -   CLI commands are responsive.
+4.  **Release Automation with GoReleaser**:
+    *   **Description**: Integration of GoReleaser for automated release management. This tool automates the process of creating release archives, generating checksums, signing binaries, and publishing releases to platforms like GitHub, ensuring a consistent and error-free release cycle.
+    *   **Requirements**:
+        *   Configure GoReleaser to build `kkcli` for multiple operating systems and architectures.
+        *   Automate the creation of release artifacts (binaries, checksums, archives).
+        *   Automate GitHub release creation and asset uploading.
 
-### Phase 02: Validation Layer (In Progress)
+5.  **Secure Installation Script with Checksum Verification**:
+    *   **Description**: Development of an `install.sh` script that not only downloads and installs `kkcli` but also incorporates checksum verification. This significantly enhances the security and integrity of the installation process by ensuring that downloaded files have not been tampered with.
+    *   **Requirements**:
+        *   Download `kkcli` binaries from official release channels.
+        *   Verify the integrity of downloaded files using checksums.
+        *   Provide clear installation instructions and error handling.
 
-This phase introduces a comprehensive validation layer to ensure the operational environment meets the requirements for `kkcli` and the Docker Compose applications it manages.
+6.  **CI/CD Pipeline with GitHub Actions**:
+    *   **Description**: Establishment of a Continuous Integration/Continuous Deployment (CI/CD) pipeline using GitHub Actions. This automates the testing, building, and deployment processes upon code changes, ensuring code quality, faster feedback loops, and reliable releases.
+    *   **Requirements**:
+        *   Automate unit and integration tests on every push.
+        *   Automate the build process for different environments.
+        *   Integrate with GoReleaser for automated release publishing on tag pushes.
+        *   Provide status checks for pull requests.
 
--   **Functional Requirements**:
-    -   **Configuration Validation**: Verify the correctness and completeness of `kkcli` and Docker Compose configuration files (e.g., `kkfiler.toml`, `docker-compose.yml`).
-    -   **Environment Variable Validation**: Ensure all necessary environment variables are set and have valid values.
-    -   **Disk Space and Permissions Check**: Verify sufficient disk space and appropriate file/directory permissions for operations.
-    -   **Network Port Availability Check**: Identify and report conflicts with required network ports.
-    -   **Pre-flight Check Orchestration**: Execute a series of validations before critical operations (e.g., `up`, `deploy`).
-    -   **Detailed Error Reporting**: Provide actionable error messages and suggestions for remediation.
--   **Non-functional Requirements**:
-    -   **Performance**: Validation checks should be quick and not significantly impede user workflow.
-    -   **Reliability**: Validation logic must be accurate and cover common failure points.
-    -   **User Feedback**: Clear and immediate feedback on validation status.
--   **Acceptance Criteria**:
-    -   `kkcli` identifies missing or incorrect configurations and prevents operations.
-    -   Users receive specific messages indicating which environment variables are missing/incorrect.
-    -   Disk and permission issues are detected and reported.
-    -   Port conflicts are identified, and alternative suggestions are provided if possible.
-    -   A successful "pre-flight check" confirms the environment is ready for operations.
-    -   Error messages are easy to understand and guide users to solutions.
+## Acceptance Criteria & Success Metrics
 
-### Technical Constraints and Dependencies:
+*   All new commands (`kk update`, `kk completion`) function as specified and are robust to edge cases.
+*   Build and release automation (Makefile, GoReleaser) consistently produce correct and signed artifacts.
+*   Installation script successfully installs `kkcli` with checksum verification on supported platforms.
+*   CI/CD pipeline runs successfully on all pushes and pull requests, providing timely feedback.
+*   Increased developer productivity due to shell completion and streamlined development workflows.
 
--   Go programming language.
--   Reliance on `gopkg.in/yaml.v3` for YAML parsing and validation.
--   Integration with existing Docker Compose CLI.
--   Operating system specific checks (e.g., file permissions, disk space).
+## Technical Constraints and Dependencies
 
-### Phase 03: Operations (Completed)
+*   Reliance on `docker` for `kk update` functionality.
+*   `GoReleaser` requires specific configuration and GitHub token for releases.
+*   CI/CD pipeline depends on GitHub Actions infrastructure.
+*   Shell completion functionality depends on underlying shell capabilities (Bash, Zsh, Fish).
 
-This phase focuses on implementing robust and user-friendly command-line operations for managing Docker Compose services, including starting, stopping, restarting, and monitoring application states.
+## Implementation Guidance and Architectural Decisions
 
--   **Functional Requirements**:
-    -   **Service Lifecycle Management**: Commands to `start`, `stop`, `restart` Docker Compose services.
-    -   **Service Status Monitoring**: Command to display the current `status` of all Docker Compose services, including their health and running state.
-    -   **Dynamic Output**: Provide real-time progress updates and formatted output for long-running operations.
-    -   **Error Resiliency**: Graceful handling of Docker-related errors and clear reporting to the user.
-    -   **Compose File Parsing**: Robust parsing of `docker-compose.yml` files to understand service configurations.
--   **Non-functional Requirements**:
-    -   **Responsiveness**: Operations should execute quickly and provide timely feedback.
-    -   **Reliability**: Commands must accurately reflect and control the state of Docker Compose services.
-    -   **User Experience**: Clear, concise, and well-formatted output using UI components.
--   **Acceptance Criteria**:
-    -   Users can successfully start, stop, and restart services using `kkcli` commands.
-    -   The `status` command accurately reflects the state of all services (running, stopped, unhealthy, etc.).
-    -   Long-running operations (e.g., starting many services) display progress indicators.
-    -   Errors during Docker operations are caught and presented to the user in an understandable format.
-    -   `kkcli` can parse various valid `docker-compose.yml` structures.
+*   **Modularity**: Ensure new features are developed with modularity in mind to facilitate future extensions and maintenance.
+*   **Error Handling**: Implement comprehensive error handling for all new functionalities, especially for network operations and file system interactions.
+*   **User Experience**: Prioritize clear command-line output and interactive prompts for user-facing features.
+*   **Security**: Adhere to security best practices, particularly for the installation script and any external dependencies.
 
-### Technical Constraints and Dependencies:
+## Version History
 
--   Go programming language.
--   Integration with the Docker SDK for Go to programmatically interact with Docker and Docker Compose.
--   Reliance on `gopkg.in/yaml.v3` for parsing YAML configuration (e.g., `docker-compose.yml`).
-
-### Future Phases (Planned):
-
--   **Phase 04: Advanced Features**: Introduce features like monitoring integration, health checks, and plugin support.
-
-## 3. Version History
-
--   **v0.1.0 (2026-01-04)**: Initial Core Foundation (Phase 01)
--   **v0.2.0 (Planned)**: Validation Layer (Phase 02)
+*   **Phase 04**: Advanced Features Implementation (Current)
+    *   Introduces `kk update`, `kk completion`, Makefile, GoReleaser, secure install script, and GitHub Actions CI/CD.
+*   **Phase 03**: Initial Core Functionality and Basic Structure
+    *   [Insert details of previous phase if available]
