@@ -1,0 +1,20 @@
+# SeaweedFS Filer Configuration
+# This file configures SeaweedFS Filer to use MariaDB as metadata store
+# Database credentials are also provided via environment variables (WEED_MYSQL_*)
+# Environment variables take precedence over this file
+
+[leveldb2]
+enabled = false
+
+[mysql]
+enabled = true
+# hostname = "db"
+# port = 3306
+# username, password, and database are set via environment variables:
+# WEED_FILER_MYSQL_USERNAME, WEED_FILER_MYSQL_PASSWORD, WEED_FILER_MYSQL_DATABASE
+# Environment variables take precedence over values in this file
+# username = ""
+# password = ""
+# database = "kkengine_seaweedfs"
+# Config -> .env
+interpolateParams = false
