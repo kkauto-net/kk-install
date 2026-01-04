@@ -1,0 +1,90 @@
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/spf13/cobra"
+
+	"github.com/kkengine/kkcli/pkg/compose"
+	"github.com/kkengine/kkcli/pkg/monitor"
+	"github.com/kkengine/kkcli/pkg/ui"
+)
+
+var restartCmd = &cobra.Command{
+	Use:   "restart",
+	Short: "Khoi dong lai tat ca dich vu",
+	Long:  `Restart tat ca containers trong stack.`,
+	RunE:  runRestart,
+}
+
+func init() {
+	rootCmd.AddCommand(restartCmd)
+}
+
+func runRestart(cmd *cobra.Command, args []string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// Setup graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\n\nDang dung lai...")
+		cancel()
+	}()
+
+	fmt.Println("Dang khoi dong lai dich vu...")
+
+	executor := compose.NewExecutor(cwd)
+
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
+	defer timeoutCancel()
+
+	if err := executor.Restart(timeoutCtx); err != nil {
+		return fmt.Errorf("restart that bai: %w", err)
+	}
+
+	fmt.Println("[OK] Da khoi dong lai.")
+
+	// Step 2: Monitor health
+	composeFile, err := compose.ParseComposeFile(cwd)
+	if err == nil {
+		healthMonitor, err := monitor.NewHealthMonitor()
+		if err == nil {
+			defer healthMonitor.Close()
+
+			fmt.Println("\nDang kiem tra suc khoe...")
+
+			var containers []monitor.ContainerInfo
+			for name := range composeFile.Services {
+				containers = append(containers, monitor.ContainerInfo{
+					ServiceName:    name,
+					ContainerName:  fmt.Sprintf("kkengine_%s", name),
+					HasHealthCheck: composeFile.HasHealthCheck(name),
+				})
+			}
+
+			healthMonitor.MonitorAll(timeoutCtx, containers, func(status monitor.HealthStatus) {
+				ui.ShowServiceProgress(status.ServiceName, status.Status)
+			})
+		}
+	}
+
+	// Show final status
+	statuses, err := monitor.GetStatus(timeoutCtx, executor)
+	if err == nil {
+		ui.PrintStatusTable(statuses)
+	}
+
+	return nil
+}
