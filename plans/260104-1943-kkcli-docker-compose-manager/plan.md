@@ -43,7 +43,7 @@ kkcli/
 |-------|------|--------|--------|------|
 | 01 | Core Foundation | 1w | done | [phase-01-core-foundation.md](./phase-01-core-foundation.md) |
 | 02 | Validation Layer | 1w | done (2026-01-04) | [phase-02-validation-layer.md](./phase-02-validation-layer.md) |
-| 03 | Operations | 1w | pending | [phase-03-operations.md](./phase-03-operations.md) |
+| 03 | Operations | 1w | done (2026-01-05) | [phase-03-operations.md](./phase-03-operations.md) |
 | 04 | Advanced Features | 1w | pending | [phase-04-advanced-features.md](./phase-04-advanced-features.md) |
 
 ## Key Features

@@ -59,9 +59,35 @@ This phase introduces a comprehensive validation layer to ensure the operational
 -   Integration with existing Docker Compose CLI.
 -   Operating system specific checks (e.g., file permissions, disk space).
 
+### Phase 03: Operations (Completed)
+
+This phase focuses on implementing robust and user-friendly command-line operations for managing Docker Compose services, including starting, stopping, restarting, and monitoring application states.
+
+-   **Functional Requirements**:
+    -   **Service Lifecycle Management**: Commands to `start`, `stop`, `restart` Docker Compose services.
+    -   **Service Status Monitoring**: Command to display the current `status` of all Docker Compose services, including their health and running state.
+    -   **Dynamic Output**: Provide real-time progress updates and formatted output for long-running operations.
+    -   **Error Resiliency**: Graceful handling of Docker-related errors and clear reporting to the user.
+    -   **Compose File Parsing**: Robust parsing of `docker-compose.yml` files to understand service configurations.
+-   **Non-functional Requirements**:
+    -   **Responsiveness**: Operations should execute quickly and provide timely feedback.
+    -   **Reliability**: Commands must accurately reflect and control the state of Docker Compose services.
+    -   **User Experience**: Clear, concise, and well-formatted output using UI components.
+-   **Acceptance Criteria**:
+    -   Users can successfully start, stop, and restart services using `kkcli` commands.
+    -   The `status` command accurately reflects the state of all services (running, stopped, unhealthy, etc.).
+    -   Long-running operations (e.g., starting many services) display progress indicators.
+    -   Errors during Docker operations are caught and presented to the user in an understandable format.
+    -   `kkcli` can parse various valid `docker-compose.yml` structures.
+
+### Technical Constraints and Dependencies:
+
+-   Go programming language.
+-   Integration with the Docker SDK for Go to programmatically interact with Docker and Docker Compose.
+-   Reliance on `gopkg.in/yaml.v3` for parsing YAML configuration (e.g., `docker-compose.yml`).
+
 ### Future Phases (Planned):
 
--   **Phase 03: Operations**: Implement advanced Docker Compose operations (start, stop, restart, build, logs, scaling).
 -   **Phase 04: Advanced Features**: Introduce features like monitoring integration, health checks, and plugin support.
 
 ## 3. Version History
