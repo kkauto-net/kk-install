@@ -1,7 +1,7 @@
 ---
 title: "KK CLI - Docker Compose Management Tool"
 description: "Global binary CLI (Go + Cobra) for non-technical users to manage kkengine Docker stack"
-status: pending
+status: in-progress
 priority: P1
 effort: 4w
 branch: initial-2
@@ -42,7 +42,7 @@ kkcli/
 | Phase | Name | Effort | Status | File |
 |-------|------|--------|--------|------|
 | 01 | Core Foundation | 1w | done | [phase-01-core-foundation.md](./phase-01-core-foundation.md) |
-| 02 | Validation Layer | 1w | pending | [phase-02-validation-layer.md](./phase-02-validation-layer.md) |
+| 02 | Validation Layer | 1w | done (2026-01-04) | [phase-02-validation-layer.md](./phase-02-validation-layer.md) |
 | 03 | Operations | 1w | pending | [phase-03-operations.md](./phase-03-operations.md) |
 | 04 | Advanced Features | 1w | pending | [phase-04-advanced-features.md](./phase-04-advanced-features.md) |
 
