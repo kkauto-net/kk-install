@@ -27,6 +27,7 @@ jobs:
         run: CGO_ENABLED=0 go build -o kk .
 
   lint:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
