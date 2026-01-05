@@ -111,8 +111,8 @@ Lệnh `kk init` giúp bạn khởi tạo và cấu hình môi trường Docker 
     -   Tên dịch vụ chính (ví dụ: `kkengine`)
     -   Cấu hình cơ sở dữ liệu (MySQL/MariaDB)
     -   Cấu hình Redis
-    -   Có muốn sử dụng SeaweedFS không?
-    -   Có muốn sử dụng Caddy làm web server không?
+    -   Có muốn sử dụng SeaweedFS không? (Mặc định: Yes (recommended))
+    -   Có muốn sử dụng Caddy làm web server không? (Mặc định: Yes (recommended))
     -   Các cổng (ports) bạn muốn ánh xạ
     -   ... và các cấu hình khác.
 

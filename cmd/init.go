@@ -67,8 +67,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 4: Interactive prompts
-	var enableSeaweedFS bool
-	var enableCaddy bool
+	enableSeaweedFS := true // Default: enabled (recommended)
+	enableCaddy := true     // Default: enabled (recommended)
 	var domain string
 
 	form := huh.NewForm(
@@ -76,11 +76,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 			huh.NewConfirm().
 				Title("Bat SeaweedFS file storage?").
 				Description("SeaweedFS la he thong luu tru file phan tan").
+				Affirmative("Yes (recommended)").
+				Negative("No").
 				Value(&enableSeaweedFS),
 
 			huh.NewConfirm().
 				Title("Bat Caddy web server?").
 				Description("Caddy la reverse proxy voi tu dong HTTPS").
+				Affirmative("Yes (recommended)").
+				Negative("No").
 				Value(&enableCaddy),
 		),
 	)
