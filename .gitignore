@@ -36,3 +36,10 @@ data_file/
 data_writable/
 kk
 kkcli
+
+
+# Vibe code
+.claude
+plans/
+docs/
+CLAUDE.md
