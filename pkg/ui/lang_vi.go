@@ -27,6 +27,10 @@ var messagesVI = map[string]string{
 	"error_redis_pass":    "Khong the tao password Redis",
 	"error_create_file":   "Loi khi tao file",
 
+	// File generation
+	"generating_files": "Dang tao cac file cau hinh...",
+	"files_generated":  "Cac file cau hinh da duoc tao",
+
 	// Success
 	"created":       "Da tao: %s",
 	"init_complete": "Khoi tao hoan tat!",
@@ -37,6 +41,11 @@ Buoc tiep theo:
   1. Kiem tra va chinh sua .env neu can
   2. Chay: kk start
 `,
+
+	// Next steps for box
+	"next_steps_box": `Buoc tiep theo:
+  1. Kiem tra va chinh sua .env neu can
+  2. Chay: kk start`,
 
 	// Language selection
 	"select_language": "Chon ngon ngu / Select language",

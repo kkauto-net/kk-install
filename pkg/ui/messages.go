@@ -4,6 +4,20 @@ import (
 	"github.com/pterm/pterm"
 )
 
+// Icons for UI elements (Unicode emoji for compatibility)
+const (
+	IconLanguage = "🌐" // Language selection
+	IconDocker   = "🐳" // Docker
+	IconConfig   = "⚙️"  // Config
+	IconFolder   = "📁" // Directory
+	IconStorage  = "💾" // SeaweedFS
+	IconWeb      = "🌐" // Caddy
+	IconLink     = "🔗" // Domain
+	IconWrite    = "✍️"  // Generating
+	IconComplete = "✅" // Complete
+	IconCheck    = "✅" // Success (same as complete)
+)
+
 // Message functions using i18n
 // These functions are kept for backward compatibility
 func MsgCheckingDocker() string         { return Msg("checking_docker") }

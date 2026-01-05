@@ -27,6 +27,10 @@ var messagesEN = map[string]string{
 	"error_redis_pass":    "Failed to generate Redis password",
 	"error_create_file":   "Failed to create file",
 
+	// File generation
+	"generating_files": "Generating configuration files...",
+	"files_generated":  "Configuration files generated",
+
 	// Success
 	"created":       "Created: %s",
 	"init_complete": "Initialization complete!",
@@ -37,6 +41,11 @@ Next steps:
   1. Review and edit .env if needed
   2. Run: kk start
 `,
+
+	// Next steps for box
+	"next_steps_box": `Next steps:
+  1. Review and edit .env if needed
+  2. Run: kk start`,
 
 	// Language selection
 	"select_language": "Select language / Chon ngon ngu",

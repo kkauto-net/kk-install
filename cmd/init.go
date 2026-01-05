@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/huh"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/templates"
@@ -30,7 +31,7 @@ func init() {
 
 func runInit(cmd *cobra.Command, args []string) error {
 	// Step 1: Check Docker
-	ui.ShowInfo(ui.MsgCheckingDocker())
+	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
 		ui.ShowError(err.Error())
 		return err
@@ -39,14 +40,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 		ui.ShowError(err.Error())
 		return err
 	}
-	ui.ShowSuccess(ui.MsgDockerOK())
+	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection
 	var langChoice string
 	langForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title(ui.Msg("select_language")).
+				Title(ui.IconLanguage + " " + ui.Msg("select_language")).
 				Options(
 					huh.NewOption(ui.Msg("lang_english"), "en"),
 					huh.NewOption(ui.Msg("lang_vietnamese"), "vi"),
@@ -68,7 +69,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("\n%s\n\n", ui.MsgF("init_in_dir", cwd))
+	fmt.Printf("\n%s %s\n\n", ui.IconFolder, ui.MsgF("init_in_dir", cwd))
 
 	// Step 4: Check if already initialized
 	composePath := filepath.Join(cwd, "docker-compose.yml")
@@ -97,14 +98,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
-				Title(ui.Msg("enable_seaweedfs")).
+				Title(ui.IconStorage + " " + ui.Msg("enable_seaweedfs")).
 				Description(ui.Msg("seaweedfs_desc")).
 				Affirmative(ui.Msg("yes_recommended")).
 				Negative(ui.Msg("no")).
 				Value(&enableSeaweedFS),
 
 			huh.NewConfirm().
-				Title(ui.Msg("enable_caddy")).
+				Title(ui.IconWeb + " " + ui.Msg("enable_caddy")).
 				Description(ui.Msg("caddy_desc")).
 				Affirmative(ui.Msg("yes_recommended")).
 				Negative(ui.Msg("no")).
@@ -121,7 +122,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		domainForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
-					Title(ui.Msg("enter_domain")).
+					Title(ui.IconLink + " " + ui.Msg("enter_domain")).
 					Value(&domain).
 					Placeholder("localhost"),
 			),
@@ -148,7 +149,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("error_redis_pass"), err)
 	}
 
-	// Step 7: Render templates
+	// Step 7: Render templates with spinner
+	spinner, _ := pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
+
 	cfg := templates.Config{
 		EnableSeaweedFS: enableSeaweedFS,
 		EnableCaddy:     enableCaddy,
@@ -159,24 +162,31 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := templates.RenderAll(cfg, cwd); err != nil {
+		spinner.Fail(ui.MsgF("error_create_file", err.Error()))
 		return fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err)
 	}
 
+	spinner.Success(ui.IconCheck + " " + ui.Msg("files_generated"))
+
 	// Step 8: Show success
 	fmt.Println()
-	ui.ShowSuccess(ui.MsgCreated("docker-compose.yml"))
-	ui.ShowSuccess(ui.MsgCreated(".env"))
-	ui.ShowSuccess(ui.MsgCreated("kkphp.conf"))
+	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("docker-compose.yml"))
+	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated(".env"))
+	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("kkphp.conf"))
 	if enableCaddy {
-		ui.ShowSuccess(ui.MsgCreated("Caddyfile"))
+		ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("Caddyfile"))
 	}
 	if enableSeaweedFS {
-		ui.ShowSuccess(ui.MsgCreated("kkfiler.toml"))
+		ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("kkfiler.toml"))
 	}
 
+	// Step 9: Show completion box
 	fmt.Println()
-	ui.ShowSuccess(ui.MsgInitComplete())
-	fmt.Println(ui.MsgNextSteps())
+	pterm.DefaultBox.
+		WithTitle(ui.IconComplete + " " + ui.Msg("init_complete")).
+		WithTitleTopCenter().
+		WithBoxStyle(pterm.NewStyle(pterm.FgGreen)).
+		Println(ui.Msg("next_steps_box"))
 
 	return nil
 }
