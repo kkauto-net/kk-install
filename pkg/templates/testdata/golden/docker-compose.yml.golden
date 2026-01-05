@@ -1,1 +1,132 @@
-version: '3.8'\nservices:\n  kkengine:\n    image: kkengine:latest\n    container_name: kkengine_app\n    restart: unless-stopped\n    stop_grace_period: 10s\n    ports:\n      - "8019:8019"\n    env_file:\n      - ./.env\n    volumes:\n      - ./kkphp.conf:/config/kkphp.conf\n    networks:\n      - kkengine_net\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_started\n\n  db:\n    image: mariadb:10.6\n    container_name: kkengine_db\n    restart: unless-stopped\n    environment:\n      MYSQL_ROOT_PASSWORD: test_db_root_pass\n      MYSQL_DATABASE: kkengine\n      MYSQL_USER: kkengine\n      MYSQL_PASSWORD: test_db_pass\n    volumes:\n      - ./data_database:/var/lib/mysql\n    ports:\n      - "3307:3306"\n    networks:\n      - kkengine_net\n    healthcheck:\n      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n      start_period: 30s\n\n  redis:\n    image: redis:alpine\n    container_name: kkengine_redis\n    restart: unless-stopped\n    command: redis-server --requirepass test_redis_pass\n    volumes:\n      - redis_data:/data\n    networks:\n      - kkengine_net\n    healthcheck:\n      test: ["CMD", "redis-cli", "ping"]\n      interval: 10s\n      timeout: 3s\n      retries: 5\n\nnetworks:\n  kkengine_net:\n    name: kkengine_net\n    driver: bridge\n\nvolumes:\n  redis_data:
+services:
+  kkengine:
+    image: kkengine:latest
+    container_name: kkengine_app
+    restart: unless-stopped
+    stop_grace_period: 10s
+    ports:
+      - "8019:8019" # KKEngine API
+    env_file:
+      - ${KK_ENV_FILE:-./.env}
+    volumes:
+      - ./kkphp.conf:/config/kkphp.conf
+      # - ${SYSTEM_WRITEDATA:-data_writable}:/var/www/html/writable
+    networks:
+      - kkengine_net
+    depends_on:
+      db:
+        condition: service_healthy
+      # seaweedfs:
+      #   condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: mariadb:10.6
+    container_name: kkengine_db
+    restart: unless-stopped
+    stop_grace_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ${SYSTEM_DATABASE:-./data_database}:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - kkengine_net
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:alpine
+    container_name: kkengine_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - kkengine_net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: kkengine_seaweedfs
+    restart: unless-stopped
+    stop_grace_period: 10s
+    command: >
+      server -dir=/data -master.port=9333 -volume.port=8080 -filer -filer.port=8888 -s3 -s3.port=8333 -master.defaultReplication=000 -volume.max=0
+    # ports:
+    # - "9333:9333" # Master
+    # - "8080:8080" # Volume
+    # - "8888:8888" # Filer
+    # - "8333:8333" # S3 Gateway
+    env_file:
+      - ${KK_ENV_FILE:-./.env}
+    environment:
+      WEED_MYSQL_ENABLED: "true"
+      WEED_MYSQL_HOSTNAME: ${DB_HOSTNAME}
+      WEED_MYSQL_PORT: ${DB_PORT}
+      WEED_MYSQL_USERNAME: ${DB_USERNAME}
+      WEED_MYSQL_PASSWORD: ${DB_PASSWORD}
+      WEED_MYSQL_DATABASE: ${DB_SEAWEEDFS}
+    volumes:
+      - ${SYSTEM_FILESTORE:-./data_file}:/data
+      - ./kkfiler.toml:/etc/seaweedfs/filer.toml:ro
+    networks:
+      - kkengine_net
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep -f 'weed.*server' > /dev/null && timeout 2 bash -c 'exec 3<>/dev/tcp/localhost/8888' 2>/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 50s
+
+
+
+  caddy:
+    image: caddy:alpine
+    container_name: kkengine_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - ${KK_ENV_FILE:-./.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - kkengine_net
+    depends_on:
+      - kkengine
+
+
+networks:
+  kkengine_net:
+    name: kkengine_net
+    driver: bridge
+
+volumes:
+  redis_data:
+
+  caddy_data:
+  caddy_config:
+
+    # data_writable:
+

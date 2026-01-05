@@ -18,10 +18,12 @@ func TestRenderTemplate(t *testing.T) {
 	outputPath := filepath.Join(tempDir, "test_output.yml")
 
 	cfg := Config{
-		DBPassword:     "testdbpassword",
-		DBRootPassword: "testdbrootpassword",
-		RedisPassword:  "testredispassword",
-		Domain:         "test.com",
+		EnableSeaweedFS: true, // Enable all optional services for full test coverage
+		EnableCaddy:     true,
+		DBPassword:      "testdbpassword",
+		DBRootPassword:  "testdbrootpassword",
+		RedisPassword:   "testredispassword",
+		Domain:          "test.com",
 	}
 
 	// Test 1: Happy path - render to a new file
@@ -33,14 +35,15 @@ func TestRenderTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read rendered file: %v", err)
 	}
-	if !strings.Contains(string(content), "MYSQL_PASSWORD: testdbpassword") {
-		t.Errorf("Rendered content mismatch for DB_PASSWORD. Got:\n%s", string(content))
+	// Verify env var substitution (not hardcoded passwords)
+	if !strings.Contains(string(content), "MYSQL_PASSWORD: ${DB_PASSWORD}") {
+		t.Errorf("Rendered content should use ${DB_PASSWORD} env var. Got:\n%s", string(content))
 	}
-	if !strings.Contains(string(content), "MYSQL_ROOT_PASSWORD: testdbrootpassword") {
-		t.Errorf("Rendered content mismatch for DB_ROOT_PASSWORD. Got:\n%s", string(content))
+	if !strings.Contains(string(content), "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}") {
+		t.Errorf("Rendered content should use ${DB_ROOT_PASSWORD} env var. Got:\n%s", string(content))
 	}
-	if !strings.Contains(string(content), "redis-server --requirepass testredispassword") { // Corrected assertion
-		t.Errorf("Rendered content missing REDIS_PASSWORD. Got:\n%s", string(content))
+	if !strings.Contains(string(content), "redis-server --requirepass ${REDIS_PASSWORD}") {
+		t.Errorf("Rendered content should use ${REDIS_PASSWORD} env var. Got:\n%s", string(content))
 	}
 
 	// Test 2: Backup existing file
@@ -64,14 +67,15 @@ func TestRenderTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read new file after backup: %v", err)
 	}
-	if !strings.Contains(string(newContent), "MYSQL_PASSWORD: testdbpassword") {
-		t.Errorf("New file content after backup mismatch for DB_PASSWORD. Got:\n%s", string(newContent))
+	// Verify env var substitution after backup
+	if !strings.Contains(string(newContent), "MYSQL_PASSWORD: ${DB_PASSWORD}") {
+		t.Errorf("New file should use ${DB_PASSWORD} env var. Got:\n%s", string(newContent))
 	}
-	if !strings.Contains(string(newContent), "MYSQL_ROOT_PASSWORD: testdbrootpassword") {
-		t.Errorf("New file content after backup mismatch for DB_ROOT_PASSWORD. Got:\n%s", string(newContent))
+	if !strings.Contains(string(newContent), "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}") {
+		t.Errorf("New file should use ${DB_ROOT_PASSWORD} env var. Got:\n%s", string(newContent))
 	}
-	if !strings.Contains(string(newContent), "redis-server --requirepass testredispassword") {
-		t.Errorf("New file content after backup missing REDIS_PASSWORD. Got:\n%s", string(newContent))
+	if !strings.Contains(string(newContent), "redis-server --requirepass ${REDIS_PASSWORD}") {
+		t.Errorf("New file should use ${REDIS_PASSWORD} env var. Got:\n%s", string(newContent))
 	}
 
 	// Test 3: Template not found (should return an error)
@@ -230,13 +234,13 @@ func TestValidateTOML(t *testing.T) {
 
 // TestValidateYAML validates docker-compose.yml syntax
 func TestValidateYAML(t *testing.T) {
-	t.Skip("Skipping YAML validation - docker-compose.yml.tmpl needs proper newlines (out of scope for Phase 1)")
-
 	cfg := Config{
-		DBPassword:     "test",
-		DBRootPassword: "test",
-		RedisPassword:  "test",
-		Domain:         "test.com",
+		EnableSeaweedFS: true,
+		EnableCaddy:     true,
+		DBPassword:      "test",
+		DBRootPassword:  "test",
+		RedisPassword:   "test",
+		Domain:          "test.com",
 	}
 
 	rendered, err := RenderTemplateToString("docker-compose.yml", cfg)
@@ -251,8 +255,8 @@ func TestValidateYAML(t *testing.T) {
 		t.Errorf("docker-compose.yml has invalid YAML syntax: %v", err)
 	}
 
-	// Verify required top-level keys
-	requiredKeys := []string{"version", "services", "networks", "volumes"}
+	// Verify required top-level keys (docker-compose v3.8 doesn't require 'version')
+	requiredKeys := []string{"services", "networks", "volumes"}
 	for _, key := range requiredKeys {
 		if _, ok := result[key]; !ok {
 			t.Errorf("docker-compose.yml missing required key: %s", key)
