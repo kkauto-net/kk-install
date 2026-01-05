@@ -40,21 +40,21 @@ func TestSimpleSpinner_Lifecycle(t *testing.T) {
 
 	// Give it some time to print a few frames
 	time.Sleep(50 * time.Millisecond) // Shorten sleep for faster test
-	spinner.UpdateMessage("Still loading...")
+	updatedMessage := "Still loading..."
+	spinner.UpdateMessage(updatedMessage)
 	time.Sleep(50 * time.Millisecond) // Shorten sleep for faster test
 	spinner.Stop(true)
 
 	w.Close()
 	os.Stdout = oldStdout
 
-	// Read all remaining output to prevent pipe deadlock, but don't assert its content
-	// as it's highly variable due to \r and timing.
+	// Read all remaining output to prevent pipe deadlock
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
 
-	// Check if the final "OK" message is present
-	assert.Contains(t, output, fmt.Sprintf("  [OK] %s", message))
+	// Check if the final "OK" message with updated message is present
+	assert.Contains(t, output, fmt.Sprintf("  [OK] %s", updatedMessage))
 }
 
 func TestShowServiceProgress(t *testing.T) {
