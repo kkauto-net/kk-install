@@ -30,12 +30,27 @@ func ValidateEnvFile(dir string) error {
 	envPath := filepath.Join(dir, ".env")
 
 	// Check file exists
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+	info, err := os.Stat(envPath)
+	if os.IsNotExist(err) {
 		return &UserError{
 			Key:        "env_missing",
 			Message:    "File .env khong ton tai",
 			Suggestion: "Chay: kk init",
 		}
+	}
+	if err != nil {
+		return &UserError{
+			Key:        "env_stat_error",
+			Message:    fmt.Sprintf("Loi doc thong tin file .env: %v", err),
+			Suggestion: "Kiem tra quyen truy cap file",
+		}
+	}
+
+	// Check file permissions (warn if too permissive)
+	mode := info.Mode()
+	if mode.Perm()&0044 != 0 { // Readable by group or others
+		fmt.Printf("  [!] Canh bao: File .env co quyen truy cap qua rong (%o)\n", mode.Perm())
+		fmt.Printf("      Nen thiet lap: chmod 600 .env (chi user hien tai doc/ghi)\n")
 	}
 
 	// Parse .env file

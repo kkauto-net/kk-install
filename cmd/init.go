@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/pterm/pterm"
@@ -40,6 +41,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 		ui.ShowError(err.Error())
 		return err
 	}
+	if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
+		ui.ShowError(err.Error())
+		return err
+	}
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection
@@ -47,7 +52,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	langForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title(ui.IconLanguage + " " + ui.Msg("select_language")).
+				Title(ui.IconLanguage+" "+ui.Msg("select_language")).
 				Options(
 					huh.NewOption(ui.Msg("lang_english"), "en"),
 					huh.NewOption(ui.Msg("lang_vietnamese"), "vi"),
@@ -88,6 +93,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		if !overwrite {
 			return errors.New(ui.Msg("init_cancelled"))
 		}
+
+		// Backup existing config files before overwrite
+		if err := backupExistingConfigs(cwd); err != nil {
+			ui.ShowWarning(fmt.Sprintf("Cannot backup existing files: %v", err))
+		}
 	}
 
 	// Step 5: Interactive prompts
@@ -98,14 +108,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
-				Title(ui.IconStorage + " " + ui.Msg("enable_seaweedfs")).
+				Title(ui.IconStorage+" "+ui.Msg("enable_seaweedfs")).
 				Description(ui.Msg("seaweedfs_desc")).
 				Affirmative(ui.Msg("yes_recommended")).
 				Negative(ui.Msg("no")).
 				Value(&enableSeaweedFS),
 
 			huh.NewConfirm().
-				Title(ui.IconWeb + " " + ui.Msg("enable_caddy")).
+				Title(ui.IconWeb+" "+ui.Msg("enable_caddy")).
 				Description(ui.Msg("caddy_desc")).
 				Affirmative(ui.Msg("yes_recommended")).
 				Negative(ui.Msg("no")).
@@ -187,6 +197,45 @@ func runInit(cmd *cobra.Command, args []string) error {
 		WithTitleTopCenter().
 		WithBoxStyle(pterm.NewStyle(pterm.FgGreen)).
 		Println(ui.Msg("next_steps_box"))
+
+	return nil
+}
+
+// backupExistingConfigs creates .bak backups of existing config files
+func backupExistingConfigs(dir string) error {
+	configFiles := []string{
+		"docker-compose.yml",
+		".env",
+		"Caddyfile",
+		"kkfiler.toml",
+		"kkphp.conf",
+	}
+
+	var backedUp []string
+	for _, filename := range configFiles {
+		srcPath := filepath.Join(dir, filename)
+		if _, err := os.Stat(srcPath); err == nil {
+			// File exists, create backup
+			bakPath := srcPath + ".bak"
+
+			// Read source
+			data, err := os.ReadFile(srcPath)
+			if err != nil {
+				continue // Skip on error
+			}
+
+			// Write backup
+			if err := os.WriteFile(bakPath, data, 0644); err != nil {
+				continue // Skip on error
+			}
+
+			backedUp = append(backedUp, filename)
+		}
+	}
+
+	if len(backedUp) > 0 {
+		ui.ShowInfo(fmt.Sprintf("Backed up: %s", strings.Join(backedUp, ", ")))
+	}
 
 	return nil
 }
