@@ -6,16 +6,22 @@ import (
 )
 
 func TestMessageFunctions(t *testing.T) {
+	// Save original state
+	original := GetLanguage()
+	defer SetLanguage(original)
+
+	// Test with default language (English)
+	SetLanguage(LangEN)
 	tests := []struct {
 		name     string
 		function func() string
 		expected string
 	}{
-		{"MsgCheckingDocker", MsgCheckingDocker, "Dang kiem tra Docker..."},
-		{"MsgDockerOK", MsgDockerOK, "Docker da san sang"},
-		{"MsgInitComplete", MsgInitComplete, "Khoi tao hoan tat!"},
-		{"MsgDockerNotInstalled", MsgDockerNotInstalled, "Docker chua cai dat"},
-		{"MsgDockerNotRunning", MsgDockerNotRunning, "Docker daemon khong chay"},
+		{"MsgCheckingDocker", MsgCheckingDocker, "Checking Docker..."},
+		{"MsgDockerOK", MsgDockerOK, "Docker is ready"},
+		{"MsgInitComplete", MsgInitComplete, "Initialization complete!"},
+		{"MsgDockerNotInstalled", MsgDockerNotInstalled, "Docker is not installed"},
+		{"MsgDockerNotRunning", MsgDockerNotRunning, "Docker daemon is not running"},
 	}
 
 	for _, tt := range tests {
@@ -28,24 +34,36 @@ func TestMessageFunctions(t *testing.T) {
 }
 
 func TestMsgCreated(t *testing.T) {
+	// Save original state
+	original := GetLanguage()
+	defer SetLanguage(original)
+
+	// Test with default language (English)
+	SetLanguage(LangEN)
 	fileName := "docker-compose.yml"
-	expected := fmt.Sprintf("Da tao: %s", fileName)
+	expected := fmt.Sprintf("Created: %s", fileName)
 	if got := MsgCreated(fileName); got != expected {
 		t.Errorf("MsgCreated(%q) = %q, want %q", fileName, got, expected)
 	}
 
 	emptyFileName := ""
-	expectedEmpty := fmt.Sprintf("Da tao: %s", emptyFileName)
+	expectedEmpty := fmt.Sprintf("Created: %s", emptyFileName)
 	if got := MsgCreated(emptyFileName); got != expectedEmpty {
 		t.Errorf("MsgCreated(%q) = %q, want %q", emptyFileName, got, expectedEmpty)
 	}
 }
 
 func TestMsgNextSteps(t *testing.T) {
+	// Save original state
+	original := GetLanguage()
+	defer SetLanguage(original)
+
+	// Test with default language (English)
+	SetLanguage(LangEN)
 	expected := `
-Buoc tiep theo:
-  1. Kiem tra va chinh sua .env neu can
-  2. Chay: kk start
+Next steps:
+  1. Review and edit .env if needed
+  2. Run: kk start
 `
 	if got := MsgNextSteps(); got != expected {
 		t.Errorf("MsgNextSteps() = %q, want %q", got, expected)

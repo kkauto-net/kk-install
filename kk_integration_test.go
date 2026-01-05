@@ -289,12 +289,12 @@ func TestKkInit_NoOverwriteExistingCompose(t *testing.T) {
 	if err == nil {
 		t.Fatalf("kk init did not return an error when user chose not to overwrite. Output:\n%s", output)
 	}
-	// The original cobra error message is "Error: huy khoi tao".
+	// The original cobra error message is "Error: Initialization cancelled".
 	// The exit status 1 comes from the application itself returning error,
 	// not directly from exec.Command.
 	// So, we just check for the specific message in the output.
-	if !strings.Contains(string(output), "huy khoi tao") {
-		t.Errorf("Expected 'huy khoi tao' message not found. Output:\n%s", output)
+	if !strings.Contains(string(output), "Initialization cancelled") {
+		t.Errorf("Expected 'Initialization cancelled' message not found. Output:\n%s", output)
 	}
 
 	// Verify the original file content remains unchanged

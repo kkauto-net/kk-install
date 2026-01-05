@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,21 +41,43 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	ui.ShowSuccess(ui.MsgDockerOK())
 
-	// Step 2: Get working directory
+	// Step 2: Language selection
+	var langChoice string
+	langForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title(ui.Msg("select_language")).
+				Options(
+					huh.NewOption(ui.Msg("lang_english"), "en"),
+					huh.NewOption(ui.Msg("lang_vietnamese"), "vi"),
+				).
+				Value(&langChoice),
+		),
+	)
+	if err := langForm.Run(); err != nil {
+		return err
+	}
+	// Set default to English if no selection
+	if langChoice == "" {
+		langChoice = "en"
+	}
+	ui.SetLanguage(ui.Language(langChoice))
+
+	// Step 3: Get working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("\nKhoi tao trong: %s\n\n", cwd)
+	fmt.Printf("\n%s\n\n", ui.MsgF("init_in_dir", cwd))
 
-	// Step 3: Check if already initialized
+	// Step 4: Check if already initialized
 	composePath := filepath.Join(cwd, "docker-compose.yml")
 	if _, err := os.Stat(composePath); err == nil {
 		var overwrite bool
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
-					Title("docker-compose.yml da ton tai. Ghi de?").
+					Title(ui.Msg("compose_exists")).
 					Value(&overwrite),
 			),
 		)
@@ -62,11 +85,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if !overwrite {
-			return fmt.Errorf("huy khoi tao")
+			return errors.New(ui.Msg("init_cancelled"))
 		}
 	}
 
-	// Step 4: Interactive prompts
+	// Step 5: Interactive prompts
 	enableSeaweedFS := true // Default: enabled (recommended)
 	enableCaddy := true     // Default: enabled (recommended)
 	var domain string
@@ -74,17 +97,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
-				Title("Bat SeaweedFS file storage?").
-				Description("SeaweedFS la he thong luu tru file phan tan").
-				Affirmative("Yes (recommended)").
-				Negative("No").
+				Title(ui.Msg("enable_seaweedfs")).
+				Description(ui.Msg("seaweedfs_desc")).
+				Affirmative(ui.Msg("yes_recommended")).
+				Negative(ui.Msg("no")).
 				Value(&enableSeaweedFS),
 
 			huh.NewConfirm().
-				Title("Bat Caddy web server?").
-				Description("Caddy la reverse proxy voi tu dong HTTPS").
-				Affirmative("Yes (recommended)").
-				Negative("No").
+				Title(ui.Msg("enable_caddy")).
+				Description(ui.Msg("caddy_desc")).
+				Affirmative(ui.Msg("yes_recommended")).
+				Negative(ui.Msg("no")).
 				Value(&enableCaddy),
 		),
 	)
@@ -98,7 +121,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		domainForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
-					Title("Nhap domain (vd: example.com):").
+					Title(ui.Msg("enter_domain")).
 					Value(&domain).
 					Placeholder("localhost"),
 			),
@@ -111,21 +134,21 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 5: Generate passwords
+	// Step 6: Generate passwords
 	dbPass, err := ui.GeneratePassword(24)
 	if err != nil {
-		return fmt.Errorf("khong the tao password DB: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("error_db_password"), err)
 	}
 	dbRootPass, err := ui.GeneratePassword(24)
 	if err != nil {
-		return fmt.Errorf("khong the tao password DB root: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("error_db_root_pass"), err)
 	}
 	redisPass, err := ui.GeneratePassword(24)
 	if err != nil {
-		return fmt.Errorf("khong the tao password Redis: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("error_redis_pass"), err)
 	}
 
-	// Step 6: Render templates
+	// Step 7: Render templates
 	cfg := templates.Config{
 		EnableSeaweedFS: enableSeaweedFS,
 		EnableCaddy:     enableCaddy,
@@ -136,10 +159,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := templates.RenderAll(cfg, cwd); err != nil {
-		return fmt.Errorf("loi khi tao file: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err)
 	}
 
-	// Step 7: Show success
+	// Step 8: Show success
 	fmt.Println()
 	ui.ShowSuccess(ui.MsgCreated("docker-compose.yml"))
 	ui.ShowSuccess(ui.MsgCreated(".env"))

@@ -1,31 +1,18 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/pterm/pterm"
 )
 
-// Success messages
-func MsgCheckingDocker() string { return "Dang kiem tra Docker..." }
-func MsgDockerOK() string       { return "Docker da san sang" }
-func MsgCreated(file string) string {
-	return fmt.Sprintf("Da tao: %s", file)
-}
-func MsgInitComplete() string { return "Khoi tao hoan tat!" }
-
-// Error messages
-func MsgDockerNotInstalled() string { return "Docker chua cai dat" }
-func MsgDockerNotRunning() string   { return "Docker daemon khong chay" }
-
-// Next steps
-func MsgNextSteps() string {
-	return `
-Buoc tiep theo:
-  1. Kiem tra va chinh sua .env neu can
-  2. Chay: kk start
-`
-}
+// Message functions using i18n
+// These functions are kept for backward compatibility
+func MsgCheckingDocker() string         { return Msg("checking_docker") }
+func MsgDockerOK() string               { return Msg("docker_ok") }
+func MsgCreated(file string) string     { return MsgF("created", file) }
+func MsgInitComplete() string           { return Msg("init_complete") }
+func MsgDockerNotInstalled() string     { return Msg("docker_not_installed") }
+func MsgDockerNotRunning() string       { return Msg("docker_not_running") }
+func MsgNextSteps() string              { return Msg("next_steps") }
 
 // Progress indicators using pterm
 func ShowSuccess(msg string) {
