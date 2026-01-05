@@ -39,15 +39,64 @@ Các file config sẵn ở /example
 
 ## Cài đặt
 
-1.  Tải về `kkcli` executable:
-    ```bash
-    # Ví dụ: Tải về phiên bản mới nhất từ GitHub releases
-    # curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli-linux-amd64" -o /usr/local/bin/kkcli
-    # chmod +x /usr/local/bin/kkcli
-    ```
-    (Thay đổi URL và tên file phù hợp với hệ điều hành của bạn)
+### Cài đặt tự động (khuyến nghị)
 
-2.  Đảm bảo `kkcli` có quyền thực thi và nằm trong PATH của bạn.
+Sử dụng script cài đặt tự động để tải và cài đặt phiên bản mới nhất:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
+```
+
+Script sẽ tự động:
+- Phát hiện hệ điều hành và kiến trúc CPU của bạn
+- Tải phiên bản mới nhất từ GitHub releases
+- Xác minh checksum để đảm bảo tính toàn vẹn
+- Cài đặt vào `/usr/local/bin/kk`
+
+### Cài đặt thủ công
+
+Nếu bạn muốn cài đặt thủ công:
+
+1.  Tải script cài đặt về:
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh -o install.sh
+    chmod +x install.sh
+    ```
+
+2.  Chạy script:
+    ```bash
+    ./install.sh
+    ```
+
+3.  Hoặc tải trực tiếp binary từ GitHub releases:
+    ```bash
+    # Linux AMD64
+    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_linux_amd64.tar.gz" -o kkcli.tar.gz
+
+    # Linux ARM64
+    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_linux_arm64.tar.gz" -o kkcli.tar.gz
+
+    # macOS AMD64
+    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_darwin_amd64.tar.gz" -o kkcli.tar.gz
+
+    # macOS ARM64 (Apple Silicon)
+    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_darwin_arm64.tar.gz" -o kkcli.tar.gz
+
+    # Giải nén và cài đặt
+    tar -xzf kkcli.tar.gz
+    sudo mv kk /usr/local/bin/
+    sudo chmod +x /usr/local/bin/kk
+    ```
+
+    (Thay `[VERSION]` bằng phiên bản cụ thể, ví dụ: `0.1.0`)
+
+### Kiểm tra cài đặt
+
+Sau khi cài đặt, kiểm tra phiên bản:
+
+```bash
+kk --version
+```
 
 ## Sử dụng lệnh `kk init`
 

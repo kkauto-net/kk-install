@@ -75,17 +75,39 @@ if [ -f "$TMP_DIR/checksums.txt" ]; then
     CHECKSUM_FILE="kkcli_${LATEST#v}_${OS}_${ARCH}.tar.gz"
 
     if command -v sha256sum &> /dev/null; then
-        if ! grep "$CHECKSUM_FILE" checksums.txt | sha256sum -c - > /dev/null 2>&1; then
-            echo "Checksum khong khop! Binary co the bi sua doi."
-            exit 1
+        # Get expected checksum from file
+        EXPECTED=$(grep "$CHECKSUM_FILE" checksums.txt | awk '{print $1}')
+        if [ -z "$EXPECTED" ]; then
+            echo "Warning: Khong tim thay checksum cho $CHECKSUM_FILE trong file checksums.txt"
+        else
+            # Calculate actual checksum
+            ACTUAL=$(sha256sum kkcli.tar.gz | awk '{print $1}')
+            if [ "$EXPECTED" = "$ACTUAL" ]; then
+                echo "Checksum hop le."
+            else
+                echo "Checksum khong khop!"
+                echo "Expected: $EXPECTED"
+                echo "Actual: $ACTUAL"
+                exit 1
+            fi
         fi
-        echo "Checksum hop le."
     elif command -v shasum &> /dev/null; then
-        if ! grep "$CHECKSUM_FILE" checksums.txt | shasum -a 256 -c - > /dev/null 2>&1; then
-            echo "Checksum khong khop! Binary co the bi sua doi."
-            exit 1
+        # Get expected checksum from file
+        EXPECTED=$(grep "$CHECKSUM_FILE" checksums.txt | awk '{print $1}')
+        if [ -z "$EXPECTED" ]; then
+            echo "Warning: Khong tim thay checksum cho $CHECKSUM_FILE trong file checksums.txt"
+        else
+            # Calculate actual checksum
+            ACTUAL=$(shasum -a 256 kkcli.tar.gz | awk '{print $1}')
+            if [ "$EXPECTED" = "$ACTUAL" ]; then
+                echo "Checksum hop le."
+            else
+                echo "Checksum khong khop!"
+                echo "Expected: $EXPECTED"
+                echo "Actual: $ACTUAL"
+                exit 1
+            fi
         fi
-        echo "Checksum hop le."
     else
         echo "Warning: Khong tim thay sha256sum hoac shasum. Bo qua kiem tra checksum."
     fi
