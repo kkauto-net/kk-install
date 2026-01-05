@@ -1,0 +1,60 @@
+name: Validate Templates
+
+on:
+  pull_request:
+    paths:
+      - 'pkg/templates/*.tmpl'
+      - 'pkg/templates/testdata/golden/*'
+  push:
+    paths:
+      - 'pkg/templates/*.tmpl'
+      - 'pkg/templates/testdata/golden/*'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for literal escape sequences
+        run: |
+          echo "Checking for literal \n escape sequences in templates..."
+          if grep -r '\\n' pkg/templates/*.tmpl; then
+            echo "❌ Found literal \\n escape sequences in templates"
+            exit 1
+          fi
+          echo "✅ No literal escape sequences found"
+
+      - name: Validate line counts
+        run: |
+          echo "Validating template line counts..."
+          LINES=$(wc -l <pkg/templates/docker-compose.yml.tmpl)
+          if [ "$LINES" -lt 50 ]; then
+            echo "❌ docker-compose.yml.tmpl has only $LINES lines (expected 50+)"
+            exit 1
+          fi
+
+          LINES=$(wc -l <pkg/templates/env.tmpl)
+          if [ "$LINES" -lt 10 ]; then
+            echo "❌ env.tmpl has only $LINES lines (expected 10+)"
+            exit 1
+          fi
+          echo "✅ Line counts valid"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run template tests
+        run: go test ./pkg/templates -v
+
+      - name: Validate YAML syntax
+        run: |
+          echo "Installing yq for YAML validation..."
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+          echo "Validating golden docker-compose.yml syntax..."
+          yq eval pkg/templates/testdata/golden/docker-compose.yml.golden > /dev/null
+          echo "✅ YAML syntax valid"
