@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kkengine/kkcli/pkg/compose"
-	"github.com/kkengine/kkcli/pkg/monitor"
-	"github.com/kkengine/kkcli/pkg/ui"
-	"github.com/kkengine/kkcli/pkg/validator"
+	"github.com/kkauto-net/kk-install/pkg/compose"
+	"github.com/kkauto-net/kk-install/pkg/monitor"
+	"github.com/kkauto-net/kk-install/pkg/ui"
+	"github.com/kkauto-net/kk-install/pkg/validator"
 )
 
 var startCmd = &cobra.Command{

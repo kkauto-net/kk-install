@@ -1,6 +1,6 @@
 package main
 
-import "github.com/kkengine/kkcli/cmd"
+import "github.com/kkauto-net/kk-install/cmd"
 
 func main() {
 	cmd.Execute()

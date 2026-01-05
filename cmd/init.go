@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
-	"github.com/kkengine/kkcli/pkg/templates"
-	"github.com/kkengine/kkcli/pkg/ui"
-	"github.com/kkengine/kkcli/pkg/validator"
+	"github.com/kkauto-net/kk-install/pkg/templates"
+	"github.com/kkauto-net/kk-install/pkg/ui"
+	"github.com/kkauto-net/kk-install/pkg/validator"
 )
 
 var initCmd = &cobra.Command{

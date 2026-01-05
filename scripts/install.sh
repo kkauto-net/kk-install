@@ -4,7 +4,7 @@ set -e
 # KK CLI Installer
 # Usage: curl -sSL https://get.kkengine.com/cli | bash
 
-REPO="kkengine/kkcli"
+REPO="kkauto-net/kk-install"
 BINARY="kk"
 INSTALL_DIR="/usr/local/bin"
 

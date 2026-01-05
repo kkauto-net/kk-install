@@ -1,7 +1,7 @@
 .PHONY: build build-all test clean install release lint fmt deps test-coverage uninstall
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS := -ldflags "-s -w -X github.com/kkengine/kkcli/cmd.Version=$(VERSION)"
+LDFLAGS := -ldflags "-s -w -X github.com/kkauto-net/kk-install/cmd.Version=$(VERSION)"
 BINARY := kk
 
 # Build for current platform

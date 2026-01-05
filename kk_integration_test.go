@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kkengine/kkcli/cmd" // Import the cmd package to access DockerValidatorInstance
-	"github.com/kkengine/kkcli/pkg/validator"
+	"github.com/kkauto-net/kk-install/cmd" // Import the cmd package to access DockerValidatorInstance
+	"github.com/kkauto-net/kk-install/pkg/validator"
 )
 
 // ensureKkBinary builds the 'kk' binary if it doesn't exist or is outdated.

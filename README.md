@@ -42,7 +42,7 @@ Các file config sẵn ở /example
 1.  Tải về `kkcli` executable:
     ```bash
     # Ví dụ: Tải về phiên bản mới nhất từ GitHub releases
-    # curl -L "https://github.com/kkdev/kkcli/releases/latest/download/kkcli-linux-amd64" -o /usr/local/bin/kkcli
+    # curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli-linux-amd64" -o /usr/local/bin/kkcli
     # chmod +x /usr/local/bin/kkcli
     ```
     (Thay đổi URL và tên file phù hợp với hệ điều hành của bạn)

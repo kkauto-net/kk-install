@@ -1,4 +1,4 @@
-module github.com/kkengine/kkcli
+module github.com/kkauto-net/kk-install
 
 go 1.24.2
 

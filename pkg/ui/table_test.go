@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kkengine/kkcli/pkg/monitor"
+	"github.com/kkauto-net/kk-install/pkg/monitor"
 	"github.com/stretchr/testify/assert"
 )
 

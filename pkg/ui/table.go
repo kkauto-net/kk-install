@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kkengine/kkcli/pkg/monitor"
+	"github.com/kkauto-net/kk-install/pkg/monitor"
 )
 
 // PrintStatusTable displays service status as formatted table
