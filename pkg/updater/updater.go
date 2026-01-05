@@ -14,10 +14,11 @@ type ImageUpdate struct {
 
 // ParsePullOutput parses docker-compose pull output
 // Example output lines:
-//   Pulling db ... done
-//   Pulling redis ... downloading
-//   kkengine Pulled
-//   Status: Downloaded newer image for mariadb:10.6
+//
+//	Pulling db ... done
+//	Pulling redis ... downloading
+//	kkengine Pulled
+//	Status: Downloaded newer image for mariadb:10.6
 func ParsePullOutput(output string) []ImageUpdate {
 	var updates []ImageUpdate
 

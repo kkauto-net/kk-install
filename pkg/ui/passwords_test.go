@@ -7,8 +7,8 @@ import (
 
 func TestGeneratePassword(t *testing.T) {
 	testCases := []struct {
-		name   string
-		length int
+		name      string
+		length    int
 		wantError bool
 	}{
 		{"Valid length 16", 16, false},

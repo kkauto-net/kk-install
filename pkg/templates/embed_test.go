@@ -13,15 +13,15 @@ import (
 )
 
 func TestRenderTemplate(t *testing.T) {
-	tempDir := t.TempDir() // Add this line
+	tempDir := t.TempDir()               // Add this line
 	testTmplName := "docker-compose.yml" // Use an existing embedded template
 	outputPath := filepath.Join(tempDir, "test_output.yml")
 
 	cfg := Config{
-		DBPassword: "testdbpassword",
+		DBPassword:     "testdbpassword",
 		DBRootPassword: "testdbrootpassword",
-		RedisPassword: "testredispassword",
-		Domain: "test.com",
+		RedisPassword:  "testredispassword",
+		Domain:         "test.com",
 	}
 
 	// Test 1: Happy path - render to a new file

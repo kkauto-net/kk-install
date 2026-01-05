@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	MaxRetries     = 3
-	InitialDelay   = 2 * time.Second
-	MaxDelay       = 30 * time.Second
-	CheckInterval  = 3 * time.Second
+	MaxRetries    = 3
+	InitialDelay  = 2 * time.Second
+	MaxDelay      = 30 * time.Second
+	CheckInterval = 3 * time.Second
 )
 
 type HealthStatus struct {

@@ -32,10 +32,15 @@ Các file config sẵn ở /example
 
 ## Yêu cầu
 
-Để sử dụng `kkcli`, bạn cần cài đặt Docker và Docker Compose trên hệ thống của mình.
+Để sử dụng `kkcli`, bạn cần cài đặt Docker và Docker Compose phiên bản 2.0+ trên hệ thống của mình.
 
 -   **Docker**: Đảm bảo Docker đã được cài đặt và đang chạy.
--   **Docker Compose**: `kkcli` sử dụng Docker Compose để quản lý các dịch vụ.
+-   **Docker Compose**: `kkcli` yêu cầu Docker Compose phiên bản 2.0 trở lên để quản lý các dịch vụ. Vui lòng cập nhật Docker Compose của bạn nếu cần.
+
+## Lưu ý khi sử dụng `kk init`
+
+-   **Tự động sao lưu cấu hình**: Khi chạy `kk init`, nếu các tệp cấu hình (như `docker-compose.yml`, `.env`, `Caddyfile`, `kkfiler.toml`, `kkphp.conf`) đã tồn tại, `kkcli` sẽ tự động tạo bản sao lưu với hậu tố `.bak` (ví dụ: `docker-compose.yml.bak`) trước khi ghi đè. Điều này giúp bạn dễ dàng khôi phục cấu hình trước đó nếu cần.
+-   **Cảnh báo quyền tệp `.env`**: `kkcli` sẽ kiểm tra quyền của tệp `.env` sau khi khởi tạo. Nếu tệp `.env` có quyền truy cập quá rộng (có thể đọc được bởi nhóm hoặc người khác), một cảnh báo sẽ được hiển thị và đề xuất bạn thay đổi quyền tệp thành `chmod 600 .env` để tăng cường bảo mật.
 
 ## Cài đặt
 
@@ -75,12 +80,6 @@ Nếu bạn muốn cài đặt thủ công:
 
     # Linux ARM64
     curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_linux_arm64.tar.gz" -o kkcli.tar.gz
-
-    # macOS AMD64
-    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_darwin_amd64.tar.gz" -o kkcli.tar.gz
-
-    # macOS ARM64 (Apple Silicon)
-    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_darwin_arm64.tar.gz" -o kkcli.tar.gz
 
     # Giải nén và cài đặt
     tar -xzf kkcli.tar.gz

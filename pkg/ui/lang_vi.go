@@ -22,10 +22,10 @@ var messagesVI = map[string]string{
 	"no":               "No",
 
 	// Errors
-	"error_db_password":   "Khong the tao password DB",
-	"error_db_root_pass":  "Khong the tao password DB root",
-	"error_redis_pass":    "Khong the tao password Redis",
-	"error_create_file":   "Loi khi tao file",
+	"error_db_password":  "Khong the tao password DB",
+	"error_db_root_pass": "Khong the tao password DB root",
+	"error_redis_pass":   "Khong the tao password Redis",
+	"error_create_file":  "Loi khi tao file",
 
 	// File generation
 	"generating_files": "Dang tao cac file cau hinh...",

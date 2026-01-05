@@ -22,10 +22,10 @@ var messagesEN = map[string]string{
 	"no":               "No",
 
 	// Errors
-	"error_db_password":   "Failed to generate DB password",
-	"error_db_root_pass":  "Failed to generate DB root password",
-	"error_redis_pass":    "Failed to generate Redis password",
-	"error_create_file":   "Failed to create file",
+	"error_db_password":  "Failed to generate DB password",
+	"error_db_root_pass": "Failed to generate DB root password",
+	"error_redis_pass":   "Failed to generate Redis password",
+	"error_create_file":  "Failed to create file",
 
 	// File generation
 	"generating_files": "Generating configuration files...",

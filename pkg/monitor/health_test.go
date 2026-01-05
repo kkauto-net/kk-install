@@ -89,7 +89,6 @@ func TestHealthMonitor_WaitForHealthy_NoHealthCheck(t *testing.T) {
 	assert.Contains(t, status.Message, "container inspect error")
 }
 
-
 func TestHealthMonitor_WaitForHealthy_WithHealthCheck(t *testing.T) {
 	mockClient := &MockDockerClient{}
 	monitor := &HealthMonitor{client: mockClient}

@@ -54,7 +54,6 @@ func mockDockerValidator(installed bool, daemonRunning bool) *validator.DockerVa
 	}
 }
 
-
 func TestKkVersion(t *testing.T) {
 	kkPath := ensureKkBinary(t)
 

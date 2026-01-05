@@ -40,6 +40,6 @@ kkcli
 
 # Vibe code
 .claude
-plans/
+#plans/
 docs/
 CLAUDE.md

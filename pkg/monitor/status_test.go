@@ -27,7 +27,6 @@ func (m *MockComposeExecutor) Restart(ctx context.Context) error        { return
 func (m *MockComposeExecutor) Pull(ctx context.Context) (string, error) { return "", nil }
 func (m *MockComposeExecutor) ForceRecreate(ctx context.Context) error  { return nil }
 
-
 func TestGetStatus(t *testing.T) {
 	t.Run("successful ps output", func(t *testing.T) {
 		mockPsOutput := `
