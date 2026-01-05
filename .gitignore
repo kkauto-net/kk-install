@@ -36,6 +36,7 @@ data_file/
 data_writable/
 kk
 kkcli
+test/
 
 
 # Vibe code
