@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/pterm/pterm"
 )
 
 // SimpleSpinner provides basic spinner animation
@@ -71,4 +73,45 @@ func ShowServiceProgress(serviceName, status string) {
 	default:
 		fmt.Printf("  [?] %s: %s\n", serviceName, status)
 	}
+}
+
+// ShowStepHeader displays step progress indicator
+func ShowStepHeader(current, total int, title string) {
+	stepText := fmt.Sprintf("Step %d/%d", current, total)
+	pterm.DefaultSection.
+		WithLevel(2).
+		Println(fmt.Sprintf("%s: %s", stepText, title))
+}
+
+// PrintInitSummary shows configuration summary and created files
+func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdFiles []string) {
+	// Configuration Summary
+	pterm.DefaultSection.Println(Msg("config_summary"))
+
+	configData := pterm.TableData{
+		{Msg("col_setting"), Msg("col_value")},
+		{"SeaweedFS", boolToStatus(enableSeaweedFS)},
+		{"Caddy", boolToStatus(enableCaddy)},
+	}
+	if enableCaddy && domain != "" {
+		configData = append(configData, []string{Msg("domain"), domain})
+	}
+
+	pterm.DefaultTable.WithHasHeader(true).WithData(configData).Render()
+
+	// Created Files
+	fmt.Println()
+	pterm.DefaultSection.Println(Msg("created_files"))
+
+	for _, f := range createdFiles {
+		pterm.Success.Println(f)
+	}
+}
+
+// boolToStatus returns colored enabled/disabled status
+func boolToStatus(b bool) string {
+	if b {
+		return pterm.Green("✓ " + Msg("enabled"))
+	}
+	return pterm.Gray("○ " + Msg("disabled"))
 }

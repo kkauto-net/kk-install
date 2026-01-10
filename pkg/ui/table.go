@@ -1,86 +1,98 @@
 package ui
 
 import (
-	"fmt"
-	"strings"
+	"github.com/pterm/pterm"
 
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 )
 
-// PrintStatusTable displays service status as formatted table
+// PrintStatusTable displays service status using pterm table
 func PrintStatusTable(statuses []monitor.ServiceStatus) {
-	// Calculate column widths
-	nameWidth := 10
-	statusWidth := 10
-	healthWidth := 10
-	portsWidth := 25
+	pterm.DefaultSection.Println(Msg("service_status"))
 
-	for _, s := range statuses {
-		if len(s.Name) > nameWidth {
-			nameWidth = len(s.Name)
-		}
+	tableData := pterm.TableData{
+		{Msg("col_service"), Msg("col_status"), Msg("col_health"), Msg("col_ports")},
 	}
 
-	// Print header
-	fmt.Println()
-	fmt.Println("Trang thai dich vu:")
-	fmt.Println(strings.Repeat("─", nameWidth+statusWidth+healthWidth+portsWidth+10))
-	fmt.Printf("│ %-*s │ %-*s │ %-*s │ %-*s │\n",
-		nameWidth, "Service",
-		statusWidth, "Status",
-		healthWidth, "Health",
-		portsWidth, "Ports")
-	fmt.Println(strings.Repeat("─", nameWidth+statusWidth+healthWidth+portsWidth+10))
-
-	// Print rows
 	for _, s := range statuses {
-		health := s.Health
-		if health == "" {
-			health = "-"
-		}
-
-		ports := s.Ports
-		if ports == "" {
-			ports = "-"
-		}
-		// Truncate ports if too long
-		if len(ports) > portsWidth {
-			ports = ports[:portsWidth-3] + "..."
-		}
-
-		statusIcon := "[OK]"
+		statusText := pterm.Green("● " + Msg("status_running"))
 		if !s.Running {
-			statusIcon = "[X]"
+			statusText = pterm.Red("○ " + Msg("status_stopped"))
 		}
 
-		fmt.Printf("│ %-*s │ %s %-*s │ %-*s │ %-*s │\n",
-			nameWidth, s.Name,
-			statusIcon, statusWidth-4, s.Status,
-			healthWidth, health,
-			portsWidth, ports)
+		health := formatHealth(s.Health)
+		ports := truncatePorts(s.Ports, 30)
+
+		tableData = append(tableData, []string{
+			s.Name,
+			statusText,
+			health,
+			ports,
+		})
 	}
 
-	fmt.Println(strings.Repeat("─", nameWidth+statusWidth+healthWidth+portsWidth+10))
-	fmt.Println()
+	pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(true).
+		WithData(tableData).
+		Render()
+}
+
+func formatHealth(health string) string {
+	if health == "" {
+		return pterm.Gray("-")
+	}
+	if health == "healthy" {
+		return pterm.Green("healthy")
+	}
+	if health == "unhealthy" {
+		return pterm.Red("unhealthy")
+	}
+	return pterm.Yellow(health)
+}
+
+func truncatePorts(ports string, maxLen int) string {
+	if ports == "" {
+		return "-"
+	}
+	if len(ports) > maxLen {
+		return ports[:maxLen-3] + "..."
+	}
+	return ports
 }
 
 // PrintAccessInfo shows access URLs for services
 func PrintAccessInfo(statuses []monitor.ServiceStatus) {
-	fmt.Println("Truy cap:")
+	pterm.DefaultSection.Println(Msg("access_info"))
+
+	tableData := pterm.TableData{
+		{Msg("col_service"), Msg("col_url")},
+	}
+
 	for _, s := range statuses {
-		if !s.Running || s.Ports == "" {
+		if !s.Running {
 			continue
 		}
-
-		// Parse ports to show URLs
-		switch s.Name {
-		case "kkengine":
-			fmt.Printf("  - kkengine: http://localhost:8019\n")
-		case "db":
-			fmt.Printf("  - MariaDB: localhost:3307\n")
-		case "caddy":
-			fmt.Printf("  - Web: http://localhost (HTTPS: https://localhost)\n")
+		url := getServiceURL(s.Name, s.Ports)
+		if url != "" {
+			tableData = append(tableData, []string{s.Name, url})
 		}
 	}
-	fmt.Println()
+
+	if len(tableData) > 1 {
+		pterm.DefaultTable.WithHasHeader(true).WithData(tableData).Render()
+	}
+}
+
+func getServiceURL(name, _ string) string {
+	switch name {
+	case "kkengine":
+		return "http://localhost:8019"
+	case "db":
+		return "localhost:3307"
+	case "caddy":
+		return "http://localhost (HTTPS: https://localhost)"
+	default:
+		return ""
+	}
 }

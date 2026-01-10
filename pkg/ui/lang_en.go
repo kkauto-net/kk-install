@@ -80,4 +80,37 @@ Next steps:
 	"all_running":        "All %d services running",
 	"some_running":       "%d/%d services running",
 	"get_status_failed":  "Failed to get status",
+
+	// Table columns
+	"service_status": "Service Status",
+	"access_info":    "Access Information",
+	"col_service":    "Service",
+	"col_status":     "Status",
+	"col_health":     "Health",
+	"col_ports":      "Ports",
+	"col_url":        "URL",
+	"col_setting":    "Setting",
+	"col_value":      "Value",
+
+	// Init summary
+	"config_summary": "Configuration Summary",
+	"created_files":  "Created Files",
+	"enabled":        "Enabled",
+	"disabled":       "Disabled",
+	"domain":         "Domain",
+
+	// Status display
+	"status_running": "Running",
+	"status_stopped": "Stopped",
+
+	// Init wizard steps
+	"step_docker_check": "Docker Check",
+	"step_language":     "Language Selection",
+	"step_options":      "Configuration Options",
+	"step_generate":     "Generate Files",
+	"step_complete":     "Complete",
+
+	// Preflight
+	"check":  "Check",
+	"result": "Result",
 }
