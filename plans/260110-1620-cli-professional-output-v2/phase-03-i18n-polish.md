@@ -12,7 +12,7 @@
 | Date | 2026-01-10 |
 | Priority | P2 |
 | Effort | 0.5h |
-| Implementation Status | pending |
+| Implementation Status | completed |
 | Review Status | pending |
 
 **Description:** Add all new i18n message keys for both English and Vietnamese (có dấu), run tests, and final polish.
