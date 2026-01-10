@@ -58,9 +58,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	if running == len(statuses) {
-		fmt.Printf("[OK] "+ui.Msg("all_running")+"\n", running)
+		ui.ShowSuccess(ui.MsgF("all_running", running))
 	} else {
-		fmt.Printf("[!] "+ui.Msg("some_running")+"\n", running, len(statuses))
+		ui.ShowWarning(ui.MsgF("some_running", running, len(statuses)))
 	}
 
 	return nil

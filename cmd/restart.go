@@ -44,7 +44,8 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	fmt.Println(ui.Msg("restarting"))
+	// Step 1: Restart services
+	ui.ShowStepHeader(1, 3, ui.Msg("step_start_services"))
 
 	executor := compose.NewExecutor(cwd)
 
@@ -55,9 +56,10 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("restart_failed"), err)
 	}
 
-	fmt.Println("[OK] " + ui.Msg("restart_complete"))
+	ui.ShowSuccess(ui.Msg("restart_complete"))
 
 	// Step 2: Monitor health
+	ui.ShowStepHeader(2, 3, ui.Msg("step_health_check"))
 	composeFile, err := compose.ParseComposeFile(cwd)
 	if err == nil {
 		healthMonitor, err := monitor.NewHealthMonitor()
@@ -81,7 +83,8 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Show final status
+	// Step 3: Show final status
+	ui.ShowStepHeader(3, 3, ui.Msg("step_status"))
 	statuses, err := monitor.GetStatus(timeoutCtx, executor)
 	if err == nil {
 		ui.PrintStatusTable(statuses)

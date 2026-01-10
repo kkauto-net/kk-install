@@ -113,4 +113,12 @@ Next steps:
 	// Preflight
 	"check":  "Check",
 	"result": "Result",
+
+	// Start/Restart/Update steps
+	"step_preflight":      "Preflight Checks",
+	"step_start_services": "Start Services",
+	"step_health_check":   "Health Check",
+	"step_status":         "Status",
+	"step_pull_images":    "Pull Images",
+	"step_recreate":       "Recreate Containers",
 }

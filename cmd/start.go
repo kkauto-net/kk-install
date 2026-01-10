@@ -52,8 +52,8 @@ func runStart(cmd *cobra.Command, args []string) error {
 		_, includeCaddy = composeFile.Services["caddy"]
 	}
 
-	// Step 2: Run preflight checks
-	fmt.Println("\n" + ui.Msg("preflight_checking"))
+	// Step 1: Run preflight checks
+	ui.ShowStepHeader(1, 4, ui.Msg("step_preflight"))
 	results, err := validator.RunPreflight(cwd, includeCaddy)
 	validator.PrintPreflightResults(results)
 
@@ -61,8 +61,8 @@ func runStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s", ui.Msg("preflight_failed"))
 	}
 
-	// Step 3: Start docker-compose
-	fmt.Println(ui.Msg("starting_services"))
+	// Step 2: Start docker-compose
+	ui.ShowStepHeader(2, 4, ui.Msg("step_start_services"))
 	executor := compose.NewExecutor(cwd)
 
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
@@ -72,8 +72,8 @@ func runStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("start_failed"), err)
 	}
 
-	// Step 4: Monitor health
-	fmt.Println("\n" + ui.Msg("health_checking"))
+	// Step 3: Monitor health
+	ui.ShowStepHeader(3, 4, ui.Msg("step_health_check"))
 
 	healthMonitor, err := monitor.NewHealthMonitor()
 	if err != nil {
@@ -111,8 +111,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 5: Show status
-	fmt.Println("\n[OK] " + ui.Msg("start_complete"))
+	// Step 4: Show status
+	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
+	ui.ShowSuccess(ui.Msg("start_complete"))
 
 	statuses, err := monitor.GetStatus(timeoutCtx, executor)
 	if err == nil {

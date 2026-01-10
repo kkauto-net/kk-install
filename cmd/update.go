@@ -52,7 +52,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	executor := compose.NewExecutor(cwd)
 
 	// Step 1: Pull new images
-	fmt.Println(ui.Msg("checking_updates"))
+	ui.ShowStepHeader(1, 4, ui.Msg("step_pull_images"))
 	spinner := ui.NewSpinner(ui.Msg("pulling_images"))
 	spinner.Start()
 
@@ -74,8 +74,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Step 3: Show updates
-	fmt.Println("\n" + ui.Msg("updates_available"))
+	// Step 2: Show updates
+	ui.ShowStepHeader(2, 4, ui.Msg("step_status"))
+	fmt.Println(ui.Msg("updates_available"))
 	for _, u := range updates {
 		fmt.Printf("  - %s\n", u.Image)
 		if u.OldDigest != "" && u.NewDigest != "" {
@@ -92,7 +93,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 
-	// Step 4: Confirm restart
+	// Confirm restart
 	if !forceUpdate {
 		var confirm bool
 		form := huh.NewForm(
@@ -113,8 +114,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 5: Recreate containers
-	fmt.Println(ui.Msg("recreating"))
+	// Step 3: Recreate containers
+	ui.ShowStepHeader(3, 4, ui.Msg("step_recreate"))
 
 	recreateCtx, recreateCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer recreateCancel()
@@ -123,7 +124,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
 	}
 
-	// Step 6: Monitor health
+	// Monitor health
 	composeFile, err := compose.ParseComposeFile(cwd)
 	if err == nil {
 		healthMonitor, err := monitor.NewHealthMonitor()
@@ -145,7 +146,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	fmt.Println("\n[OK] " + ui.Msg("update_complete"))
+	// Step 4: Show status
+	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
+	ui.ShowSuccess(ui.Msg("update_complete"))
 
 	// Show status
 	statusCtx, statusCancel := context.WithTimeout(ctx, compose.DefaultTimeout)

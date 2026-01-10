@@ -113,4 +113,12 @@ Bước tiếp theo:
 	// Preflight
 	"check":  "Kiểm tra",
 	"result": "Kết quả",
+
+	// Start/Restart/Update steps
+	"step_preflight":      "Kiểm tra trước",
+	"step_start_services": "Khởi động dịch vụ",
+	"step_health_check":   "Kiểm tra sức khỏe",
+	"step_status":         "Trạng thái",
+	"step_pull_images":    "Tải images",
+	"step_recreate":       "Tạo lại containers",
 }
