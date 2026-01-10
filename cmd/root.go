@@ -14,11 +14,14 @@ var Version = "0.1.0"
 
 var rootCmd = &cobra.Command{
 	Use:   "kk",
-	Short: "KK CLI - Docker Compose management for kkengine",
-	Long:  `KK CLI giup ban quan ly kkengine Docker stack de dang.`,
+	Short: "🚀 Manage your kkengine Docker stack effortlessly",
+	Long:  `🚀 Manage your kkengine Docker stack effortlessly.`,
 }
 
 func Execute() {
+	// Apply custom help templates (after all subcommands are registered)
+	ui.ApplyTemplates(rootCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

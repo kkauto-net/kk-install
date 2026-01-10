@@ -32,9 +32,9 @@ Current issues:
 | Phase | Description | Effort | Status |
 |-------|-------------|--------|--------|
 | [Phase 01](phase-01-config-storage.md) | Config storage for language preference | 30m | done |
-| [Phase 02](phase-02-help-templates.md) | Custom Cobra help templates (GitHub CLI style) | 45m | pending |
+| [Phase 02](phase-02-help-templates.md) | Custom Cobra help templates (GitHub CLI style) | 45m | done |
 | [Phase 03](phase-03-language-files.md) | Update language files with diacritics | 30m | pending |
-| [Phase 04](phase-04-command-annotations.md) | Add group annotations to commands | 15m | pending |
+| [Phase 04](phase-04-command-annotations.md) | Add group annotations to commands | 15m | **REQUIRED** |
 
 ## Architecture
 
