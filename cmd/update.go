@@ -64,7 +64,12 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	output, err := executor.Pull(pullCtx)
 	if err != nil {
 		spinner.Fail(ui.Msg("pull_failed"))
-		return fmt.Errorf("%s: %w", ui.Msg("pull_failed"), err)
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("pull_failed"),
+			Message:    err.Error(),
+			Suggestion: "Check internet connection or Docker Hub status",
+		})
+		return err
 	}
 	spinner.Success(ui.Msg("pulling_images"))
 

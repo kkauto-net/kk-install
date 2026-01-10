@@ -40,7 +40,13 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	executor := compose.NewExecutor(cwd)
 	statuses, err := monitor.GetStatus(ctx, executor)
 	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("get_status_failed"), err)
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("get_status_failed"),
+			Message:    err.Error(),
+			Suggestion: "Check if Docker is running",
+			Command:    "docker ps",
+		})
+		return err
 	}
 
 	if len(statuses) == 0 {

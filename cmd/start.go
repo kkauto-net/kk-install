@@ -61,7 +61,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	validator.PrintPreflightResults(results)
 
 	if err != nil {
-		return fmt.Errorf("%s", ui.Msg("preflight_failed"))
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("preflight_failed"),
+			Message:    ui.Msg("preflight_checks_failed"),
+			Suggestion: "Fix the issues above and try again",
+		})
+		return err
 	}
 
 	// Step 2: Start docker-compose
@@ -74,7 +79,13 @@ func runStart(cmd *cobra.Command, args []string) error {
 	spinner := ui.StartPtermSpinner(ui.Msg("starting_services"))
 	if err := executor.Up(timeoutCtx); err != nil {
 		spinner.Fail(ui.Msg("start_failed"))
-		return fmt.Errorf("%s: %w", ui.Msg("start_failed"), err)
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("start_failed"),
+			Message:    err.Error(),
+			Suggestion: "Check Docker logs for details",
+			Command:    "docker compose logs",
+		})
+		return err
 	}
 	spinner.Success(ui.Msg("services_started"))
 

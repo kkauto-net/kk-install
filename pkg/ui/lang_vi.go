@@ -2,10 +2,13 @@ package ui
 
 var messagesVI = map[string]string{
 	// Docker validation
-	"checking_docker":      "Đang kiểm tra Docker...",
-	"docker_ok":            "Docker đã sẵn sàng",
-	"docker_not_installed": "Docker chưa được cài đặt",
-	"docker_not_running":   "Docker daemon không chạy",
+	"checking_docker":       "Đang kiểm tra Docker...",
+	"docker_ok":             "Docker đã sẵn sàng",
+	"docker_not_installed":  "Docker chưa được cài đặt",
+	"docker_not_running":    "Docker daemon không chạy",
+	"docker_not_found":      "Không tìm thấy Docker",
+	"docker_daemon_stopped": "Docker không chạy",
+	"docker_compose_issue":  "Vấn đề Docker Compose",
 
 	// Init flow
 	"init_in_dir":    "Khởi tạo trong: %s",
@@ -55,7 +58,8 @@ Bước tiếp theo:
 	// Runtime messages (start, restart, update, status)
 	"stopping":           "Đang dừng lại...",
 	"preflight_checking": "Kiểm tra trước khi chạy...",
-	"preflight_failed":   "Kiểm tra thất bại. Vui lòng sửa lỗi trên",
+	"preflight_failed":        "Kiểm tra thất bại. Vui lòng sửa lỗi trên",
+	"preflight_checks_failed": "Một hoặc nhiều kiểm tra thất bại",
 	"starting_services":  "Khởi động services...",
 	"start_failed":       "Khởi động thất bại",
 	"health_checking":    "Đang kiểm tra sức khỏe dịch vụ...",

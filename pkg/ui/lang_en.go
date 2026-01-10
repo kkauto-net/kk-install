@@ -2,10 +2,13 @@ package ui
 
 var messagesEN = map[string]string{
 	// Docker validation
-	"checking_docker":      "Checking Docker...",
-	"docker_ok":            "Docker is ready",
-	"docker_not_installed": "Docker is not installed",
-	"docker_not_running":   "Docker daemon is not running",
+	"checking_docker":       "Checking Docker...",
+	"docker_ok":             "Docker is ready",
+	"docker_not_installed":  "Docker is not installed",
+	"docker_not_running":    "Docker daemon is not running",
+	"docker_not_found":      "Docker Not Found",
+	"docker_daemon_stopped": "Docker Not Running",
+	"docker_compose_issue":  "Docker Compose Issue",
 
 	// Init flow
 	"init_in_dir":    "Initializing in: %s",
@@ -55,7 +58,8 @@ Next steps:
 	// Runtime messages
 	"stopping":           "Stopping...",
 	"preflight_checking": "Running preflight checks...",
-	"preflight_failed":   "Preflight checks failed. Please fix the errors above",
+	"preflight_failed":        "Preflight checks failed. Please fix the errors above",
+	"preflight_checks_failed": "One or more preflight checks failed",
 	"starting_services":  "Starting services...",
 	"start_failed":       "Start failed",
 	"health_checking":    "Checking service health...",

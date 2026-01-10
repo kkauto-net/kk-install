@@ -40,15 +40,28 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowStepHeader(1, 5, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
-		ui.ShowError(err.Error())
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_not_found"),
+			Message:    err.Error(),
+			Suggestion: "Install Docker from https://docs.docker.com/get-docker/",
+		})
 		return err
 	}
 	if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
-		ui.ShowError(err.Error())
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_daemon_stopped"),
+			Message:    err.Error(),
+			Suggestion: "Start Docker daemon",
+			Command:    "systemctl start docker",
+		})
 		return err
 	}
 	if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
-		ui.ShowError(err.Error())
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_compose_issue"),
+			Message:    err.Error(),
+			Suggestion: "Update Docker to latest version",
+		})
 		return err
 	}
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())

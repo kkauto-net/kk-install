@@ -58,7 +58,13 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	spinner := ui.StartPtermSpinner(ui.Msg("restarting"))
 	if err := executor.Restart(timeoutCtx); err != nil {
 		spinner.Fail(ui.Msg("restart_failed"))
-		return fmt.Errorf("%s: %w", ui.Msg("restart_failed"), err)
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("restart_failed"),
+			Message:    err.Error(),
+			Suggestion: "Check if services are running",
+			Command:    "kk status",
+		})
+		return err
 	}
 	spinner.Success(ui.Msg("restart_complete"))
 

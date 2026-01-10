@@ -124,7 +124,7 @@ func PrintAccessInfo(statuses []monitor.ServiceStatus) {
 	}
 
 	if len(tableData) > 1 {
-		pterm.DefaultTable.WithHasHeader(true).WithData(tableData).Render()
+		pterm.DefaultTable.WithHasHeader(true).WithBoxed(true).WithData(tableData).Render()
 	}
 }
 
