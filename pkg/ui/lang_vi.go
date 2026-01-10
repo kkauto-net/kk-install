@@ -121,4 +121,27 @@ Bước tiếp theo:
 	"step_status":         "Trạng thái",
 	"step_pull_images":    "Tải images",
 	"step_recreate":       "Tạo lại containers",
+
+	// Command banners
+	"status_desc":  "Trạng thái dịch vụ",
+	"init_desc":    "Khởi tạo Docker Stack",
+	"start_desc":   "Khởi động tất cả dịch vụ",
+	"restart_desc": "Khởi động lại tất cả dịch vụ",
+	"update_desc":  "Cập nhật & Khởi tạo lại",
+
+	// Error box
+	"to_fix":   "Để khắc phục",
+	"then_run": "Sau đó chạy",
+
+	// Table columns (new)
+	"col_image":   "Image",
+	"col_current": "Hiện tại",
+	"col_new":     "Mới",
+	"col_file":    "Tệp",
+
+	// Progress
+	"starting":         "đang khởi động...",
+	"ready":            "sẵn sàng",
+	"unhealthy":        "không khỏe mạnh",
+	"services_started": "Đã khởi động dịch vụ",
 }

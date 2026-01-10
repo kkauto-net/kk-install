@@ -8,7 +8,8 @@ import (
 	"github.com/pterm/pterm"
 )
 
-// SimpleSpinner provides basic spinner animation
+// SimpleSpinner provides basic spinner animation for progress indication.
+// Deprecated: Use StartPtermSpinner for better terminal support.
 type SimpleSpinner struct {
 	frames  []string
 	current int
@@ -17,6 +18,8 @@ type SimpleSpinner struct {
 	done    chan bool
 }
 
+// NewSpinner creates a new SimpleSpinner with the given message.
+// Deprecated: Use StartPtermSpinner for better terminal support.
 func NewSpinner(message string) *SimpleSpinner {
 	return &SimpleSpinner{
 		frames:  []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
@@ -25,6 +28,7 @@ func NewSpinner(message string) *SimpleSpinner {
 	}
 }
 
+// Start begins the spinner animation in a goroutine.
 func (s *SimpleSpinner) Start() {
 	go func() {
 		for {
@@ -43,6 +47,8 @@ func (s *SimpleSpinner) Start() {
 	}()
 }
 
+// Stop halts the spinner and shows final status.
+// If success is true, shows [OK]; otherwise shows [X].
 func (s *SimpleSpinner) Stop(success bool) {
 	s.done <- true
 	s.mu.RLock()
@@ -55,27 +61,36 @@ func (s *SimpleSpinner) Stop(success bool) {
 	}
 }
 
+// UpdateMessage changes the spinner message while it's running.
 func (s *SimpleSpinner) UpdateMessage(msg string) {
 	s.mu.Lock()
 	s.message = msg
 	s.mu.Unlock()
 }
 
-// ProgressIndicator for service startup
+// StartPtermSpinner creates and starts a pterm spinner with the given message.
+// Returns a SpinnerPrinter that can be controlled with Success(), Fail(), etc.
+func StartPtermSpinner(msg string) *pterm.SpinnerPrinter {
+	spinner, _ := pterm.DefaultSpinner.Start(msg)
+	return spinner
+}
+
+// ShowServiceProgress displays service startup status using pterm formatting.
+// Status can be: "starting", "healthy", "running", "unhealthy", or any custom value.
 func ShowServiceProgress(serviceName, status string) {
 	switch status {
 	case "starting":
-		fmt.Printf("  [>] %s khoi dong...\n", serviceName)
+		pterm.Info.Printfln("%s %s", serviceName, Msg("starting"))
 	case "healthy", "running":
-		fmt.Printf("  [OK] %s san sang\n", serviceName)
+		pterm.Success.Printfln("%s %s", serviceName, Msg("ready"))
 	case "unhealthy":
-		fmt.Printf("  [X] %s khong khoe manh\n", serviceName)
+		pterm.Error.Printfln("%s %s", serviceName, Msg("unhealthy"))
 	default:
-		fmt.Printf("  [?] %s: %s\n", serviceName, status)
+		pterm.Warning.Printfln("%s: %s", serviceName, status)
 	}
 }
 
-// ShowStepHeader displays step progress indicator
+// ShowStepHeader displays a step progress indicator (e.g., "Step 1/4: Title").
 func ShowStepHeader(current, total int, title string) {
 	stepText := fmt.Sprintf("Step %d/%d", current, total)
 	pterm.DefaultSection.
@@ -83,7 +98,7 @@ func ShowStepHeader(current, total int, title string) {
 		Println(fmt.Sprintf("%s: %s", stepText, title))
 }
 
-// PrintInitSummary shows configuration summary and created files
+// PrintInitSummary shows configuration summary and created files after kk init.
 func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdFiles []string) {
 	// Configuration Summary
 	pterm.DefaultSection.Println(Msg("config_summary"))

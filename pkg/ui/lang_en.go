@@ -121,4 +121,27 @@ Next steps:
 	"step_status":         "Status",
 	"step_pull_images":    "Pull Images",
 	"step_recreate":       "Recreate Containers",
+
+	// Command banners
+	"status_desc":  "Service Status",
+	"init_desc":    "Docker Stack Initialization",
+	"start_desc":   "Start All Services",
+	"restart_desc": "Restart All Services",
+	"update_desc":  "Pull & Recreate",
+
+	// Error box
+	"to_fix":   "To fix",
+	"then_run": "Then run",
+
+	// Table columns (new)
+	"col_image":   "Image",
+	"col_current": "Current",
+	"col_new":     "New",
+	"col_file":    "File",
+
+	// Progress
+	"starting":         "starting...",
+	"ready":            "ready",
+	"unhealthy":        "unhealthy",
+	"services_started": "Services started",
 }

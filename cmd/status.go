@@ -26,6 +26,9 @@ func init() {
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
+	// Show command banner
+	ui.ShowCommandBanner("kk status", ui.Msg("status_desc"))
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err

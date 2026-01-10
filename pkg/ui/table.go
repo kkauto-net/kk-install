@@ -6,6 +6,50 @@ import (
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 )
 
+// Table display constants
+const (
+	DigestTruncateLen = 12 // Length to truncate Docker image digests
+	PortsTruncateLen  = 30 // Maximum length for ports display
+)
+
+// ImageUpdate represents an image update information for display.
+type ImageUpdate struct {
+	Image     string // Docker image name
+	OldDigest string // Current image digest
+	NewDigest string // New available digest
+}
+
+// PrintUpdatesTable displays available Docker image updates as a boxed table.
+func PrintUpdatesTable(updates []ImageUpdate) {
+	if len(updates) == 0 {
+		return
+	}
+
+	tableData := pterm.TableData{
+		{Msg("col_image"), Msg("col_current"), Msg("col_new")},
+	}
+
+	for _, u := range updates {
+		old := truncateDigest(u.OldDigest, DigestTruncateLen)
+		new := truncateDigest(u.NewDigest, DigestTruncateLen)
+		tableData = append(tableData, []string{u.Image, old, new})
+	}
+
+	pterm.DefaultSection.Println(Msg("updates_available"))
+	pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(true).
+		WithData(tableData).
+		Render()
+}
+
+func truncateDigest(digest string, maxLen int) string {
+	if len(digest) > maxLen {
+		return digest[:maxLen] + "..."
+	}
+	return digest
+}
+
 // PrintStatusTable displays service status using pterm table
 func PrintStatusTable(statuses []monitor.ServiceStatus) {
 	pterm.DefaultSection.Println(Msg("service_status"))
@@ -21,7 +65,7 @@ func PrintStatusTable(statuses []monitor.ServiceStatus) {
 		}
 
 		health := formatHealth(s.Health)
-		ports := truncatePorts(s.Ports, 30)
+		ports := truncatePorts(s.Ports, PortsTruncateLen)
 
 		tableData = append(tableData, []string{
 			s.Name,
