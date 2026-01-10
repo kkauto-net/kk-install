@@ -100,7 +100,7 @@ func ShowStepHeader(current, total int, title string) {
 
 // PrintInitSummary shows configuration summary and created files after kk init.
 func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdFiles []string) {
-	// Configuration Summary
+	// Configuration Summary - WITH BOX
 	pterm.DefaultSection.Println(Msg("config_summary"))
 
 	configData := pterm.TableData{
@@ -112,15 +112,26 @@ func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdF
 		configData = append(configData, []string{Msg("domain"), domain})
 	}
 
-	pterm.DefaultTable.WithHasHeader(true).WithData(configData).Render()
+	pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(true).
+		WithData(configData).
+		Render()
 
-	// Created Files
+	// Created Files - WITH BOX
 	fmt.Println()
 	pterm.DefaultSection.Println(Msg("created_files"))
 
+	fileData := pterm.TableData{{Msg("col_file")}}
 	for _, f := range createdFiles {
-		pterm.Success.Println(f)
+		fileData = append(fileData, []string{pterm.Green("✓ " + f)})
 	}
+
+	pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(true).
+		WithData(fileData).
+		Render()
 }
 
 // boolToStatus returns colored enabled/disabled status

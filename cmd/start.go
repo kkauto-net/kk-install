@@ -28,6 +28,9 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
+	// Command banner
+	ui.ShowCommandBanner("kk start", ui.Msg("start_desc"))
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -68,9 +71,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer timeoutCancel()
 
+	spinner := ui.StartPtermSpinner(ui.Msg("starting_services"))
 	if err := executor.Up(timeoutCtx); err != nil {
+		spinner.Fail(ui.Msg("start_failed"))
 		return fmt.Errorf("%s: %w", ui.Msg("start_failed"), err)
 	}
+	spinner.Success(ui.Msg("services_started"))
 
 	// Step 3: Monitor health
 	ui.ShowStepHeader(3, 4, ui.Msg("step_health_check"))

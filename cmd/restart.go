@@ -27,6 +27,9 @@ func init() {
 }
 
 func runRestart(cmd *cobra.Command, args []string) error {
+	// Command banner
+	ui.ShowCommandBanner("kk restart", ui.Msg("restart_desc"))
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -52,11 +55,12 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer timeoutCancel()
 
+	spinner := ui.StartPtermSpinner(ui.Msg("restarting"))
 	if err := executor.Restart(timeoutCtx); err != nil {
+		spinner.Fail(ui.Msg("restart_failed"))
 		return fmt.Errorf("%s: %w", ui.Msg("restart_failed"), err)
 	}
-
-	ui.ShowSuccess(ui.Msg("restart_complete"))
+	spinner.Success(ui.Msg("restart_complete"))
 
 	// Step 2: Monitor health
 	ui.ShowStepHeader(2, 3, ui.Msg("step_health_check"))

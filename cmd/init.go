@@ -33,6 +33,9 @@ func init() {
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
+	// Command banner
+	ui.ShowCommandBanner("kk init", ui.Msg("init_desc"))
+
 	// Step 1: Check Docker
 	ui.ShowStepHeader(1, 5, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
@@ -204,13 +207,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Show summary table
 	ui.PrintInitSummary(enableSeaweedFS, enableCaddy, domain, createdFiles)
 
-	// Show completion box
+	// Show completion banner
 	fmt.Println()
-	pterm.DefaultBox.
-		WithTitle(ui.IconComplete + " " + ui.Msg("init_complete")).
-		WithTitleTopCenter().
-		WithBoxStyle(pterm.NewStyle(pterm.FgGreen)).
-		Println(ui.Msg("next_steps_box"))
+	ui.ShowCompletionBanner(true, ui.IconComplete+" "+ui.Msg("init_complete"), ui.Msg("next_steps_box"))
 
 	return nil
 }

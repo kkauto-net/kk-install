@@ -32,6 +32,9 @@ func init() {
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
+	// Command banner
+	ui.ShowCommandBanner("kk update", ui.Msg("update_desc"))
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -53,18 +56,17 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Step 1: Pull new images
 	ui.ShowStepHeader(1, 4, ui.Msg("step_pull_images"))
-	spinner := ui.NewSpinner(ui.Msg("pulling_images"))
-	spinner.Start()
+	spinner := ui.StartPtermSpinner(ui.Msg("pulling_images"))
 
 	pullCtx, pullCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer pullCancel()
 
 	output, err := executor.Pull(pullCtx)
-	spinner.Stop(err == nil)
-
 	if err != nil {
+		spinner.Fail(ui.Msg("pull_failed"))
 		return fmt.Errorf("%s: %w", ui.Msg("pull_failed"), err)
 	}
+	spinner.Success(ui.Msg("pulling_images"))
 
 	// Step 2: Parse pull output
 	updates := updater.ParsePullOutput(output)
@@ -74,23 +76,17 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Step 2: Show updates
+	// Step 2: Show updates with boxed table
 	ui.ShowStepHeader(2, 4, ui.Msg("step_status"))
-	fmt.Println(ui.Msg("updates_available"))
-	for _, u := range updates {
-		fmt.Printf("  - %s\n", u.Image)
-		if u.OldDigest != "" && u.NewDigest != "" {
-			oldDigest := u.OldDigest
-			if len(oldDigest) > 12 {
-				oldDigest = oldDigest[:12]
-			}
-			newDigest := u.NewDigest
-			if len(newDigest) > 12 {
-				newDigest = newDigest[:12]
-			}
-			fmt.Printf("    %s -> %s\n", oldDigest, newDigest)
+	uiUpdates := make([]ui.ImageUpdate, len(updates))
+	for i, u := range updates {
+		uiUpdates[i] = ui.ImageUpdate{
+			Image:     u.Image,
+			OldDigest: u.OldDigest,
+			NewDigest: u.NewDigest,
 		}
 	}
+	ui.PrintUpdatesTable(uiUpdates)
 	fmt.Println()
 
 	// Confirm restart
