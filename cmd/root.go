@@ -5,6 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/kkauto-net/kk-install/pkg/config"
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 var Version = "0.1.0"
@@ -24,4 +27,11 @@ func Execute() {
 
 func init() {
 	rootCmd.Version = Version
+
+	// Load language preference from config
+	cfg, err := config.Load()
+	if err == nil && cfg != nil {
+		ui.SetLanguage(ui.Language(cfg.Language))
+	}
+	// If load fails, ui package already defaults to English
 }

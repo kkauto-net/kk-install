@@ -11,6 +11,7 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
+	"github.com/kkauto-net/kk-install/pkg/config"
 	"github.com/kkauto-net/kk-install/pkg/templates"
 	"github.com/kkauto-net/kk-install/pkg/ui"
 	"github.com/kkauto-net/kk-install/pkg/validator"
@@ -68,6 +69,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		langChoice = "en"
 	}
 	ui.SetLanguage(ui.Language(langChoice))
+
+	// Save language preference to config
+	cfg, _ := config.Load()
+	cfg.Language = langChoice
+	_ = cfg.Save() // Best effort, don't fail init if config save fails
 
 	// Step 3: Get working directory
 	cwd, err := os.Getwd()
@@ -162,7 +168,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 7: Render templates with spinner
 	spinner, _ := pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
 
-	cfg := templates.Config{
+	tmplCfg := templates.Config{
 		EnableSeaweedFS: enableSeaweedFS,
 		EnableCaddy:     enableCaddy,
 		DBPassword:      dbPass,
@@ -171,7 +177,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		Domain:          domain,
 	}
 
-	if err := templates.RenderAll(cfg, cwd); err != nil {
+	if err := templates.RenderAll(tmplCfg, cwd); err != nil {
 		spinner.Fail(ui.MsgF("error_create_file", err.Error()))
 		return fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err)
 	}
