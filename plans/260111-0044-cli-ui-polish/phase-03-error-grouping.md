@@ -12,7 +12,7 @@
 | Date | 2026-01-11 |
 | Priority | P2 |
 | Effort | 30m |
-| Implementation Status | pending |
+| Implementation Status | complete |
 
 **Description:** Group multiple preflight errors trong single boxed display thay vì multiple separate messages.
 
@@ -107,12 +107,12 @@ Add `Fix` and `FixCommand` fields to `PreflightResult` struct if not exists.
 
 ## Todo List
 
-- [ ] Add `ShowBoxedErrors` function to `pkg/ui/errors.go`
-- [ ] Add `Fix`, `FixCommand` fields to `PreflightResult` if needed
-- [ ] Update preflight display logic in `cmd/start.go`
-- [ ] Add fix suggestions for each preflight check
-- [ ] Run `go build ./...`
-- [ ] Test with missing Docker, compose file, etc.
+- [x] Add `ShowBoxedErrors` function to `pkg/ui/errors.go`
+- [x] Add `Fix`, `FixCommand` fields to `PreflightResult` if needed
+- [x] Update preflight display logic in `cmd/start.go`
+- [x] Add fix suggestions for each preflight check
+- [x] Run `go build ./...`
+- [x] Test with missing Docker, compose file, etc.
 
 ## Success Criteria
 

@@ -1,7 +1,7 @@
 ---
 title: "CLI UI Polish - Boxed Tables & Error Improvements"
 description: "Polish CLI output with consistent boxed tables, integrate ShowBoxedError, improve status icons"
-status: pending
+status: complete
 priority: P1
 effort: 1.5h
 branch: main
@@ -36,7 +36,7 @@ Polish kkcli output với consistent boxed tables, integrate ShowBoxedError thay
 |-------|-------------|--------|--------|
 | [Phase 01](./phase-01-quick-wins.md) | Box AccessInfo + Integrate ShowBoxedError | complete | 30m |
 | [Phase 02](./phase-02-icons-colors.md) | Starting icon + Color refinements | complete | 30m |
-| [Phase 03](./phase-03-error-grouping.md) | Preflight error grouping | pending | 30m |
+| [Phase 03](./phase-03-error-grouping.md) | Preflight error grouping | complete | 30m |
 
 ## Files to Modify
 

@@ -8,10 +8,12 @@ import (
 )
 
 type PreflightResult struct {
-	CheckName string
-	Passed    bool
-	Error     error
-	Warning   string
+	CheckName  string
+	Passed     bool
+	Error      error
+	Warning    string
+	Fix        string // Fix suggestion for the error
+	FixCommand string // Command to run to fix the error
 }
 
 // RunPreflight executes all validation checks
@@ -25,9 +27,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 1. Docker installed
 	err := dockerValidator.CheckDockerInstalled()
 	results = append(results, PreflightResult{
-		CheckName: "Docker cai dat",
-		Passed:    err == nil,
-		Error:     err,
+		CheckName:  "Docker cai dat",
+		Passed:     err == nil,
+		Error:      err,
+		Fix:        "Install Docker",
+		FixCommand: "https://docs.docker.com/get-docker/",
 	})
 	if err != nil {
 		hasBlockingError = true
@@ -37,9 +41,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	if !hasBlockingError {
 		err = dockerValidator.CheckDockerDaemon()
 		results = append(results, PreflightResult{
-			CheckName: "Docker daemon",
-			Passed:    err == nil,
-			Error:     err,
+			CheckName:  "Docker daemon",
+			Passed:     err == nil,
+			Error:      err,
+			Fix:        "Start Docker daemon",
+			FixCommand: "systemctl start docker",
 		})
 		if err != nil {
 			hasBlockingError = true
@@ -49,9 +55,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 3. Port conflicts
 	_, err = CheckAllPorts(includeCaddy)
 	results = append(results, PreflightResult{
-		CheckName: "Cong mang (ports)",
-		Passed:    err == nil,
-		Error:     err,
+		CheckName:  "Cong mang (ports)",
+		Passed:     err == nil,
+		Error:      err,
+		Fix:        "Stop conflicting services or change ports",
+		FixCommand: "",
 	})
 	if err != nil {
 		hasBlockingError = true
@@ -60,9 +68,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 4. Environment file
 	err = ValidateEnvFile(dir)
 	results = append(results, PreflightResult{
-		CheckName: "File .env",
-		Passed:    err == nil,
-		Error:     err,
+		CheckName:  "File .env",
+		Passed:     err == nil,
+		Error:      err,
+		Fix:        "Create .env file",
+		FixCommand: "kk init",
 	})
 	if err != nil {
 		hasBlockingError = true
@@ -71,9 +81,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 5. Docker compose syntax
 	err = ValidateDockerCompose(dir)
 	results = append(results, PreflightResult{
-		CheckName: "docker-compose.yml",
-		Passed:    err == nil,
-		Error:     err,
+		CheckName:  "docker-compose.yml",
+		Passed:     err == nil,
+		Error:      err,
+		Fix:        "Create or fix docker-compose.yml",
+		FixCommand: "kk init",
 	})
 	if err != nil {
 		hasBlockingError = true
@@ -83,9 +95,11 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	if includeCaddy {
 		err = ValidateCaddyfile(dir)
 		results = append(results, PreflightResult{
-			CheckName: "Caddyfile",
-			Passed:    err == nil,
-			Error:     err,
+			CheckName:  "Caddyfile",
+			Passed:     err == nil,
+			Error:      err,
+			Fix:        "Create or fix Caddyfile",
+			FixCommand: "kk init",
 		})
 		if err != nil {
 			hasBlockingError = true
@@ -131,7 +145,15 @@ func PrintPreflightResults(results []PreflightResult) {
 			}
 		} else {
 			if r.Error != nil {
-				status = pterm.Red("✗ " + TranslateError(r.Error))
+				errMsg := TranslateError(r.Error)
+				status = pterm.Red("✗ " + errMsg)
+				// Add fix suggestion on new line if available
+				if r.Fix != "" {
+					status += "\n  → " + r.Fix
+				}
+				if r.FixCommand != "" {
+					status += ": " + r.FixCommand
+				}
 			} else {
 				status = pterm.Red("✗ Failed")
 			}
