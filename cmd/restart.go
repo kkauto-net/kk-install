@@ -15,10 +15,11 @@ import (
 )
 
 var restartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Khoi dong lai tat ca dich vu",
-	Long:  `Restart tat ca containers trong stack.`,
-	RunE:  runRestart,
+	Use:         "restart",
+	Short:       "Restart all services",
+	Long:        `Restart all containers in the stack.`,
+	Annotations: map[string]string{"group": "management"},
+	RunE:        runRestart,
 }
 
 func init() {

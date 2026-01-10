@@ -8,24 +8,25 @@ import (
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish]",
-	Short: "Tao shell completion script",
-	Long: `Tao shell completion script cho bash, zsh, hoac fish.
+	Short: "Generate shell completion scripts",
+	Long: `Generate shell completion scripts for bash, zsh, or fish.
 
 Bash:
   $ source <(kk completion bash)
-  # Hoac them vao ~/.bashrc:
+  # Or add to ~/.bashrc:
   $ kk completion bash > /etc/bash_completion.d/kk
 
 Zsh:
   $ source <(kk completion zsh)
-  # Hoac them vao ~/.zshrc:
+  # Or add to ~/.zshrc:
   $ kk completion zsh > "${fpath[1]}/_kk"
 
 Fish:
   $ kk completion fish | source
-  # Hoac luu vao:
+  # Or save to:
   $ kk completion fish > ~/.config/fish/completions/kk.fish
 `,
+	Annotations:           map[string]string{"group": "additional"},
 	ValidArgs:             []string{"bash", "zsh", "fish"},
 	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	DisableFlagsInUseLine: true,

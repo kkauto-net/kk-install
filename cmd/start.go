@@ -16,10 +16,11 @@ import (
 )
 
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Khoi dong kkengine Docker stack",
-	Long:  `Chay preflight checks, sau do khoi dong tat ca services.`,
-	RunE:  runStart,
+	Use:         "start",
+	Short:       "Start all services with preflight checks",
+	Long:        `Run preflight checks, then start all services.`,
+	Annotations: map[string]string{"group": "core"},
+	RunE:        runStart,
 }
 
 func init() {
@@ -57,7 +58,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	validator.PrintPreflightResults(results)
 
 	if err != nil {
-		return fmt.Errorf(ui.Msg("preflight_failed"))
+		return fmt.Errorf("%s", ui.Msg("preflight_failed"))
 	}
 
 	// Step 3: Start docker-compose

@@ -1,12 +1,13 @@
 ---
 title: "Professional CLI Output Format"
 description: "Refactor kk CLI to use GitHub CLI style output with Vietnamese diacritics support"
-status: pending
+status: done
 priority: P2
 effort: 2h
 branch: main
 tags: [cli, ui, i18n, cobra]
 created: 2026-01-10
+completed: 2026-01-10
 ---
 
 # Professional CLI Output Format
@@ -34,7 +35,7 @@ Current issues:
 | [Phase 01](phase-01-config-storage.md) | Config storage for language preference | 30m | done |
 | [Phase 02](phase-02-help-templates.md) | Custom Cobra help templates (GitHub CLI style) | 45m | done |
 | [Phase 03](phase-03-language-files.md) | Update language files with diacritics | 30m | done |
-| [Phase 04](phase-04-command-annotations.md) | Add group annotations to commands | 15m | **REQUIRED** |
+| [Phase 04](phase-04-command-annotations.md) | Add group annotations to commands | 15m | done |
 
 ## Architecture
 

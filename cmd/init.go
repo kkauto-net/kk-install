@@ -18,10 +18,11 @@ import (
 )
 
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Khoi tao kkengine Docker stack",
-	Long:  `Tao docker-compose.yml va cac file config can thiet.`,
-	RunE:  runInit,
+	Use:         "init",
+	Short:       "Initialize Docker stack with interactive setup",
+	Long:        `Create docker-compose.yml and required config files.`,
+	Annotations: map[string]string{"group": "core"},
+	RunE:        runInit,
 }
 
 var DockerValidatorInstance *validator.DockerValidator

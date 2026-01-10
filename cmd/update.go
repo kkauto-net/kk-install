@@ -17,10 +17,11 @@ import (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Cap nhat images moi nhat",
-	Long:  `Kiem tra va tai images moi tu Docker Hub, sau do restart services.`,
-	RunE:  runUpdate,
+	Use:         "update",
+	Short:       "Pull latest images and recreate containers",
+	Long:        `Check and download new images from Docker Hub, then restart services.`,
+	Annotations: map[string]string{"group": "management"},
+	RunE:        runUpdate,
 }
 
 var forceUpdate bool

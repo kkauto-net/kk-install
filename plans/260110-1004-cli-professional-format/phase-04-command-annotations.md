@@ -1,7 +1,7 @@
 ---
 phase: 04
 title: Command Group Annotations
-status: pending
+status: done
 effort: 15m
 ---
 
@@ -107,19 +107,19 @@ var completionCmd = &cobra.Command{
 
 ## Todo List
 
-- [ ] Add annotation to init.go
-- [ ] Add annotation to start.go
-- [ ] Add annotation to status.go
-- [ ] Add annotation to restart.go
-- [ ] Add annotation to update.go
-- [ ] Add annotation to completion.go
-- [ ] Update Short descriptions to English
+- [x] Add annotation to init.go
+- [x] Add annotation to start.go
+- [x] Add annotation to status.go
+- [x] Add annotation to restart.go
+- [x] Add annotation to update.go
+- [x] Add annotation to completion.go
+- [x] Update Short descriptions to English
 
 ## Success Criteria
 
-- [ ] All commands have group annotation
-- [ ] `kk --help` shows grouped commands
-- [ ] Short descriptions are in English (default language)
+- [x] All commands have group annotation
+- [x] `kk --help` shows grouped commands
+- [x] Short descriptions are in English (default language)
 
 ## Files Changed
 

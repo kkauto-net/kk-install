@@ -14,10 +14,11 @@ import (
 )
 
 var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Xem trang thai dich vu",
-	Long:  `Hien thi trang thai tat ca containers trong stack.`,
-	RunE:  runStatus,
+	Use:         "status",
+	Short:       "View service status and health",
+	Long:        `Display status of all containers in the stack.`,
+	Annotations: map[string]string{"group": "core"},
+	RunE:        runStatus,
 }
 
 func init() {
