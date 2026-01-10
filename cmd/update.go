@@ -26,7 +26,7 @@ var updateCmd = &cobra.Command{
 var forceUpdate bool
 
 func init() {
-	updateCmd.Flags().BoolVarP(&forceUpdate, "force", "f", false, "Khong hoi xac nhan")
+	updateCmd.Flags().BoolVarP(&forceUpdate, "force", "f", false, "Skip confirmation prompts")
 	rootCmd.AddCommand(updateCmd)
 }
 
@@ -44,15 +44,15 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\n\nDang dung lai...")
+		fmt.Println("\n\n" + ui.Msg("stopping"))
 		cancel()
 	}()
 
 	executor := compose.NewExecutor(cwd)
 
 	// Step 1: Pull new images
-	fmt.Println("Dang kiem tra cap nhat...")
-	spinner := ui.NewSpinner("Dang tai images...")
+	fmt.Println(ui.Msg("checking_updates"))
+	spinner := ui.NewSpinner(ui.Msg("pulling_images"))
 	spinner.Start()
 
 	pullCtx, pullCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
@@ -62,19 +62,19 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	spinner.Stop(err == nil)
 
 	if err != nil {
-		return fmt.Errorf("khong tai duoc images: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("pull_failed"), err)
 	}
 
 	// Step 2: Parse pull output
 	updates := updater.ParsePullOutput(output)
 
 	if len(updates) == 0 {
-		fmt.Println("\n[OK] Tat ca images da la phien ban moi nhat.")
+		fmt.Println("\n[OK] " + ui.Msg("images_up_to_date"))
 		return nil
 	}
 
 	// Step 3: Show updates
-	fmt.Println("\nCo cap nhat:")
+	fmt.Println("\n" + ui.Msg("updates_available"))
 	for _, u := range updates {
 		fmt.Printf("  - %s\n", u.Image)
 		if u.OldDigest != "" && u.NewDigest != "" {
@@ -97,7 +97,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
-					Title("Khoi dong lai services voi images moi?").
+					Title(ui.Msg("confirm_restart")).
 					Value(&confirm),
 			),
 		)
@@ -107,19 +107,19 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 
 		if !confirm {
-			fmt.Println("Huy cap nhat. Images da duoc tai, chay 'kk restart' de ap dung.")
+			fmt.Println(ui.Msg("update_cancelled"))
 			return nil
 		}
 	}
 
 	// Step 5: Recreate containers
-	fmt.Println("Dang khoi dong lai voi images moi...")
+	fmt.Println(ui.Msg("recreating"))
 
 	recreateCtx, recreateCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer recreateCancel()
 
 	if err := executor.ForceRecreate(recreateCtx); err != nil {
-		return fmt.Errorf("recreate that bai: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
 	}
 
 	// Step 6: Monitor health
@@ -144,7 +144,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	fmt.Println("\n[OK] Cap nhat hoan tat!")
+	fmt.Println("\n[OK] " + ui.Msg("update_complete"))
 
 	// Show status
 	statusCtx, statusCancel := context.WithTimeout(ctx, compose.DefaultTimeout)

@@ -2,53 +2,82 @@ package ui
 
 var messagesVI = map[string]string{
 	// Docker validation
-	"checking_docker":      "Dang kiem tra Docker...",
-	"docker_ok":            "Docker da san sang",
-	"docker_not_installed": "Docker chua cai dat",
-	"docker_not_running":   "Docker daemon khong chay",
+	"checking_docker":      "Đang kiểm tra Docker...",
+	"docker_ok":            "Docker đã sẵn sàng",
+	"docker_not_installed": "Docker chưa được cài đặt",
+	"docker_not_running":   "Docker daemon không chạy",
 
 	// Init flow
-	"init_in_dir":    "Khoi tao trong: %s",
-	"compose_exists": "docker-compose.yml da ton tai. Ghi de?",
-	"init_cancelled": "Huy khoi tao",
+	"init_in_dir":    "Khởi tạo trong: %s",
+	"compose_exists": "docker-compose.yml đã tồn tại. Ghi đè?",
+	"init_cancelled": "Hủy khởi tạo",
 
 	// Prompts
-	"enable_seaweedfs": "Bat SeaweedFS file storage?",
-	"seaweedfs_desc":   "SeaweedFS la he thong luu tru file phan tan",
-	"enable_caddy":     "Bat Caddy web server?",
-	"caddy_desc":       "Caddy la reverse proxy voi tu dong HTTPS",
-	"enter_domain":     "Nhap domain (vd: example.com):",
-	"yes_recommended":  "Yes (recommended)",
-	"no":               "No",
+	"enable_seaweedfs": "Bật SeaweedFS file storage?",
+	"seaweedfs_desc":   "SeaweedFS là hệ thống lưu trữ file phân tán",
+	"enable_caddy":     "Bật Caddy web server?",
+	"caddy_desc":       "Caddy là reverse proxy với tự động HTTPS",
+	"enter_domain":     "Nhập domain (vd: example.com):",
+	"yes_recommended":  "Có (khuyến nghị)",
+	"no":               "Không",
 
 	// Errors
-	"error_db_password":  "Khong the tao password DB",
-	"error_db_root_pass": "Khong the tao password DB root",
-	"error_redis_pass":   "Khong the tao password Redis",
-	"error_create_file":  "Loi khi tao file",
+	"error_db_password":  "Không thể tạo mật khẩu DB",
+	"error_db_root_pass": "Không thể tạo mật khẩu DB root",
+	"error_redis_pass":   "Không thể tạo mật khẩu Redis",
+	"error_create_file":  "Lỗi khi tạo file",
 
 	// File generation
-	"generating_files": "Dang tao cac file cau hinh...",
-	"files_generated":  "Cac file cau hinh da duoc tao",
+	"generating_files": "Đang tạo các file cấu hình...",
+	"files_generated":  "Các file cấu hình đã được tạo",
 
 	// Success
-	"created":       "Da tao: %s",
-	"init_complete": "Khoi tao hoan tat!",
+	"created":       "Đã tạo: %s",
+	"init_complete": "Khởi tạo hoàn tất!",
 
 	// Next steps
 	"next_steps": `
-Buoc tiep theo:
-  1. Kiem tra va chinh sua .env neu can
-  2. Chay: kk start
+Bước tiếp theo:
+  1. Kiểm tra và chỉnh sửa .env nếu cần
+  2. Chạy: kk start
 `,
 
 	// Next steps for box
-	"next_steps_box": `Buoc tiep theo:
-  1. Kiem tra va chinh sua .env neu can
-  2. Chay: kk start`,
+	"next_steps_box": `Bước tiếp theo:
+  1. Kiểm tra và chỉnh sửa .env nếu cần
+  2. Chạy: kk start`,
 
 	// Language selection
-	"select_language": "Chon ngon ngu / Select language",
+	"select_language": "Chọn ngôn ngữ / Select language",
 	"lang_english":    "English",
-	"lang_vietnamese": "Tieng Viet",
+	"lang_vietnamese": "Tiếng Việt",
+
+	// Runtime messages (start, restart, update, status)
+	"stopping":           "Đang dừng lại...",
+	"preflight_checking": "Kiểm tra trước khi chạy...",
+	"preflight_failed":   "Kiểm tra thất bại. Vui lòng sửa lỗi trên",
+	"starting_services":  "Khởi động services...",
+	"start_failed":       "Khởi động thất bại",
+	"health_checking":    "Đang kiểm tra sức khỏe dịch vụ...",
+	"health_failed":      "Không thể theo dõi health",
+	"some_not_ready":     "Một số dịch vụ chưa sẵn sàng. Kiểm tra: kk status",
+	"start_complete":     "Khởi động hoàn tất!",
+	"restarting":         "Đang khởi động lại dịch vụ...",
+	"restart_failed":     "Khởi động lại thất bại",
+	"restart_complete":   "Đã khởi động lại",
+	"checking_updates":   "Đang kiểm tra cập nhật...",
+	"pulling_images":     "Đang tải images...",
+	"pull_failed":        "Không tải được images",
+	"images_up_to_date":  "Tất cả images đã là phiên bản mới nhất",
+	"updates_available":  "Có cập nhật:",
+	"confirm_restart":    "Khởi động lại services với images mới?",
+	"update_cancelled":   "Hủy cập nhật. Images đã được tải, chạy 'kk restart' để áp dụng",
+	"recreating":         "Đang khởi động lại với images mới...",
+	"recreate_failed":    "Recreate thất bại",
+	"update_complete":    "Cập nhật hoàn tất!",
+	"no_services":        "Không có dịch vụ nào đang chạy",
+	"run_start":          "Chạy: kk start",
+	"all_running":        "Tất cả %d dịch vụ đang chạy",
+	"some_running":       "%d/%d dịch vụ đang chạy",
+	"get_status_failed":  "Không lấy được trạng thái",
 }

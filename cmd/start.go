@@ -40,7 +40,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\n\nDang dung lai...")
+		fmt.Println("\n\n" + ui.Msg("stopping"))
 		cancel()
 	}()
 
@@ -52,32 +52,32 @@ func runStart(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 2: Run preflight checks
-	fmt.Println("\nKiem tra truoc khi chay...")
+	fmt.Println("\n" + ui.Msg("preflight_checking"))
 	results, err := validator.RunPreflight(cwd, includeCaddy)
 	validator.PrintPreflightResults(results)
 
 	if err != nil {
-		return fmt.Errorf("preflight checks that bai. Vui long sua loi tren")
+		return fmt.Errorf(ui.Msg("preflight_failed"))
 	}
 
 	// Step 3: Start docker-compose
-	fmt.Println("Khoi dong services...")
+	fmt.Println(ui.Msg("starting_services"))
 	executor := compose.NewExecutor(cwd)
 
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer timeoutCancel()
 
 	if err := executor.Up(timeoutCtx); err != nil {
-		return fmt.Errorf("khoi dong that bai: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("start_failed"), err)
 	}
 
 	// Step 4: Monitor health
-	fmt.Println("\nDang kiem tra suc khoe dich vu...")
+	fmt.Println("\n" + ui.Msg("health_checking"))
 
 	healthMonitor, err := monitor.NewHealthMonitor()
 	if err != nil {
 		// Can't monitor, but services may still be running
-		fmt.Printf("  [!] Khong the theo doi health: %v\n", err)
+		fmt.Printf("  [!] %s: %v\n", ui.Msg("health_failed"), err)
 	} else {
 		defer healthMonitor.Close()
 
@@ -106,12 +106,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 
 		if !allHealthy {
-			fmt.Println("\n[!] Mot so dich vu chua san sang. Kiem tra: kk status")
+			fmt.Println("\n[!] " + ui.Msg("some_not_ready"))
 		}
 	}
 
 	// Step 5: Show status
-	fmt.Println("\n[OK] Khoi dong hoan tat!")
+	fmt.Println("\n[OK] " + ui.Msg("start_complete"))
 
 	statuses, err := monitor.GetStatus(timeoutCtx, executor)
 	if err == nil {

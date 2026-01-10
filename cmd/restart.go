@@ -39,11 +39,11 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\n\nDang dung lai...")
+		fmt.Println("\n\n" + ui.Msg("stopping"))
 		cancel()
 	}()
 
-	fmt.Println("Dang khoi dong lai dich vu...")
+	fmt.Println(ui.Msg("restarting"))
 
 	executor := compose.NewExecutor(cwd)
 
@@ -51,10 +51,10 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	defer timeoutCancel()
 
 	if err := executor.Restart(timeoutCtx); err != nil {
-		return fmt.Errorf("restart that bai: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("restart_failed"), err)
 	}
 
-	fmt.Println("[OK] Da khoi dong lai.")
+	fmt.Println("[OK] " + ui.Msg("restart_complete"))
 
 	// Step 2: Monitor health
 	composeFile, err := compose.ParseComposeFile(cwd)
@@ -63,7 +63,7 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		if err == nil {
 			defer healthMonitor.Close()
 
-			fmt.Println("\nDang kiem tra suc khoe...")
+			fmt.Println("\n" + ui.Msg("health_checking"))
 
 			var containers []monitor.ContainerInfo
 			for name := range composeFile.Services {

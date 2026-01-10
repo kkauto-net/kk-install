@@ -36,12 +36,12 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	executor := compose.NewExecutor(cwd)
 	statuses, err := monitor.GetStatus(ctx, executor)
 	if err != nil {
-		return fmt.Errorf("khong lay duoc trang thai: %w", err)
+		return fmt.Errorf("%s: %w", ui.Msg("get_status_failed"), err)
 	}
 
 	if len(statuses) == 0 {
-		fmt.Println("Khong co dich vu nao dang chay.")
-		fmt.Println("Chay: kk start")
+		fmt.Println(ui.Msg("no_services"))
+		fmt.Println(ui.Msg("run_start"))
 		return nil
 	}
 
@@ -57,9 +57,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	if running == len(statuses) {
-		fmt.Printf("[OK] Tat ca %d dich vu dang chay.\n", running)
+		fmt.Printf("[OK] "+ui.Msg("all_running")+"\n", running)
 	} else {
-		fmt.Printf("[!] %d/%d dich vu dang chay.\n", running, len(statuses))
+		fmt.Printf("[!] "+ui.Msg("some_running")+"\n", running, len(statuses))
 	}
 
 	return nil

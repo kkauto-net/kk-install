@@ -38,7 +38,7 @@ func TestMsgVI(t *testing.T) {
 
 	SetLanguage(LangVI)
 	msg := Msg("checking_docker")
-	expected := "Dang kiem tra Docker..."
+	expected := "Đang kiểm tra Docker..."
 	if msg != expected {
 		t.Errorf("Expected %q, got %q", expected, msg)
 	}
@@ -58,7 +58,7 @@ func TestMsgF(t *testing.T) {
 
 	SetLanguage(LangVI)
 	msg = MsgF("created", "test.yml")
-	expected = "Da tao: test.yml"
+	expected = "Đã tạo: test.yml"
 	if msg != expected {
 		t.Errorf("Expected %q, got %q", expected, msg)
 	}

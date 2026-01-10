@@ -1,7 +1,7 @@
 ---
 phase: 03
 title: Update Language Files
-status: pending
+status: done
 effort: 30m
 ---
 
