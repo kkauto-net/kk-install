@@ -3,10 +3,12 @@
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-s -w -X github.com/kkauto-net/kk-install/cmd.Version=$(VERSION)"
 BINARY := kk
+BUILD_DIR := build
 
 # Build for current platform
 build:
-	CGO_ENABLED=0 go build $(LDFLAGS) -o $(BINARY) .
+	mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY) .
 
 # Build for all platforms (Linux only)
 build-all: clean
@@ -25,13 +27,13 @@ test-coverage:
 
 # Clean build artifacts
 clean:
-	rm -f $(BINARY)
+	rm -rf $(BUILD_DIR)
 	rm -rf dist/
 	rm -f coverage.out coverage.html
 
 # Install locally
 install: build
-	sudo cp $(BINARY) /usr/local/bin/
+	sudo cp $(BUILD_DIR)/$(BINARY) /usr/local/bin/
 
 # Uninstall
 uninstall:

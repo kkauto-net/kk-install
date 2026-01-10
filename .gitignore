@@ -5,6 +5,10 @@ kk
 *.so
 *.dylib
 
+# Build output
+build/
+dist/
+
 # Test binary
 *.test
 
@@ -44,3 +48,4 @@ test/
 #plans/
 docs/
 CLAUDE.md
+repomix-output.xml

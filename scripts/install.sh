@@ -216,7 +216,7 @@ verify_installation() {
         echo -e "  ${GREEN}\$${NC} kk init"
         echo ""
         echo -e "${BOLD}Documentation:${NC}"
-        echo -e "  https://docs.kkengine.com"
+        echo -e "  https://docs.kkauto.net"
         echo ""
     else
         print_error "Installation failed. Please try again."
