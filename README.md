@@ -1,129 +1,84 @@
 # kkcli
-Muốn tạo CLI để giúp đỡ user tùy chỉnh docker-compose và quản lý
-- kk init: Khởi tạo, cấu hình, tùy chỉnh docker-compose.yml và .env
-- kk start: chạy docker-compose, sau đó hiển thị kết quả (Docker chạy nền)
-- kk restart: restart docker-compose
-- kk update: update docker kkengine chính và các docker khác nếu server có update
-- kk status: xem trạng thái dịch vụ đang chạy
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/kkauto-net/kk-install)](https://goreportcard.com/report/github.com/kkauto-net/kk-install)
+[![Go Reference](https://pkg.go.dev/badge/github.com/kkauto-net/kk-install.svg)](https://pkg.go.dev/github.com/kkauto-net/kk-install)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/kkauto-net/kk-install/actions/workflows/ci.yml/badge.svg)](https://github.com/kkauto-net/kk-install/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/kkauto-net/kk-install)](https://github.com/kkauto-net/kk-install/releases)
+![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos-blue)
 
+A CLI tool for managing kkengine Docker Compose stacks with ease.
 
-Các docker-compose.yml gồm cách thành phần
-- kkengine: Docker chứa các container chính để chạy dịch vụ chính của KK
-- Mariadb: Database chính kkengine sử dụng
-- Redis: Cache và lưu trữ các session
-- seaweedfs: SeaweedFS để lưu trữ các file (Optional)
-- caddy: Caddy để chạy web server (Optional)
-
-
-
-network:  kkengine_net
-- bridge: Docker sẽ tạo một network bridge và các container sẽ được kết nối vào network này
-- nếu db, redis cấu hình riêng thì không cần cấu hình network
-
-
-
-Các file config sẵn ở /example
-- docker-compose.yml
-- .env
-- Caddyfile
-- kkfiler.toml
-- kkphp.conf
-
-## Yêu cầu
-
-Để sử dụng `kkcli`, bạn cần cài đặt Docker và Docker Compose phiên bản 2.0+ trên hệ thống của mình.
-
--   **Docker**: Đảm bảo Docker đã được cài đặt và đang chạy.
--   **Docker Compose**: `kkcli` yêu cầu Docker Compose phiên bản 2.0 trở lên để quản lý các dịch vụ. Vui lòng cập nhật Docker Compose của bạn nếu cần.
-
-## Lưu ý khi sử dụng `kk init`
-
--   **Tự động sao lưu cấu hình**: Khi chạy `kk init`, nếu các tệp cấu hình (như `docker-compose.yml`, `.env`, `Caddyfile`, `kkfiler.toml`, `kkphp.conf`) đã tồn tại, `kkcli` sẽ tự động tạo bản sao lưu với hậu tố `.bak` (ví dụ: `docker-compose.yml.bak`) trước khi ghi đè. Điều này giúp bạn dễ dàng khôi phục cấu hình trước đó nếu cần.
--   **Cảnh báo quyền tệp `.env`**: `kkcli` sẽ kiểm tra quyền của tệp `.env` sau khi khởi tạo. Nếu tệp `.env` có quyền truy cập quá rộng (có thể đọc được bởi nhóm hoặc người khác), một cảnh báo sẽ được hiển thị và đề xuất bạn thay đổi quyền tệp thành `chmod 600 .env` để tăng cường bảo mật.
-
-## Cài đặt
-
-### Cài đặt tự động (khuyến nghị)
-
-Sử dụng script cài đặt tự động để tải và cài đặt phiên bản mới nhất:
+## Quick Install
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 ```
 
-Script sẽ tự động:
-- Phát hiện hệ điều hành và kiến trúc CPU của bạn
-- Tải phiên bản mới nhất từ GitHub releases
-- Xác minh checksum để đảm bảo tính toàn vẹn
-- Cài đặt vào `/usr/local/bin/kk`
-
-### Cài đặt thủ công
-
-Nếu bạn muốn cài đặt thủ công:
-
-1.  Tải script cài đặt về:
-    ```bash
-    curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh -o install.sh
-    chmod +x install.sh
-    ```
-
-2.  Chạy script:
-    ```bash
-    ./install.sh
-    ```
-
-3.  Hoặc tải trực tiếp binary từ GitHub releases:
-    ```bash
-    # Linux AMD64
-    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_linux_amd64.tar.gz" -o kkcli.tar.gz
-
-    # Linux ARM64
-    curl -L "https://github.com/kkauto-net/kk-install/releases/latest/download/kkcli_[VERSION]_linux_arm64.tar.gz" -o kkcli.tar.gz
-
-    # Giải nén và cài đặt
-    tar -xzf kkcli.tar.gz
-    sudo mv kk /usr/local/bin/
-    sudo chmod +x /usr/local/bin/kk
-    ```
-
-    (Thay `[VERSION]` bằng phiên bản cụ thể, ví dụ: `0.1.0`)
-
-### Kiểm tra cài đặt
-
-Sau khi cài đặt, kiểm tra phiên bản:
+Verify installation:
 
 ```bash
 kk --version
 ```
 
-## Sử dụng lệnh `kk init`
+## Features
 
-Lệnh `kk init` giúp bạn khởi tạo và cấu hình môi trường Docker Compose cho dự án của mình.
+- 🐳 **Docker Compose Management** - Initialize, start, restart, and monitor your stack
+- ⚡ **Health Monitoring** - Real-time container health checks
+- 🔄 **Auto Update** - Keep images up-to-date with one command
+- 🌐 **Multi-language** - English and Vietnamese support
+- 🔒 **Secure by Default** - Auto-generates strong passwords
 
-1.  **Chạy lệnh khởi tạo**:
-    ```bash
-    kk init
-    ```
+## Quick Start
 
-2.  **Trả lời các câu hỏi cấu hình**: `kk init` sẽ hỏi bạn một số thông tin để tạo file `docker-compose.yml` và `.env` phù hợp:
-    -   Tên dịch vụ chính (ví dụ: `kkengine`)
-    -   Cấu hình cơ sở dữ liệu (MySQL/MariaDB)
-    -   Cấu hình Redis
-    -   Có muốn sử dụng SeaweedFS không? (Mặc định: Yes (recommended))
-    -   Có muốn sử dụng Caddy làm web server không? (Mặc định: Yes (recommended))
-    -   Các cổng (ports) bạn muốn ánh xạ
-    -   ... và các cấu hình khác.
+```bash
+# Initialize your stack
+kk init
 
-3.  **Kiểm tra file cấu hình**: Sau khi hoàn tất, `kk init` sẽ tạo hoặc cập nhật các file `docker-compose.yml` và `.env` trong thư mục hiện tại. Hãy xem lại các file này để đảm bảo chúng đúng với mong muốn của bạn.
+# Start all services
+kk start
 
-4.  **Khởi động dịch vụ**: Sau khi cấu hình xong, bạn có thể khởi động các dịch vụ bằng lệnh:
-    ```bash
-    kk start
-    ```
+# Check status
+kk status
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `kk init` | Initialize Docker Compose stack with interactive prompts |
+| `kk start` | Run preflight checks and start all services |
+| `kk restart` | Restart all running services |
+| `kk status` | Display status of all containers |
+| `kk update` | Update to latest version and pull new images |
+| `kk completion` | Generate shell completion script |
+
+## Supported Components
+
+| Component | Description |
+|-----------|-------------|
+| **kkengine** | Core service container |
+| **MariaDB** | Primary database |
+| **Redis** | Cache and session management |
+| **SeaweedFS** | Distributed file storage (optional) |
+| **Caddy** | Web server and reverse proxy (optional) |
+
+## Requirements
+
+- **Docker** - Installed and running
+- **Docker Compose** - Version 2.0+
+
+## Contributing
+
+Contributions welcome! See [Code Standards](./docs/code-standards.md) and [System Architecture](./docs/system-architecture.md).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-Copyright (c) 2026 kkauto-net
+## Documentation
+
+- [Project Overview](./docs/project-overview-pdr.md)
+- [Codebase Summary](./docs/codebase-summary.md)
+- [Code Standards](./docs/code-standards.md)
+- [System Architecture](./docs/system-architecture.md)
