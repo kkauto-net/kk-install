@@ -39,31 +39,108 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 1: Check Docker
 	ui.ShowStepHeader(1, 5, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
+
+	// Check Docker installation
+	dockerInstalled := true
 	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
-		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("docker_not_found"),
-			Message:    err.Error(),
-			Suggestion: "Install Docker from https://docs.docker.com/get-docker/",
-		})
-		return err
+		dockerInstalled = false
+		ui.ShowWarning(ui.Msg("docker_not_installed"))
+
+		// Ask user if they want to install Docker
+		var installDocker bool
+		installForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title(ui.IconDocker+" "+ui.Msg("ask_install_docker")).
+					Description(ui.Msg("ask_install_docker_desc")).
+					Affirmative(ui.Msg("yes_install")).
+					Negative(ui.Msg("no_manual")).
+					Value(&installDocker),
+			),
+		)
+		if err := installForm.Run(); err != nil {
+			return err
+		}
+
+		if installDocker {
+			// Install Docker with spinner
+			spinner, _ := pterm.DefaultSpinner.Start(ui.IconDocker + " " + ui.Msg("installing_docker"))
+			if err := DockerValidatorInstance.InstallDocker(); err != nil {
+				spinner.Fail(ui.Msg("docker_install_failed"))
+				ui.ShowBoxedError(ui.ErrorSuggestion{
+					Title:      ui.Msg("docker_install_failed"),
+					Message:    err.Error(),
+					Suggestion: "Install manually: https://docs.docker.com/get-docker/",
+				})
+				return err
+			}
+			spinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			dockerInstalled = true
+		} else {
+			ui.ShowBoxedError(ui.ErrorSuggestion{
+				Title:      ui.Msg("docker_not_found"),
+				Message:    ui.Msg("docker_required"),
+				Suggestion: "Install Docker from https://docs.docker.com/get-docker/",
+			})
+			return errors.New(ui.Msg("docker_required"))
+		}
 	}
-	if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
-		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("docker_daemon_stopped"),
-			Message:    err.Error(),
-			Suggestion: "Start Docker daemon",
-			Command:    "systemctl start docker",
-		})
-		return err
+
+	// Check Docker daemon if Docker is installed
+	if dockerInstalled {
+		if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
+			ui.ShowWarning(ui.Msg("docker_not_running"))
+
+			// Ask to start Docker daemon
+			var startDocker bool
+			startForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewConfirm().
+						Title(ui.IconDocker+" "+ui.Msg("ask_start_docker")).
+						Affirmative(ui.Msg("yes")).
+						Negative(ui.Msg("no")).
+						Value(&startDocker),
+				),
+			)
+			if err := startForm.Run(); err != nil {
+				return err
+			}
+
+			if startDocker {
+				spinner, _ := pterm.DefaultSpinner.Start(ui.IconDocker + " " + ui.Msg("starting_docker"))
+				if err := DockerValidatorInstance.StartDockerDaemon(); err != nil {
+					spinner.Fail(ui.Msg("docker_start_failed"))
+					ui.ShowBoxedError(ui.ErrorSuggestion{
+						Title:      ui.Msg("docker_daemon_stopped"),
+						Message:    err.Error(),
+						Suggestion: "Start Docker daemon",
+						Command:    "systemctl start docker",
+					})
+					return err
+				}
+				spinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
+			} else {
+				ui.ShowBoxedError(ui.ErrorSuggestion{
+					Title:      ui.Msg("docker_daemon_stopped"),
+					Message:    ui.Msg("docker_required"),
+					Suggestion: "Start Docker daemon",
+					Command:    "systemctl start docker",
+				})
+				return errors.New(ui.Msg("docker_required"))
+			}
+		}
+
+		// Check Docker Compose version
+		if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
+			ui.ShowBoxedError(ui.ErrorSuggestion{
+				Title:      ui.Msg("docker_compose_issue"),
+				Message:    err.Error(),
+				Suggestion: "Update Docker to latest version",
+			})
+			return err
+		}
 	}
-	if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
-		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("docker_compose_issue"),
-			Message:    err.Error(),
-			Suggestion: "Update Docker to latest version",
-		})
-		return err
-	}
+
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection

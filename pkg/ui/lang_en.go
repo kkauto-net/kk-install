@@ -9,6 +9,21 @@ var messagesEN = map[string]string{
 	"docker_not_found":      "Docker Not Found",
 	"docker_daemon_stopped": "Docker Not Running",
 	"docker_compose_issue":  "Docker Compose Issue",
+	"docker_required":       "Docker is required to continue",
+
+	// Docker auto-install
+	"ask_install_docker":      "Install Docker automatically?",
+	"ask_install_docker_desc": "This will download and install Docker using the official script",
+	"yes_install":             "Yes, install Docker",
+	"no_manual":               "No, I'll install manually",
+	"installing_docker":       "Installing Docker...",
+	"docker_installed":        "Docker installed successfully",
+	"docker_install_failed":   "Docker installation failed",
+	"ask_start_docker":        "Start Docker daemon?",
+	"starting_docker":         "Starting Docker daemon...",
+	"docker_started":          "Docker daemon started",
+	"docker_start_failed":     "Failed to start Docker",
+	"yes":                     "Yes",
 
 	// Init flow
 	"init_in_dir":    "Initializing in: %s",
@@ -81,9 +96,19 @@ Next steps:
 	"update_complete":    "Update complete!",
 	"no_services":        "No services running",
 	"run_start":          "Run: kk start",
-	"all_running":        "All %d services running",
-	"some_running":       "%d/%d services running",
-	"get_status_failed":  "Failed to get status",
+	"no_services_defined": "No services defined in docker-compose.yml",
+	"run_init":           "Run: kk init",
+	"all_stopped":        "All services stopped",
+	"status_summary_stopped": "%d services stopped\nTo start KKEngine, run: kk start",
+	"all_running":             "All %d services running",
+	"some_running":            "%d/%d services running",
+	"get_status_failed":       "Failed to get status",
+	"start_summary_success":   "All %d services started successfully",
+	"start_summary_partial":   "%d/%d services started\nCheck logs: docker compose logs",
+	"restart_summary_success": "All %d services restarted successfully",
+	"restart_summary_partial": "%d/%d services restarted\nCheck logs: docker compose logs",
+	"update_summary_success":  "All %d services updated successfully",
+	"update_summary_partial":  "%d/%d services updated\nCheck logs: docker compose logs",
 
 	// Table columns
 	"service_status": "Service Status",
@@ -107,6 +132,7 @@ Next steps:
 	"status_running":  "Running",
 	"status_stopped":  "Stopped",
 	"status_starting": "Starting",
+	"summary":         "Summary",
 
 	// Init wizard steps
 	"step_docker_check": "Docker Check",

@@ -9,6 +9,21 @@ var messagesVI = map[string]string{
 	"docker_not_found":      "Không tìm thấy Docker",
 	"docker_daemon_stopped": "Docker không chạy",
 	"docker_compose_issue":  "Vấn đề Docker Compose",
+	"docker_required":       "Cần Docker để tiếp tục",
+
+	// Docker auto-install
+	"ask_install_docker":      "Tự động cài đặt Docker?",
+	"ask_install_docker_desc": "Sẽ tải và cài Docker bằng script chính thức",
+	"yes_install":             "Có, cài Docker",
+	"no_manual":               "Không, tôi sẽ tự cài",
+	"installing_docker":       "Đang cài đặt Docker...",
+	"docker_installed":        "Đã cài đặt Docker thành công",
+	"docker_install_failed":   "Cài đặt Docker thất bại",
+	"ask_start_docker":        "Khởi động Docker daemon?",
+	"starting_docker":         "Đang khởi động Docker...",
+	"docker_started":          "Đã khởi động Docker daemon",
+	"docker_start_failed":     "Không thể khởi động Docker",
+	"yes":                     "Có",
 
 	// Init flow
 	"init_in_dir":    "Khởi tạo trong: %s",
@@ -81,9 +96,19 @@ Bước tiếp theo:
 	"update_complete":    "Cập nhật hoàn tất!",
 	"no_services":        "Không có dịch vụ nào đang chạy",
 	"run_start":          "Chạy: kk start",
-	"all_running":        "Tất cả %d dịch vụ đang chạy",
-	"some_running":       "%d/%d dịch vụ đang chạy",
-	"get_status_failed":  "Không lấy được trạng thái",
+	"no_services_defined": "Không có dịch vụ nào được định nghĩa trong docker-compose.yml",
+	"run_init":           "Chạy: kk init",
+	"all_stopped":        "Tất cả dịch vụ đã dừng",
+	"status_summary_stopped": "%d dịch vụ đã dừng\nĐể khởi động KKEngine, chạy: kk start",
+	"all_running":             "Tất cả %d dịch vụ đang chạy",
+	"some_running":            "%d/%d dịch vụ đang chạy",
+	"get_status_failed":       "Không lấy được trạng thái",
+	"start_summary_success":   "Tất cả %d dịch vụ đã khởi động thành công",
+	"start_summary_partial":   "%d/%d dịch vụ đã khởi động\nKiểm tra logs: docker compose logs",
+	"restart_summary_success": "Tất cả %d dịch vụ đã khởi động lại thành công",
+	"restart_summary_partial": "%d/%d dịch vụ đã khởi động lại\nKiểm tra logs: docker compose logs",
+	"update_summary_success":  "Tất cả %d dịch vụ đã cập nhật thành công",
+	"update_summary_partial":  "%d/%d dịch vụ đã cập nhật\nKiểm tra logs: docker compose logs",
 
 	// Table columns
 	"service_status": "Trạng thái dịch vụ",
@@ -107,6 +132,7 @@ Bước tiếp theo:
 	"status_running":  "Đang chạy",
 	"status_stopped":  "Đã dừng",
 	"status_starting": "Đang khởi động",
+	"summary":         "Tóm tắt",
 
 	// Init wizard steps
 	"step_docker_check": "Kiểm tra Docker",

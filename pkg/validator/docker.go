@@ -117,3 +117,55 @@ func (e *UserError) Error() string {
 	}
 	return e.Message
 }
+
+// InstallDocker attempts to install Docker using the official convenience script
+// Returns nil on success, error on failure
+func (v *DockerValidator) InstallDocker() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	// Use official Docker install script for Linux
+	// curl -fsSL https://get.docker.com | sh
+	cmd := v.CommandContext(ctx, "sh", "-c", "curl -fsSL https://get.docker.com | sudo sh")
+	cmd.Stdout = nil // Will be captured
+	cmd.Stderr = nil
+
+	if err := cmd.Run(); err != nil {
+		return &UserError{
+			Key:        "docker_install_failed",
+			Message:    "Docker installation failed",
+			Suggestion: "Try manual install: https://docs.docker.com/get-docker/",
+		}
+	}
+
+	// Add current user to docker group
+	userCmd := v.CommandContext(ctx, "sh", "-c", "sudo usermod -aG docker $USER")
+	_ = userCmd.Run() // Best effort, don't fail if this fails
+
+	return nil
+}
+
+// StartDockerDaemon attempts to start the Docker daemon
+func (v *DockerValidator) StartDockerDaemon() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Try systemctl first (most common on Linux)
+	cmd := v.CommandContext(ctx, "sudo", "systemctl", "start", "docker")
+	if err := cmd.Run(); err != nil {
+		// Fallback: try service command
+		cmd = v.CommandContext(ctx, "sudo", "service", "docker", "start")
+		if err := cmd.Run(); err != nil {
+			return &UserError{
+				Key:        "docker_start_failed",
+				Message:    "Failed to start Docker daemon",
+				Suggestion: "Try: sudo systemctl start docker",
+			}
+		}
+	}
+
+	// Wait a bit for daemon to be ready
+	time.Sleep(2 * time.Second)
+
+	return nil
+}
