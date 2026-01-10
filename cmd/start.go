@@ -28,9 +28,6 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
-	// Command banner
-	ui.ShowCommandBanner("kk start", ui.Msg("start_desc"))
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -51,8 +48,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// Step 1: Detect if Caddy is enabled
 	composeFile, err := compose.ParseComposeFile(cwd)
 	includeCaddy := false
+	var definedServices []string
 	if err == nil {
 		_, includeCaddy = composeFile.Services["caddy"]
+		for name := range composeFile.Services {
+			definedServices = append(definedServices, name)
+		}
 	}
 
 	// Step 1: Run preflight checks
@@ -130,11 +131,10 @@ func runStart(cmd *cobra.Command, args []string) error {
 
 	// Step 4: Show status
 	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
-	ui.ShowSuccess(ui.Msg("start_complete"))
 
-	statuses, err := monitor.GetStatus(timeoutCtx, executor)
+	statuses, err := monitor.GetStatusWithServices(timeoutCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintStatusTable(statuses)
+		ui.PrintCommandResult(statuses, "kk start", "start_summary_success", "start_summary_partial")
 		ui.PrintAccessInfo(statuses)
 	}
 

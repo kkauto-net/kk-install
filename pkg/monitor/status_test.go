@@ -140,3 +140,76 @@ func TestIsAllHealthy(t *testing.T) {
 		assert.False(t, IsAllHealthy(statuses))
 	})
 }
+
+func TestGetStatusWithServices(t *testing.T) {
+	t.Run("all services running", func(t *testing.T) {
+		mockPsOutput := `{"Service":"web","State":"running","Health":"healthy","Ports":"80/tcp"}
+{"Service":"db","State":"running","Health":"","Ports":"5432/tcp"}`
+		mockExecutor := &MockComposeExecutor{
+			MockPs: func(ctx context.Context) (string, error) {
+				return mockPsOutput, nil
+			},
+		}
+
+		definedServices := []string{"web", "db"}
+		statuses, err := GetStatusWithServices(context.Background(), mockExecutor, definedServices)
+		assert.NoError(t, err)
+		assert.Len(t, statuses, 2)
+		assert.True(t, statuses[0].Running)
+		assert.True(t, statuses[1].Running)
+	})
+
+	t.Run("some services stopped", func(t *testing.T) {
+		// Only web is running
+		mockPsOutput := `{"Service":"web","State":"running","Health":"healthy","Ports":"80/tcp"}`
+		mockExecutor := &MockComposeExecutor{
+			MockPs: func(ctx context.Context) (string, error) {
+				return mockPsOutput, nil
+			},
+		}
+
+		definedServices := []string{"web", "db", "redis"}
+		statuses, err := GetStatusWithServices(context.Background(), mockExecutor, definedServices)
+		assert.NoError(t, err)
+		assert.Len(t, statuses, 3)
+
+		// Results are sorted by name
+		assert.Equal(t, "db", statuses[0].Name)
+		assert.False(t, statuses[0].Running)
+		assert.Equal(t, "exited", statuses[0].Status)
+
+		assert.Equal(t, "redis", statuses[1].Name)
+		assert.False(t, statuses[1].Running)
+
+		assert.Equal(t, "web", statuses[2].Name)
+		assert.True(t, statuses[2].Running)
+	})
+
+	t.Run("all services stopped", func(t *testing.T) {
+		mockPsOutput := ""
+		mockExecutor := &MockComposeExecutor{
+			MockPs: func(ctx context.Context) (string, error) {
+				return mockPsOutput, nil
+			},
+		}
+
+		definedServices := []string{"web", "db"}
+		statuses, err := GetStatusWithServices(context.Background(), mockExecutor, definedServices)
+		assert.NoError(t, err)
+		assert.Len(t, statuses, 2)
+		assert.False(t, statuses[0].Running)
+		assert.False(t, statuses[1].Running)
+	})
+
+	t.Run("executor error", func(t *testing.T) {
+		mockExecutor := &MockComposeExecutor{
+			MockPs: func(ctx context.Context) (string, error) {
+				return "", errors.New("docker not running")
+			},
+		}
+
+		statuses, err := GetStatusWithServices(context.Background(), mockExecutor, []string{"web"})
+		assert.Error(t, err)
+		assert.Nil(t, statuses)
+	})
+}

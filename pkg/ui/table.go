@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pterm/pterm"
 
 	"github.com/kkauto-net/kk-install/pkg/monitor"
@@ -50,18 +53,19 @@ func truncateDigest(digest string, maxLen int) string {
 	return digest
 }
 
-// PrintStatusTable displays service status using pterm table
+// PrintStatusTable displays service status using pterm table with title
 func PrintStatusTable(statuses []monitor.ServiceStatus) {
-	pterm.DefaultSection.Println(Msg("service_status"))
-
 	tableData := pterm.TableData{
 		{Msg("col_service"), Msg("col_status"), Msg("col_health"), Msg("col_ports")},
 	}
 
+	running := 0
 	for _, s := range statuses {
 		statusText := pterm.Green(IconRunning + " " + Msg("status_running"))
 		if !s.Running {
 			statusText = pterm.Red(IconStopped + " " + Msg("status_stopped"))
+		} else {
+			running++
 		}
 
 		health := formatHealth(s.Health)
@@ -75,11 +79,39 @@ func PrintStatusTable(statuses []monitor.ServiceStatus) {
 		})
 	}
 
-	pterm.DefaultTable.
+	// Render table to string first, trim trailing newline
+	tableStr, _ := pterm.DefaultTable.
 		WithHasHeader(true).
-		WithBoxed(true).
 		WithData(tableData).
-		Render()
+		Srender()
+	tableStr = strings.TrimSuffix(tableStr, "\n")
+
+	// Print as boxed panel with title
+	pterm.DefaultBox.
+		WithTitle(pterm.Bold.Sprint("kk status")).
+		WithTitleTopLeft().
+		Print(tableStr)
+
+	// Print summary box
+	fmt.Println()
+	var summaryMsg string
+	var summaryColor pterm.Color
+	if running == 0 {
+		summaryMsg = MsgF("status_summary_stopped", len(statuses))
+		summaryColor = pterm.FgYellow
+	} else if running == len(statuses) {
+		summaryMsg = MsgF("all_running", running)
+		summaryColor = pterm.FgGreen
+	} else {
+		summaryMsg = MsgF("some_running", running, len(statuses))
+		summaryColor = pterm.FgYellow
+	}
+
+	pterm.DefaultBox.
+		WithTitle(pterm.Bold.Sprint(Msg("summary"))).
+		WithTitleTopCenter().
+		WithBoxStyle(pterm.NewStyle(summaryColor)).
+		Println(summaryMsg)
 }
 
 func formatHealth(health string) string {
@@ -109,8 +141,6 @@ func truncatePorts(ports string, maxLen int) string {
 
 // PrintAccessInfo shows access URLs for services
 func PrintAccessInfo(statuses []monitor.ServiceStatus) {
-	pterm.DefaultSection.Println(Msg("access_info"))
-
 	tableData := pterm.TableData{
 		{Msg("col_service"), Msg("col_url")},
 	}
@@ -126,6 +156,7 @@ func PrintAccessInfo(statuses []monitor.ServiceStatus) {
 	}
 
 	if len(tableData) > 1 {
+		fmt.Println() // Add spacing
 		pterm.DefaultTable.WithHasHeader(true).WithBoxed(true).WithData(tableData).Render()
 	}
 }
@@ -141,4 +172,70 @@ func getServiceURL(name, _ string) string {
 	default:
 		return ""
 	}
+}
+
+// PrintCommandResult displays service status table with command-specific title and summary.
+// cmdName: command name for box title (e.g., "kk start")
+// successMsgKey: i18n key for success message (e.g., "start_summary_success")
+// partialMsgKey: i18n key for partial success (e.g., "start_summary_partial")
+func PrintCommandResult(statuses []monitor.ServiceStatus, cmdName, successMsgKey, partialMsgKey string) {
+	tableData := pterm.TableData{
+		{Msg("col_service"), Msg("col_status"), Msg("col_health"), Msg("col_ports")},
+	}
+
+	running := 0
+	for _, s := range statuses {
+		statusText := pterm.Green(IconRunning + " " + Msg("status_running"))
+		if !s.Running {
+			statusText = pterm.Red(IconStopped + " " + Msg("status_stopped"))
+		} else {
+			running++
+		}
+
+		health := formatHealth(s.Health)
+		ports := truncatePorts(s.Ports, PortsTruncateLen)
+
+		tableData = append(tableData, []string{
+			s.Name,
+			statusText,
+			health,
+			ports,
+		})
+	}
+
+	// Render table to string first, trim trailing newline
+	tableStr, _ := pterm.DefaultTable.
+		WithHasHeader(true).
+		WithData(tableData).
+		Srender()
+	tableStr = strings.TrimSuffix(tableStr, "\n")
+
+	// Print as boxed panel with command title
+	pterm.DefaultBox.
+		WithTitle(pterm.Bold.Sprint(cmdName)).
+		WithTitleTopLeft().
+		Print(tableStr)
+
+	// Print summary box
+	fmt.Println()
+	var summaryMsg string
+	var summaryColor pterm.Color
+	if running == len(statuses) && running > 0 {
+		summaryMsg = MsgF(successMsgKey, running)
+		summaryColor = pterm.FgGreen
+	} else if running == 0 {
+		// All services failed/stopped - use red
+		summaryMsg = MsgF(partialMsgKey, running, len(statuses))
+		summaryColor = pterm.FgRed
+	} else {
+		// Partial success - use yellow
+		summaryMsg = MsgF(partialMsgKey, running, len(statuses))
+		summaryColor = pterm.FgYellow
+	}
+
+	pterm.DefaultBox.
+		WithTitle(pterm.Bold.Sprint(Msg("summary"))).
+		WithTitleTopCenter().
+		WithBoxStyle(pterm.NewStyle(summaryColor)).
+		Println(summaryMsg)
 }

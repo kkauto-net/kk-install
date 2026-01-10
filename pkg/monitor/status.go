@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 )
 
@@ -27,6 +28,45 @@ func GetStatus(ctx context.Context, executor ComposeExecutor) ([]ServiceStatus, 
 	}
 
 	return parseComposePs(output)
+}
+
+// GetStatusWithServices returns status of all services, including stopped ones.
+// It merges defined services from compose file with actual running status.
+func GetStatusWithServices(ctx context.Context, executor ComposeExecutor, definedServices []string) ([]ServiceStatus, error) {
+	runningStatuses, err := GetStatus(ctx, executor)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create map of running services for quick lookup
+	runningMap := make(map[string]ServiceStatus)
+	for _, s := range runningStatuses {
+		runningMap[s.Name] = s
+	}
+
+	// Build result with all defined services
+	var result []ServiceStatus
+	for _, name := range definedServices {
+		if status, exists := runningMap[name]; exists {
+			result = append(result, status)
+		} else {
+			// Service defined but not running
+			result = append(result, ServiceStatus{
+				Name:    name,
+				Status:  "exited",
+				Health:  "",
+				Ports:   "",
+				Running: false,
+			})
+		}
+	}
+
+	// Sort by name for consistent display
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result, nil
 }
 
 // Docker compose ps --format json output structure

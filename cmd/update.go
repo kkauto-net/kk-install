@@ -32,9 +32,6 @@ func init() {
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
-	// Command banner
-	ui.ShowCommandBanner("kk update", ui.Msg("update_desc"))
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -127,7 +124,12 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Monitor health
 	composeFile, err := compose.ParseComposeFile(cwd)
+	var definedServices []string
 	if err == nil {
+		for name := range composeFile.Services {
+			definedServices = append(definedServices, name)
+		}
+
 		healthMonitor, err := monitor.NewHealthMonitor()
 		if err == nil {
 			defer healthMonitor.Close()
@@ -149,15 +151,14 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Step 4: Show status
 	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
-	ui.ShowSuccess(ui.Msg("update_complete"))
 
 	// Show status
 	statusCtx, statusCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer statusCancel()
 
-	statuses, err := monitor.GetStatus(statusCtx, executor)
+	statuses, err := monitor.GetStatusWithServices(statusCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintStatusTable(statuses)
+		ui.PrintCommandResult(statuses, "kk update", "update_summary_success", "update_summary_partial")
 	}
 
 	return nil

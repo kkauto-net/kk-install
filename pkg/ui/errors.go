@@ -7,6 +7,9 @@ import (
 	"github.com/pterm/pterm"
 )
 
+// ErrorBoxMaxWidth is the maximum width for error box content
+const ErrorBoxMaxWidth = 70
+
 // ErrorSuggestion contains error information and a suggested fix.
 type ErrorSuggestion struct {
 	Title      string // Error title displayed in box header
@@ -15,12 +18,54 @@ type ErrorSuggestion struct {
 	Command    string // Optional command to run for fixing
 }
 
+// wrapText wraps text to maxWidth characters per line
+func wrapText(text string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return text
+	}
+
+	var result strings.Builder
+	lines := strings.Split(text, "\n")
+
+	for i, line := range lines {
+		if i > 0 {
+			result.WriteString("\n")
+		}
+
+		// If line is shorter than max width, keep as is
+		if len(line) <= maxWidth {
+			result.WriteString(line)
+			continue
+		}
+
+		// Wrap long lines
+		words := strings.Fields(line)
+		currentLine := ""
+		for _, word := range words {
+			if currentLine == "" {
+				currentLine = word
+			} else if len(currentLine)+1+len(word) <= maxWidth {
+				currentLine += " " + word
+			} else {
+				result.WriteString(currentLine + "\n")
+				currentLine = word
+			}
+		}
+		if currentLine != "" {
+			result.WriteString(currentLine)
+		}
+	}
+
+	return result.String()
+}
+
 // ShowBoxedError displays an error in a red box with optional fix suggestions.
 // The error is displayed with a red border and icon for visibility.
 func ShowBoxedError(err ErrorSuggestion) {
-	content := err.Message
+	// Wrap the message to prevent overly wide boxes
+	content := wrapText(err.Message, ErrorBoxMaxWidth)
 	if err.Suggestion != "" {
-		content += "\n\n" + Msg("to_fix") + ":\n  " + err.Suggestion
+		content += "\n\n" + Msg("to_fix") + ":\n  " + wrapText(err.Suggestion, ErrorBoxMaxWidth-2)
 	}
 	if err.Command != "" {
 		content += "\n\n" + Msg("then_run") + ": " + err.Command

@@ -26,9 +26,6 @@ func init() {
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
-	// Show command banner
-	ui.ShowCommandBanner("kk status", ui.Msg("status_desc"))
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -37,8 +34,27 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Parse compose file to get defined services
+	composeFile, err := compose.ParseComposeFile(cwd)
+	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("get_status_failed"),
+			Message:    err.Error(),
+			Suggestion: "Make sure docker-compose.yml exists",
+			Command:    "kk init",
+		})
+		return err
+	}
+
+	definedServices := composeFile.GetServiceNames()
+	if len(definedServices) == 0 {
+		fmt.Println(ui.Msg("no_services_defined"))
+		fmt.Println(ui.Msg("run_init"))
+		return nil
+	}
+
 	executor := compose.NewExecutor(cwd)
-	statuses, err := monitor.GetStatus(ctx, executor)
+	statuses, err := monitor.GetStatusWithServices(ctx, executor, definedServices)
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("get_status_failed"),
@@ -49,27 +65,14 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(statuses) == 0 {
-		fmt.Println(ui.Msg("no_services"))
-		fmt.Println(ui.Msg("run_start"))
-		return nil
-	}
-
 	ui.PrintStatusTable(statuses)
-	ui.PrintAccessInfo(statuses)
 
-	// Summary
-	running := 0
+	// Show access info if any services running
 	for _, s := range statuses {
 		if s.Running {
-			running++
+			ui.PrintAccessInfo(statuses)
+			break
 		}
-	}
-
-	if running == len(statuses) {
-		ui.ShowSuccess(ui.MsgF("all_running", running))
-	} else {
-		ui.ShowWarning(ui.MsgF("some_running", running, len(statuses)))
 	}
 
 	return nil

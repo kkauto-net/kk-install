@@ -27,9 +27,6 @@ func init() {
 }
 
 func runRestart(cmd *cobra.Command, args []string) error {
-	// Command banner
-	ui.ShowCommandBanner("kk restart", ui.Msg("restart_desc"))
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -71,7 +68,12 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	// Step 2: Monitor health
 	ui.ShowStepHeader(2, 3, ui.Msg("step_health_check"))
 	composeFile, err := compose.ParseComposeFile(cwd)
+	var definedServices []string
 	if err == nil {
+		for name := range composeFile.Services {
+			definedServices = append(definedServices, name)
+		}
+
 		healthMonitor, err := monitor.NewHealthMonitor()
 		if err == nil {
 			defer healthMonitor.Close()
@@ -95,9 +97,9 @@ func runRestart(cmd *cobra.Command, args []string) error {
 
 	// Step 3: Show final status
 	ui.ShowStepHeader(3, 3, ui.Msg("step_status"))
-	statuses, err := monitor.GetStatus(timeoutCtx, executor)
+	statuses, err := monitor.GetStatusWithServices(timeoutCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintStatusTable(statuses)
+		ui.PrintCommandResult(statuses, "kk restart", "restart_summary_success", "restart_summary_partial")
 	}
 
 	return nil
