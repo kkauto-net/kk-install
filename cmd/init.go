@@ -34,6 +34,7 @@ func init() {
 
 func runInit(cmd *cobra.Command, args []string) error {
 	// Step 1: Check Docker
+	ui.ShowStepHeader(1, 5, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
 		ui.ShowError(err.Error())
@@ -50,6 +51,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection
+	ui.ShowStepHeader(2, 5, ui.Msg("step_language"))
 	var langChoice string
 	langForm := huh.NewForm(
 		huh.NewGroup(
@@ -76,14 +78,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 	cfg.Language = langChoice
 	_ = cfg.Save() // Best effort, don't fail init if config save fails
 
-	// Step 3: Get working directory
+	// Get working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	fmt.Printf("\n%s %s\n\n", ui.IconFolder, ui.MsgF("init_in_dir", cwd))
 
-	// Step 4: Check if already initialized
+	// Check if already initialized
 	composePath := filepath.Join(cwd, "docker-compose.yml")
 	if _, err := os.Stat(composePath); err == nil {
 		var overwrite bool
@@ -107,7 +109,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 5: Interactive prompts
+	// Step 3: Configuration options
+	ui.ShowStepHeader(3, 5, ui.Msg("step_options"))
 	enableSeaweedFS := true // Default: enabled (recommended)
 	enableCaddy := true     // Default: enabled (recommended)
 	var domain string
@@ -152,7 +155,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 6: Generate passwords
+	// Step 4: Generate files
+	ui.ShowStepHeader(4, 5, ui.Msg("step_generate"))
 	dbPass, err := ui.GeneratePassword(24)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ui.Msg("error_db_password"), err)
@@ -166,7 +170,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("error_redis_pass"), err)
 	}
 
-	// Step 7: Render templates with spinner
+	// Render templates with spinner
 	spinner, _ := pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
 
 	tmplCfg := templates.Config{
@@ -185,19 +189,22 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	spinner.Success(ui.IconCheck + " " + ui.Msg("files_generated"))
 
-	// Step 8: Show success
-	fmt.Println()
-	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("docker-compose.yml"))
-	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated(".env"))
-	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("kkphp.conf"))
+	// Step 5: Complete - show summary
+	ui.ShowStepHeader(5, 5, ui.Msg("step_complete"))
+
+	// Collect created files
+	createdFiles := []string{"docker-compose.yml", ".env", "kkphp.conf"}
 	if enableCaddy {
-		ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("Caddyfile"))
+		createdFiles = append(createdFiles, "Caddyfile")
 	}
 	if enableSeaweedFS {
-		ui.ShowSuccess(ui.IconCheck + " " + ui.MsgCreated("kkfiler.toml"))
+		createdFiles = append(createdFiles, "kkfiler.toml")
 	}
 
-	// Step 9: Show completion box
+	// Show summary table
+	ui.PrintInitSummary(enableSeaweedFS, enableCaddy, domain, createdFiles)
+
+	// Show completion box
 	fmt.Println()
 	pterm.DefaultBox.
 		WithTitle(ui.IconComplete + " " + ui.Msg("init_complete")).

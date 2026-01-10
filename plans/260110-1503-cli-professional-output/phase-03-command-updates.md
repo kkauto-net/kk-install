@@ -6,8 +6,9 @@
 
 ## Overview
 - **Priority**: High
-- **Status**: Pending
+- **Status**: ✅ **COMPLETED** (2026-01-10 15:38)
 - **Description**: Update command files to use new pterm UI components
+- **Review**: [code-reviewer-260110-1538-phase03-command-updates.md](../reports/code-reviewer-260110-1538-phase03-command-updates.md)
 
 ## Key Insights
 - `cmd/init.go` needs step wizard (5 steps)
@@ -136,20 +137,30 @@ No changes needed for table calls - already uses:
 
 ## Todo List
 
-- [ ] Update `cmd/init.go` with step headers
-- [ ] Update `cmd/init.go` to call PrintInitSummary
-- [ ] Update `pkg/validator/preflight.go` PrintPreflightResults
-- [ ] Verify `cmd/status.go` compiles with new table.go
-- [ ] Verify `cmd/start.go` compiles with new table.go
-- [ ] Run full build test
+- [x] Update `cmd/init.go` with step headers ✅
+- [x] Update `cmd/init.go` to call PrintInitSummary ✅
+- [x] Update `pkg/validator/preflight.go` PrintPreflightResults ✅
+- [x] Verify `cmd/status.go` compiles with new table.go ✅
+- [x] Verify `cmd/start.go` compiles with new table.go ✅
+- [x] Run full build test ✅
 
 ## Success Criteria
 
-- [ ] `kk init` shows Step 1/5 through Step 5/5
-- [ ] `kk init` displays summary table before next steps box
-- [ ] `kk status` renders pterm boxed table
-- [ ] `kk start` preflight shows pterm table
-- [ ] All commands compile and run correctly
+- [x] `kk init` shows Step 1/5 through Step 5/5 ✅
+- [x] `kk init` displays summary table before next steps box ✅
+- [x] `kk status` renders pterm boxed table ✅
+- [x] `kk start` preflight shows pterm table ✅
+- [x] All commands compile and run correctly ✅
+
+## Review Findings
+
+**Score**: 8.5/10 | **Critical**: 0 | **Status**: APPROVED
+
+**Medium Priority**:
+1. Hardcoded Vietnamese text in `preflight.go` - should use i18n
+2. Silent error suppression in config save - add warning log
+
+**Details**: See [review report](../reports/code-reviewer-260110-1538-phase03-command-updates.md)
 
 ## Risk Assessment
 

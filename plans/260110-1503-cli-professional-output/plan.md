@@ -26,7 +26,7 @@ Improve kkcli output professionalism by:
 |---|-------|--------|--------|------|
 | 1 | UI Components | Done | 1h | [phase-01](./phase-01-ui-components.md) |
 | 2 | i18n Messages | Done | 30m | [phase-02](./phase-02-i18n-messages.md) |
-| 3 | Command Updates | Pending | 1h | [phase-03](./phase-03-command-updates.md) |
+| 3 | Command Updates | Done | 1h | [phase-03](./phase-03-command-updates.md) |
 | 4 | Testing | Pending | 30m | [phase-04](./phase-04-testing.md) |
 
 ## Dependencies

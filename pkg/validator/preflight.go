@@ -2,6 +2,9 @@ package validator
 
 import (
 	"fmt"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
+	"github.com/pterm/pterm"
 )
 
 type PreflightResult struct {
@@ -112,24 +115,33 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	return results, nil
 }
 
-// PrintPreflightResults displays results in user-friendly format
+// PrintPreflightResults displays preflight check results as pterm table
 func PrintPreflightResults(results []PreflightResult) {
-	fmt.Println("\nKiem tra truoc khi chay:")
-	fmt.Println("─────────────────────────")
+	tableData := pterm.TableData{
+		{ui.Msg("check"), ui.Msg("result")},
+	}
 
 	for _, r := range results {
+		var status string
 		if r.Passed {
 			if r.Warning != "" {
-				fmt.Printf("  [!] %s (canh bao: %s)\n", r.CheckName, r.Warning)
+				status = pterm.Yellow("⚠ " + r.Warning)
 			} else {
-				fmt.Printf("  [OK] %s\n", r.CheckName)
+				status = pterm.Green("✓ Pass")
 			}
 		} else {
-			fmt.Printf("  [X] %s\n", r.CheckName)
 			if r.Error != nil {
-				fmt.Printf("      %s\n", TranslateError(r.Error))
+				status = pterm.Red("✗ " + TranslateError(r.Error))
+			} else {
+				status = pterm.Red("✗ Failed")
 			}
 		}
+		tableData = append(tableData, []string{r.CheckName, status})
 	}
-	fmt.Println()
+
+	pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(true).
+		WithData(tableData).
+		Render()
 }
