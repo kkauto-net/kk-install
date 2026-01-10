@@ -59,9 +59,9 @@ func PrintStatusTable(statuses []monitor.ServiceStatus) {
 	}
 
 	for _, s := range statuses {
-		statusText := pterm.Green("● " + Msg("status_running"))
+		statusText := pterm.Green(IconRunning + " " + Msg("status_running"))
 		if !s.Running {
-			statusText = pterm.Red("○ " + Msg("status_stopped"))
+			statusText = pterm.Red(IconStopped + " " + Msg("status_stopped"))
 		}
 
 		health := formatHealth(s.Health)
@@ -83,16 +83,18 @@ func PrintStatusTable(statuses []monitor.ServiceStatus) {
 }
 
 func formatHealth(health string) string {
-	if health == "" {
+	switch health {
+	case "":
 		return pterm.Gray("-")
+	case "healthy":
+		return pterm.Green(IconHealthy + " healthy")
+	case "unhealthy":
+		return pterm.Red(IconUnhealthy + " unhealthy")
+	case "starting":
+		return pterm.Blue(IconStarting + " starting")
+	default:
+		return pterm.Yellow(IconWarning + " " + health)
 	}
-	if health == "healthy" {
-		return pterm.Green("healthy")
-	}
-	if health == "unhealthy" {
-		return pterm.Red("unhealthy")
-	}
-	return pterm.Yellow(health)
 }
 
 func truncatePorts(ports string, maxLen int) string {

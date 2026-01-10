@@ -12,7 +12,7 @@
 | Date | 2026-01-11 |
 | Priority | P1 |
 | Effort | 30m |
-| Implementation Status | pending |
+| Implementation Status | complete |
 
 **Description:** Add "starting" state với blue icon, refine color scheme cho consistency.
 
@@ -114,13 +114,13 @@ func formatHealth(health string) string {
 
 ## Todo List
 
-- [ ] Create `pkg/ui/icons.go` with icon constants
-- [ ] Update `PrintStatusTable` to use new icons
-- [ ] Update `ShowServiceProgress` to use new icons
-- [ ] Update `formatHealth` to use new icons
-- [ ] Add i18n key: `status_starting`
-- [ ] Run `go build ./...`
-- [ ] Test visually
+- [x] Create `pkg/ui/icons.go` with icon constants
+- [x] Update `PrintStatusTable` to use new icons
+- [x] Update `ShowServiceProgress` to use new icons
+- [x] Update `formatHealth` to use new icons
+- [x] Add i18n key: `status_starting`
+- [x] Run `go build ./...`
+- [x] Test visually
 
 ## Success Criteria
 

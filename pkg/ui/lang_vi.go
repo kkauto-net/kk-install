@@ -104,8 +104,9 @@ Bước tiếp theo:
 	"domain":         "Tên miền",
 
 	// Status display
-	"status_running": "Đang chạy",
-	"status_stopped": "Đã dừng",
+	"status_running":  "Đang chạy",
+	"status_stopped":  "Đã dừng",
+	"status_starting": "Đang khởi động",
 
 	// Init wizard steps
 	"step_docker_check": "Kiểm tra Docker",

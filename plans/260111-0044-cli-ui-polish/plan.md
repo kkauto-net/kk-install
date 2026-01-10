@@ -35,7 +35,7 @@ Polish kkcli output với consistent boxed tables, integrate ShowBoxedError thay
 | Phase | Description | Status | Effort |
 |-------|-------------|--------|--------|
 | [Phase 01](./phase-01-quick-wins.md) | Box AccessInfo + Integrate ShowBoxedError | complete | 30m |
-| [Phase 02](./phase-02-icons-colors.md) | Starting icon + Color refinements | pending | 30m |
+| [Phase 02](./phase-02-icons-colors.md) | Starting icon + Color refinements | complete | 30m |
 | [Phase 03](./phase-03-error-grouping.md) | Preflight error grouping | pending | 30m |
 
 ## Files to Modify

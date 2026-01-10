@@ -104,8 +104,9 @@ Next steps:
 	"domain":         "Domain",
 
 	// Status display
-	"status_running": "Running",
-	"status_stopped": "Stopped",
+	"status_running":  "Running",
+	"status_stopped":  "Stopped",
+	"status_starting": "Starting",
 
 	// Init wizard steps
 	"step_docker_check": "Docker Check",

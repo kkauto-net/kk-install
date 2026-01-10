@@ -18,6 +18,17 @@ const (
 	IconCheck    = "✅"  // Success (same as complete)
 )
 
+// Status icons for service/health states
+const (
+	IconRunning   = "●" // Green - service running
+	IconStopped   = "○" // Red - service stopped
+	IconStarting  = "◐" // Blue - service starting
+	IconHealthy   = "✓" // Green - health check passed
+	IconUnhealthy = "✗" // Red - health check failed
+	IconWarning   = "⚠" // Yellow - warning state
+	IconUnknown   = "?" // Gray - unknown state
+)
+
 // Message functions using i18n
 // These functions are kept for backward compatibility
 func MsgCheckingDocker() string     { return Msg("checking_docker") }

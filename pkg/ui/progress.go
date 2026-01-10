@@ -80,13 +80,13 @@ func StartPtermSpinner(msg string) *pterm.SpinnerPrinter {
 func ShowServiceProgress(serviceName, status string) {
 	switch status {
 	case "starting":
-		pterm.Info.Printfln("%s %s", serviceName, Msg("starting"))
+		pterm.Info.Printfln("%s %s %s", IconStarting, serviceName, Msg("starting"))
 	case "healthy", "running":
-		pterm.Success.Printfln("%s %s", serviceName, Msg("ready"))
+		pterm.Success.Printfln("%s %s %s", IconHealthy, serviceName, Msg("ready"))
 	case "unhealthy":
-		pterm.Error.Printfln("%s %s", serviceName, Msg("unhealthy"))
+		pterm.Error.Printfln("%s %s %s", IconUnhealthy, serviceName, Msg("unhealthy"))
 	default:
-		pterm.Warning.Printfln("%s: %s", serviceName, status)
+		pterm.Warning.Printfln("%s %s: %s", IconWarning, serviceName, status)
 	}
 }
 
