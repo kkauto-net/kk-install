@@ -6,7 +6,7 @@
 
 ## Overview
 - **Priority**: Medium
-- **Status**: Pending
+- **Status**: Done
 - **Description**: Test all commands in both English and Vietnamese
 
 ## Key Insights

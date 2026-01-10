@@ -1,12 +1,13 @@
 ---
 title: "CLI Professional Output Improvements"
 description: "Replace hand-rolled ASCII tables with pterm tables, add step wizard to init, improve i18n"
-status: pending
+status: done
 priority: P2
 effort: 3h
 branch: main
 tags: [ui, i18n, refactor]
 created: 2026-01-10
+completed: 2026-01-10
 ---
 
 # CLI Professional Output Improvements
@@ -27,7 +28,7 @@ Improve kkcli output professionalism by:
 | 1 | UI Components | Done | 1h | [phase-01](./phase-01-ui-components.md) |
 | 2 | i18n Messages | Done | 30m | [phase-02](./phase-02-i18n-messages.md) |
 | 3 | Command Updates | Done | 1h | [phase-03](./phase-03-command-updates.md) |
-| 4 | Testing | Pending | 30m | [phase-04](./phase-04-testing.md) |
+| 4 | Testing | Done | 30m | [phase-04](./phase-04-testing.md) |
 
 ## Dependencies
 
