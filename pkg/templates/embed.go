@@ -21,6 +21,10 @@ type Config struct {
 	Domain    string
 	JWTSecret string
 
+	// License
+	LicenseKey      string
+	ServerPublicKey string
+
 	// Database
 	DBPassword     string
 	DBRootPassword string

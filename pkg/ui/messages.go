@@ -16,6 +16,7 @@ const (
 	IconWrite    = "✍️" // Generating
 	IconComplete = "✅"  // Complete
 	IconCheck    = "✅"  // Success (same as complete)
+	IconKey      = "🔑"  // License key
 )
 
 // Status icons for service/health states

@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/config"
+	"github.com/kkauto-net/kk-install/pkg/license"
 	"github.com/kkauto-net/kk-install/pkg/templates"
 	"github.com/kkauto-net/kk-install/pkg/ui"
 	"github.com/kkauto-net/kk-install/pkg/validator"
@@ -43,8 +44,57 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Command banner
 	ui.ShowCommandBanner("kk init", ui.Msg("init_desc"))
 
+	// Step 0: License Verification
+	ui.ShowStepHeader(0, 7, ui.Msg("step_license"))
+
+	var licenseKey string
+	licenseForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title(ui.IconKey+" "+ui.Msg("enter_license")).
+				Value(&licenseKey).
+				Placeholder("LICENSE-XXXXXXXXXXXXXXXX").
+				Validate(func(s string) error {
+					if s == "" {
+						return errors.New(ui.Msg("license_required"))
+					}
+					if !license.ValidateFormat(s) {
+						return errors.New(ui.Msg("license_invalid_format"))
+					}
+					return nil
+				}),
+		),
+	)
+	if err := licenseForm.Run(); err != nil {
+		return err
+	}
+
+	// Validate license against API
+	spinner, _ := pterm.DefaultSpinner.Start(ui.IconKey + " " + ui.Msg("validating_license"))
+	client := license.NewClient()
+	licenseResp, err := client.Validate(licenseKey)
+	if err != nil {
+		spinner.Fail(ui.Msg("license_validation_failed"))
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("license_validation_failed"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("license_check_key"),
+		})
+		return err
+	}
+	spinner.Success(ui.IconCheck + " " + ui.Msg("license_validated"))
+
+	// Store license data for later use
+	licenseData := struct {
+		Key       string
+		PublicKey string
+	}{
+		Key:       licenseKey,
+		PublicKey: licenseResp.PublicKey,
+	}
+
 	// Step 1: Check Docker
-	ui.ShowStepHeader(1, 6, ui.Msg("step_docker_check"))
+	ui.ShowStepHeader(1, 7, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 
 	// Check Docker installation
@@ -166,7 +216,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection
-	ui.ShowStepHeader(2, 6, ui.Msg("step_language"))
+	ui.ShowStepHeader(2, 7, ui.Msg("step_language"))
 	var langChoice string
 	if forceInit {
 		langChoice = "en" // Default to English in force mode
@@ -234,7 +284,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 3: Service Selection (SeaweedFS, Caddy only)
-	ui.ShowStepHeader(3, 6, ui.Msg("step_options"))
+	ui.ShowStepHeader(3, 7, ui.Msg("step_options"))
 	enableSeaweedFS := true // Default: enabled (recommended)
 	enableCaddy := true     // Default: enabled (recommended)
 
@@ -263,7 +313,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 4: Domain Configuration
-	ui.ShowStepHeader(4, 6, ui.Msg("step_domain"))
+	ui.ShowStepHeader(4, 7, ui.Msg("step_domain"))
 	domain := "localhost"
 	if !forceInit {
 		domainForm := huh.NewForm(
@@ -284,7 +334,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 5: Environment Configuration
-	ui.ShowStepHeader(5, 6, ui.Msg("step_credentials"))
+	ui.ShowStepHeader(5, 7, ui.Msg("step_credentials"))
 
 	// Pre-generate all secrets with retry logic
 	jwtSecret, err := generatePasswordWithRetry(32)
@@ -379,16 +429,18 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 6: Generate Files + Complete
-	ui.ShowStepHeader(6, 6, ui.Msg("step_generate"))
+	ui.ShowStepHeader(6, 7, ui.Msg("step_generate"))
 
 	// Render templates with spinner
-	spinner, _ := pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
+	spinner, _ = pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
 
 	tmplCfg := templates.Config{
 		EnableSeaweedFS: enableSeaweedFS,
 		EnableCaddy:     enableCaddy,
 		Domain:          domain,
 		JWTSecret:       jwtSecret,
+		LicenseKey:      licenseData.Key,
+		ServerPublicKey: licenseData.PublicKey,
 		DBPassword:      dbPass,
 		DBRootPassword:  dbRootPass,
 		RedisPassword:   redisPass,

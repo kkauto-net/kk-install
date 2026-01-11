@@ -135,6 +135,7 @@ Bước tiếp theo:
 	"summary":         "Tóm tắt",
 
 	// Init wizard steps
+	"step_license":      "Xác thực License",
 	"step_docker_check": "Kiểm tra Docker",
 	"step_language":     "Chọn ngôn ngữ",
 	"step_options":      "Tùy chọn cấu hình",
@@ -142,6 +143,15 @@ Bước tiếp theo:
 	"step_credentials":  "Cấu hình môi trường",
 	"step_generate":     "Tạo file",
 	"step_complete":     "Hoàn tất",
+
+	// License verification
+	"enter_license":            "Nhập license key của bạn",
+	"license_required":         "License key là bắt buộc",
+	"license_invalid_format":   "Định dạng license không hợp lệ. Mong đợi: LICENSE-XXXXXXXXXXXXXXXX",
+	"validating_license":       "Đang xác thực license...",
+	"license_validated":        "Xác thực license thành công",
+	"license_validation_failed": "Xác thực license thất bại",
+	"license_check_key":        "Vui lòng kiểm tra license key và thử lại",
 
 	// Credentials / Environment Configuration
 	"ask_use_random":      "Sử dụng mật khẩu tự động tạo?",

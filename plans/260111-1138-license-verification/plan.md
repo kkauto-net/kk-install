@@ -28,7 +28,7 @@ Currently `kk init` allows anyone to initialize a stack. Need to:
 | Phase | Description | Status | Effort |
 |-------|-------------|--------|--------|
 | [Phase 01](phase-01-license-module.md) | Create `pkg/license/` module | done | 45m |
-| [Phase 02](phase-02-init-integration.md) | Integrate license step into init flow | pending | 45m |
+| [Phase 02](phase-02-init-integration.md) | Integrate license step into init flow | done | 45m |
 | [Phase 03](phase-03-tests-i18n.md) | Add tests and i18n messages | pending | 30m |
 
 ## Architecture

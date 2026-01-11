@@ -135,6 +135,7 @@ Next steps:
 	"summary":         "Summary",
 
 	// Init wizard steps
+	"step_license":      "License Verification",
 	"step_docker_check": "Docker Check",
 	"step_language":     "Language Selection",
 	"step_options":      "Configuration Options",
@@ -142,6 +143,15 @@ Next steps:
 	"step_credentials":  "Environment Configuration",
 	"step_generate":     "Generate Files",
 	"step_complete":     "Complete",
+
+	// License verification
+	"enter_license":            "Enter your license key",
+	"license_required":         "License key is required",
+	"license_invalid_format":   "Invalid license format. Expected: LICENSE-XXXXXXXXXXXXXXXX",
+	"validating_license":       "Validating license...",
+	"license_validated":        "License validated successfully",
+	"license_validation_failed": "License validation failed",
+	"license_check_key":        "Please check your license key and try again",
 
 	// Credentials / Environment Configuration
 	"ask_use_random":      "Use auto-generated secrets?",
