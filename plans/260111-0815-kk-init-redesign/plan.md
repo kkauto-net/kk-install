@@ -1,7 +1,7 @@
 ---
 title: "Redesign kk init Command"
 description: "Improve UX for init flow - clearer service options, customizable credentials with grouped form"
-status: pending
+status: in-progress
 priority: P2
 effort: 4h
 branch: main

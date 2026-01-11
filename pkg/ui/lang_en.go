@@ -138,8 +138,30 @@ Next steps:
 	"step_docker_check": "Docker Check",
 	"step_language":     "Language Selection",
 	"step_options":      "Configuration Options",
+	"step_domain":       "Domain Configuration",
+	"step_credentials":  "Environment Configuration",
 	"step_generate":     "Generate Files",
 	"step_complete":     "Complete",
+
+	// Credentials / Environment Configuration
+	"ask_use_random":      "Use auto-generated secrets?",
+	"ask_use_random_desc": "Secure random secrets have been generated for all fields",
+	"no_edit":             "No, let me edit",
+	"group_system":        "System Configuration",
+	"group_db_secrets":    "Database Secrets",
+	"group_s3_secrets":    "S3 Storage Secrets",
+	"error_jwt_secret":    "Failed to generate JWT secret",
+	"error_s3_access_key": "Failed to generate S3 access key",
+	"error_s3_secret_key": "Failed to generate S3 secret key",
+
+	// Force mode messages
+	"docker_not_installed_force_init":      "Docker not installed (force mode - continuing)",
+	"docker_daemon_not_running_force_init": "Docker daemon not running (force mode - continuing)",
+	"docker_compose_issue_force_init":      "Docker Compose issue detected (force mode - continuing)",
+	"compose_exists_force_init":            "docker-compose.yml exists, overwriting in force mode",
+
+	// Validation
+	"error_invalid_domain": "Invalid domain format (use example.com or localhost)",
 
 	// Preflight
 	"check":  "Check",

@@ -138,8 +138,30 @@ Bước tiếp theo:
 	"step_docker_check": "Kiểm tra Docker",
 	"step_language":     "Chọn ngôn ngữ",
 	"step_options":      "Tùy chọn cấu hình",
+	"step_domain":       "Cấu hình domain",
+	"step_credentials":  "Cấu hình môi trường",
 	"step_generate":     "Tạo file",
 	"step_complete":     "Hoàn tất",
+
+	// Credentials / Environment Configuration
+	"ask_use_random":      "Sử dụng mật khẩu tự động tạo?",
+	"ask_use_random_desc": "Các mật khẩu ngẫu nhiên an toàn đã được tạo sẵn",
+	"no_edit":             "Không, để tôi chỉnh sửa",
+	"group_system":        "Cấu hình hệ thống",
+	"group_db_secrets":    "Mật khẩu Database",
+	"group_s3_secrets":    "Mật khẩu S3 Storage",
+	"error_jwt_secret":    "Không thể tạo JWT secret",
+	"error_s3_access_key": "Không thể tạo S3 access key",
+	"error_s3_secret_key": "Không thể tạo S3 secret key",
+
+	// Force mode messages
+	"docker_not_installed_force_init":      "Docker chưa cài đặt (force mode - tiếp tục)",
+	"docker_daemon_not_running_force_init": "Docker daemon không chạy (force mode - tiếp tục)",
+	"docker_compose_issue_force_init":      "Phát hiện vấn đề Docker Compose (force mode - tiếp tục)",
+	"compose_exists_force_init":            "docker-compose.yml đã tồn tại, ghi đè trong force mode",
+
+	// Validation
+	"error_invalid_domain": "Định dạng domain không hợp lệ (dùng example.com hoặc localhost)",
 
 	// Preflight
 	"check":  "Kiểm tra",

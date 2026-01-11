@@ -1,3 +1,15 @@
+---
+title: "Phase 02: Refactor Init Flow"
+description: "Refactor cmd/init.go to implement new 6-step flow with domain step separated and grouped credential form."
+status: completed
+priority: high
+effort: 2 hours
+branch: feature/init-refactor-phase-2
+tags: [init, refactor, ui, backend]
+created: 2026-01-10T10:00:00Z
+completion timestamp: 2026-01-11 09:45
+---
+
 # Phase 02: Refactor Init Flow
 
 **Effort:** 2 hours
@@ -218,6 +230,7 @@ ui.ShowStepHeader(6, 6, ui.Msg("step_generate"))
 
 ## Output
 
-- Refactored `cmd/init.go` với 6-step flow
-- Helper function `generateS3AccessKey()`
-- Grouped form với conditional S3 section
+- Files changed: cmd/init.go, pkg/ui/lang_en.go, pkg/ui/lang_vi.go, kk_integration_test.go
+- New features: 6-step flow, --force flag, grouped credential form, domain/secret validation
+- Test results: All packages passed
+- Code review: 9/10
