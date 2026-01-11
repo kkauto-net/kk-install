@@ -14,10 +14,15 @@ func main() {
 	cfg := templates.Config{
 		EnableSeaweedFS: true,
 		EnableCaddy:     true,
+		Domain:          "example.com",
+		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
+		LicenseKey:      "LICENSE-TESTKEY12345678",
+		ServerPublicKey: "test_public_key_encrypted",
 		DBPassword:      "test_db_pass",
 		DBRootPassword:  "test_db_root_pass",
 		RedisPassword:   "test_redis_pass",
-		Domain:          "example.com",
+		S3AccessKey:     "TESTACCESSKEY12345678",
+		S3SecretKey:     "testsecretkey1234567890123456789012345678",
 	}
 
 	goldenDir := "golden"

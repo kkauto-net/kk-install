@@ -1,7 +1,7 @@
 ---
 title: "License Verification for kk init"
 description: "Add license validation step before Docker check in kk init command"
-status: in-progress
+status: done
 priority: P1
 effort: 2h
 branch: main
@@ -29,7 +29,7 @@ Currently `kk init` allows anyone to initialize a stack. Need to:
 |-------|-------------|--------|--------|
 | [Phase 01](phase-01-license-module.md) | Create `pkg/license/` module | done | 45m |
 | [Phase 02](phase-02-init-integration.md) | Integrate license step into init flow | done | 45m |
-| [Phase 03](phase-03-tests-i18n.md) | Add tests and i18n messages | pending | 30m |
+| [Phase 03](phase-03-tests-i18n.md) | Add tests and i18n messages | done | 30m |
 
 ## Architecture
 
