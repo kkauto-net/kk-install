@@ -2,6 +2,8 @@ package templates
 
 import (
 	"embed"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -11,12 +13,55 @@ import (
 var templateFS embed.FS // Force recompile
 
 type Config struct {
+	// Services
 	EnableSeaweedFS bool
 	EnableCaddy     bool
-	DBPassword      string
-	DBRootPassword  string
-	RedisPassword   string
-	Domain          string
+
+	// System
+	Domain    string
+	JWTSecret string
+
+	// Database
+	DBPassword     string
+	DBRootPassword string
+	RedisPassword  string
+
+	// S3 (only used when EnableSeaweedFS)
+	S3AccessKey string
+	S3SecretKey string
+}
+
+// Secret length requirements
+const (
+	MinJWTSecretLength   = 32 // OWASP recommended minimum for HMAC secrets
+	MinDBPasswordLength  = 16
+	MinS3AccessKeyLength = 16
+	MinS3SecretKeyLength = 32
+)
+
+// ValidateSecrets validates that all secrets meet minimum security requirements
+func (c Config) ValidateSecrets() error {
+	if len(c.JWTSecret) < MinJWTSecretLength {
+		return fmt.Errorf("JWT_SECRET must be at least %d characters (got %d)", MinJWTSecretLength, len(c.JWTSecret))
+	}
+	if len(c.DBPassword) < MinDBPasswordLength {
+		return fmt.Errorf("DB_PASSWORD must be at least %d characters (got %d)", MinDBPasswordLength, len(c.DBPassword))
+	}
+	if len(c.DBRootPassword) < MinDBPasswordLength {
+		return fmt.Errorf("DB_ROOT_PASSWORD must be at least %d characters (got %d)", MinDBPasswordLength, len(c.DBRootPassword))
+	}
+	if len(c.RedisPassword) < MinDBPasswordLength {
+		return fmt.Errorf("REDIS_PASSWORD must be at least %d characters (got %d)", MinDBPasswordLength, len(c.RedisPassword))
+	}
+	if c.EnableSeaweedFS {
+		if len(c.S3AccessKey) < MinS3AccessKeyLength {
+			return fmt.Errorf("S3_ACCESS_KEY must be at least %d characters (got %d)", MinS3AccessKeyLength, len(c.S3AccessKey))
+		}
+		if len(c.S3SecretKey) < MinS3SecretKeyLength {
+			return fmt.Errorf("S3_SECRET_KEY must be at least %d characters (got %d)", MinS3SecretKeyLength, len(c.S3SecretKey))
+		}
+	}
+	return nil
 }
 
 // RenderTemplate renders a single template file
@@ -56,6 +101,11 @@ func RenderTemplate(name string, cfg Config, outputPath string) error {
 
 // RenderAll renders all templates to the target directory
 func RenderAll(cfg Config, targetDir string) error {
+	// Validate secrets before rendering
+	if err := cfg.ValidateSecrets(); err != nil {
+		return errors.New("invalid config: " + err.Error())
+	}
+
 	files := map[string]string{
 		"docker-compose.yml": "docker-compose.yml",
 		"env":                ".env",

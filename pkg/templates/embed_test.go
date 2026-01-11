@@ -170,10 +170,13 @@ func TestAllConfigCombinations(t *testing.T) {
 			cfg := Config{
 				EnableSeaweedFS: combo.seaweed,
 				EnableCaddy:     combo.caddy,
-				DBPassword:      "test_db",
-				DBRootPassword:  "test_root",
-				RedisPassword:   "test_redis",
 				Domain:          "test.example.com",
+				JWTSecret:       "test_jwt_secret_32chars_long!!!!",
+				DBPassword:      "test_db_password_16!",
+				DBRootPassword:  "test_root_password!",
+				RedisPassword:   "test_redis_pass_16!",
+				S3AccessKey:     "TESTACCESSKEY12345678",
+				S3SecretKey:     "testsecretkey1234567890123456789012345678",
 			}
 
 			tempDir := t.TempDir()
@@ -299,10 +302,13 @@ func TestGoldenFiles(t *testing.T) {
 	cfg := Config{
 		EnableSeaweedFS: true,
 		EnableCaddy:     true,
+		Domain:          "example.com",
+		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
 		DBPassword:      "test_db_pass",
 		DBRootPassword:  "test_db_root_pass",
 		RedisPassword:   "test_redis_pass",
-		Domain:          "example.com",
+		S3AccessKey:     "TESTACCESSKEY12345678",
+		S3SecretKey:     "testsecretkey1234567890123456789012345678",
 	}
 
 	goldenTests := []struct {
@@ -331,6 +337,91 @@ func TestGoldenFiles(t *testing.T) {
 
 			if diff := cmp.Diff(string(golden), rendered); diff != "" {
 				t.Errorf("%s mismatch (-want +got):\n%s", tt.template, diff)
+			}
+		})
+	}
+}
+
+// TestValidateSecrets tests the ValidateSecrets function
+func TestValidateSecrets(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     Config
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid config",
+			cfg: Config{
+				JWTSecret:      "this_is_a_32_character_secret!!!", // 32 chars
+				DBPassword:     "password_16chars", // 16 chars
+				DBRootPassword: "password_16chars",
+				RedisPassword:  "password_16chars",
+			},
+			wantErr: false,
+		},
+		{
+			name: "jwt secret too short",
+			cfg: Config{
+				JWTSecret:      "short",
+				DBPassword:     "password_16chars",
+				DBRootPassword: "password_16chars",
+				RedisPassword:  "password_16chars",
+			},
+			wantErr: true,
+			errMsg:  "JWT_SECRET must be at least 32 characters",
+		},
+		{
+			name: "db password too short",
+			cfg: Config{
+				JWTSecret:      "this_is_a_32_character_secret!!!",
+				DBPassword:     "short",
+				DBRootPassword: "password_16chars",
+				RedisPassword:  "password_16chars",
+			},
+			wantErr: true,
+			errMsg:  "DB_PASSWORD must be at least 16 characters",
+		},
+		{
+			name: "s3 validation only when seaweedfs enabled",
+			cfg: Config{
+				EnableSeaweedFS: true,
+				JWTSecret:       "this_is_a_32_character_secret!!!",
+				DBPassword:      "password_16chars",
+				DBRootPassword:  "password_16chars",
+				RedisPassword:   "password_16chars",
+				S3AccessKey:     "short", // too short
+				S3SecretKey:     "short",
+			},
+			wantErr: true,
+			errMsg:  "S3_ACCESS_KEY must be at least 16 characters",
+		},
+		{
+			name: "s3 not validated when seaweedfs disabled",
+			cfg: Config{
+				EnableSeaweedFS: false,
+				JWTSecret:       "this_is_a_32_character_secret!!!",
+				DBPassword:      "password_16chars",
+				DBRootPassword:  "password_16chars",
+				RedisPassword:   "password_16chars",
+				S3AccessKey:     "short", // short but ignored
+				S3SecretKey:     "short",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.ValidateSecrets()
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got nil")
+				} else if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("expected error containing %q, got %q", tt.errMsg, err.Error())
+				}
+			} else if err != nil {
+				t.Errorf("unexpected error: %v", err)
 			}
 		})
 	}
