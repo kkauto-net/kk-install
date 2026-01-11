@@ -1,12 +1,13 @@
 ---
 title: "Redesign kk init Command"
 description: "Improve UX for init flow - clearer service options, customizable credentials with grouped form"
-status: in-progress
+status: completed
 priority: P2
 effort: 4h
 branch: main
 tags: [cli, ux, init, templates]
 created: 2026-01-11
+completed: 2026-01-11
 ---
 
 # Plan: Redesign `kk init` Command
@@ -114,12 +115,12 @@ generateFiles(config)
 
 ## Success Criteria
 
-- [ ] `kk init` runs with new 6-step flow
-- [ ] .env contains JWT_SECRET and dynamic S3 keys
-- [ ] User can edit credentials via grouped form
-- [ ] docker-compose.yml reads correctly from .env
-- [ ] All tests pass
-- [ ] Manual testing OK
+- [x] `kk init` runs with new 6-step flow
+- [x] .env contains JWT_SECRET and dynamic S3 keys
+- [x] User can edit credentials via grouped form
+- [x] docker-compose.yml reads correctly from .env
+- [x] All tests pass
+- [x] Manual testing OK
 
 ## Dependencies
 

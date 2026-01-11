@@ -1,3 +1,14 @@
+---
+title: Phase 04 Update Tests
+description: Cập nhật test cases cho new Config struct và verify template rendering.
+status: completed
+priority: medium
+effort: 1 hour
+branch: main
+tags: [testing, templates, init]
+created: 2026-01-11
+---
+
 # Phase 04: Update Tests
 
 **Effort:** 1 hour
@@ -150,7 +161,17 @@ make test-coverage
 
 ## Output
 
-- Updated template tests for new Config fields
-- New test for JWT_SECRET and S3 keys in .env output
-- New test for generateS3AccessKey helper function
-- All tests passing
+- ✅ Updated template tests for new Config fields
+- ✅ New test for JWT_SECRET and S3 keys in .env output
+- ✅ New test for generateS3AccessKey helper function
+- ✅ All tests passing (8/8 packages)
+
+## Status
+
+**COMPLETED:** 2026-01-11
+
+**Test Results:**
+- `pkg/templates`: 8 tests passing
+- `kk_integration_test.go`: All init tests passing with JWT_SECRET and S3 keys validation
+- Golden files: Updated and passing
+- ValidateSecrets: New tests for secret length validation

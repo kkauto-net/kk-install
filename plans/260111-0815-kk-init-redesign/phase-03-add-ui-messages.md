@@ -1,3 +1,14 @@
+---
+title: Phase 03 Add UI Messages
+description: Thêm các messages mới cho grouped form và credential configuration vào cả 2 language files.
+status: completed
+priority: medium
+effort: 30 minutes
+branch: main
+tags: [ui, i18n, init]
+created: 2026-01-11
+---
+
 # Phase 03: Add UI Messages
 
 **Effort:** 30 minutes
@@ -83,5 +94,11 @@ go build ./pkg/ui/...
 
 ## Output
 
-- Updated `pkg/ui/lang_en.go` with 10 new messages
-- Updated `pkg/ui/lang_vi.go` with 10 new Vietnamese messages
+- ✅ Updated `pkg/ui/lang_en.go` with 10 new messages
+- ✅ Updated `pkg/ui/lang_vi.go` with 10 new Vietnamese messages
+
+## Status
+
+**COMPLETED:** 2026-01-11
+
+**Notes:** Messages were added during Phase 02 refactoring as part of the init flow implementation.
