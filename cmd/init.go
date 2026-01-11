@@ -466,7 +466,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Show summary table
-	ui.PrintInitSummary(enableSeaweedFS, enableCaddy, domain, createdFiles)
+	ui.PrintInitSummary(enableSeaweedFS, enableCaddy, domain, createdFiles, cwd)
 
 	// Show completion banner
 	fmt.Println()

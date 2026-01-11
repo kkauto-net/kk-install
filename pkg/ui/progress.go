@@ -99,8 +99,8 @@ func ShowStepHeader(current, total int, title string) {
 }
 
 // PrintInitSummary shows configuration summary and created files after kk init.
-func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdFiles []string) {
-	// Configuration Summary - WITH BOX
+func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdFiles []string, installDir string) {
+	// 1. Configuration Summary
 	pterm.DefaultSection.Println(Msg("config_summary"))
 
 	configData := pterm.TableData{
@@ -118,7 +118,7 @@ func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdF
 		WithData(configData).
 		Render()
 
-	// Created Files - WITH BOX
+	// 2. Created Files
 	fmt.Println()
 	pterm.DefaultSection.Println(Msg("created_files"))
 
@@ -131,6 +131,27 @@ func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdF
 		WithHasHeader(true).
 		WithBoxed(true).
 		WithData(fileData).
+		Render()
+
+	// 3. Installation Location
+	fmt.Println()
+	pterm.DefaultSection.Println(Msg("install_location"))
+	pterm.DefaultTable.
+		WithBoxed(true).
+		WithData(pterm.TableData{
+			{IconFolder + " " + installDir},
+		}).
+		Render()
+
+	// 4. Data Directories
+	fmt.Println()
+	pterm.DefaultSection.Println(Msg("data_directories"))
+	pterm.DefaultTable.
+		WithBoxed(true).
+		WithData(pterm.TableData{
+			{IconStorage + " SYSTEM_DATABASE", "./data_database"},
+			{IconStorage + " SYSTEM_FILESTORE", "./data_storage"},
+		}).
 		Render()
 }
 

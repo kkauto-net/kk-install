@@ -122,11 +122,13 @@ Bước tiếp theo:
 	"col_value":      "Giá trị",
 
 	// Init summary
-	"config_summary": "Tóm tắt cấu hình",
-	"created_files":  "Các file đã tạo",
-	"enabled":        "Bật",
-	"disabled":       "Tắt",
-	"domain":         "Tên miền",
+	"config_summary":   "Tóm tắt cấu hình",
+	"created_files":    "Các file đã tạo",
+	"enabled":          "Bật",
+	"disabled":         "Tắt",
+	"domain":           "Tên miền",
+	"install_location": "Vị trí cài đặt",
+	"data_directories": "Thư mục dữ liệu",
 
 	// Status display
 	"status_running":  "Đang chạy",

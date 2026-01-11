@@ -122,11 +122,13 @@ Next steps:
 	"col_value":      "Value",
 
 	// Init summary
-	"config_summary": "Configuration Summary",
-	"created_files":  "Created Files",
-	"enabled":        "Enabled",
-	"disabled":       "Disabled",
-	"domain":         "Domain",
+	"config_summary":   "Configuration Summary",
+	"created_files":    "Created Files",
+	"enabled":          "Enabled",
+	"disabled":         "Disabled",
+	"domain":           "Domain",
+	"install_location": "Installation Location",
+	"data_directories": "Data Directories",
 
 	// Status display
 	"status_running":  "Running",
