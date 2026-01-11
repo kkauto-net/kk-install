@@ -1,6 +1,6 @@
 services:
   kkengine:
-    image: kkengine:latest
+    image: kkauto/kkengine:latest
     container_name: kkengine_app
     restart: unless-stopped
     stop_grace_period: 10s
