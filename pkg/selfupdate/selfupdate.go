@@ -258,6 +258,9 @@ func replaceBinary(oldPath, newPath string) error {
 }
 
 func replaceBinaryWithSudo(oldPath, newPath string) error {
+	// Print newline before sudo prompt for better formatting
+	fmt.Println()
+
 	// Use sudo to replace the binary
 	cmd := exec.Command("sudo", "mv", newPath, oldPath)
 	cmd.Stdin = os.Stdin
