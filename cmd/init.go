@@ -180,8 +180,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 						ui.ShowBoxedError(ui.ErrorSuggestion{
 							Title:      ui.Msg("docker_daemon_stopped"),
 							Message:    err.Error(),
-							Suggestion: "Start Docker daemon",
-							Command:    "systemctl start docker",
+							Suggestion: ui.Msg("docker_start_suggestion"),
+							Command:    "sudo systemctl start docker && kk init",
 						})
 						return err
 					}
@@ -190,8 +190,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 					ui.ShowBoxedError(ui.ErrorSuggestion{
 						Title:      ui.Msg("docker_daemon_stopped"),
 						Message:    ui.Msg("docker_required"),
-						Suggestion: "Start Docker daemon",
-						Command:    "systemctl start docker",
+						Suggestion: ui.Msg("docker_start_suggestion"),
+						Command:    "sudo systemctl start docker && kk init",
 					})
 					return errors.New(ui.Msg("docker_required"))
 				}

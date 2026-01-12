@@ -23,6 +23,7 @@ var messagesVI = map[string]string{
 	"starting_docker":         "Đang khởi động Docker...",
 	"docker_started":          "Đã khởi động Docker daemon",
 	"docker_start_failed":     "Không thể khởi động Docker",
+	"docker_start_suggestion": "Khởi động Docker và chạy lại init",
 	"yes":                     "Có",
 
 	// Init flow

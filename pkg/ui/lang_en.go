@@ -23,6 +23,7 @@ var messagesEN = map[string]string{
 	"starting_docker":         "Starting Docker daemon...",
 	"docker_started":          "Docker daemon started",
 	"docker_start_failed":     "Failed to start Docker",
+	"docker_start_suggestion": "Start Docker and run init again",
 	"yes":                     "Yes",
 
 	// Init flow
