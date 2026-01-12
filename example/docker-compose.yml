@@ -10,7 +10,7 @@ services:
       - ${KK_ENV_FILE:-./.env}
     volumes:
       - ./kkphp.conf:/config/kkphp.conf
-      # - ${SYSTEM_WRITEDATA:-data_writable}:/var/www/html/writable
+      - ${SYSTEM_WRITEDATA:-./data_writable}:/var/www/html/writable
     networks:
       - kkengine_net
     depends_on:
@@ -34,7 +34,7 @@ services:
     volumes:
       - ${SYSTEM_DATABASE:-./data_database}:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "3306:3306"
     networks:
       - kkengine_net
     healthcheck:

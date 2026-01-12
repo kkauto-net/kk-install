@@ -94,19 +94,19 @@ func (m *HealthMonitor) WaitForHealthy(ctx context.Context, containerName string
 func (m *HealthMonitor) checkHealth(ctx context.Context, containerName string) HealthStatus {
 	status := HealthStatus{Container: containerName}
 
-	info, err := m.client.ContainerInspect(ctx, containerName)
-	if err != nil {
-		status.Status = "error"
-		status.Message = fmt.Sprintf("Khong kiem tra duoc: %v", err)
-		return status
-	}
-
-	// Extract service name
+	// Extract service name first
 	parts := strings.Split(containerName, "_")
 	if len(parts) > 1 {
 		status.ServiceName = parts[len(parts)-1]
 	} else {
 		status.ServiceName = containerName
+	}
+
+	info, err := m.client.ContainerInspect(ctx, containerName)
+	if err != nil {
+		status.Status = "error"
+		status.Message = fmt.Sprintf("Khong kiem tra duoc: %v", err)
+		return status
 	}
 
 	// Check if health check exists
