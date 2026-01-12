@@ -46,28 +46,20 @@ func TestRenderTemplate(t *testing.T) {
 		t.Errorf("Rendered content should use ${REDIS_PASSWORD} env var. Got:\n%s", string(content))
 	}
 
-	// Test 2: Backup existing file
+	// Test 2: Overwrite existing file (backup is now handled by cmd/init.go)
 	err = os.WriteFile(outputPath, []byte("Original compose content"), 0644)
 	if err != nil {
-		t.Fatalf("Failed to write original file for backup test: %v", err)
+		t.Fatalf("Failed to write original file for overwrite test: %v", err)
 	}
 	err = RenderTemplate(testTmplName, cfg, outputPath)
 	if err != nil {
-		t.Fatalf("RenderTemplate with backup failed: %v", err)
-	}
-	backupPath := outputPath + ".bak"
-	backupContent, err := os.ReadFile(backupPath)
-	if err != nil {
-		t.Fatalf("Failed to read backup file: %v", err)
-	}
-	if string(backupContent) != "Original compose content" {
-		t.Errorf("Backup content mismatch. Got: %q, Want: %q", string(backupContent), "Original compose content")
+		t.Fatalf("RenderTemplate with overwrite failed: %v", err)
 	}
 	newContent, err := os.ReadFile(outputPath)
 	if err != nil {
-		t.Fatalf("Failed to read new file after backup: %v", err)
+		t.Fatalf("Failed to read new file after overwrite: %v", err)
 	}
-	// Verify env var substitution after backup
+	// Verify env var substitution after overwrite
 	if !strings.Contains(string(newContent), "MYSQL_PASSWORD: ${DB_PASSWORD}") {
 		t.Errorf("New file should use ${DB_PASSWORD} env var. Got:\n%s", string(newContent))
 	}

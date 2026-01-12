@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/pterm/pterm"
@@ -41,13 +42,28 @@ func init() {
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
+	var spinner *pterm.SpinnerPrinter
 	// Command banner
 	ui.ShowCommandBanner("kk init", ui.Msg("init_desc"))
+
+	// Get working directory early to load existing env
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// Load existing .env for pre-filling form values
+	existingEnv := loadExistingEnv(cwd)
+	hasExistingEnv := len(existingEnv) > 0
+	if hasExistingEnv {
+		ui.ShowInfo(ui.Msg("loading_existing_env"))
+	}
 
 	// Step 0: License Verification
 	ui.ShowStepHeader(0, 7, ui.Msg("step_license"))
 
-	var licenseKey string
+	// Pre-fill license from existing env
+	licenseKey := existingEnv["LICENSE_KEY"]
 	licenseForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -69,28 +85,35 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Validate license against API
-	spinner, _ := pterm.DefaultSpinner.Start(ui.IconKey + " " + ui.Msg("validating_license"))
-	client := license.NewClient()
-	licenseResp, err := client.Validate(licenseKey)
-	if err != nil {
-		spinner.Fail(ui.Msg("license_validation_failed"))
-		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("license_validation_failed"),
-			Message:    err.Error(),
-			Suggestion: ui.Msg("license_check_key"),
-		})
-		return err
-	}
-	spinner.Success(ui.IconCheck + " " + ui.Msg("license_validated"))
-
-	// Store license data for later use
-	licenseData := struct {
+	var licenseData struct {
 		Key       string
 		PublicKey string
-	}{
-		Key:       licenseKey,
-		PublicKey: licenseResp.PublicKey,
+	}
+
+	// Skip license validation in test environment
+	if os.Getenv("KK_TEST_SKIP_LICENSE_VALIDATION") == "true" {
+		ui.ShowWarning("Skipping license validation for test environment")
+		licenseData.Key = "TEST-LICENSE-KEY"
+		licenseData.PublicKey = "TEST-PUBLIC-KEY"
+	} else {
+		// Validate license against API
+		spinner, _ := pterm.DefaultSpinner.Start(ui.IconKey + " " + ui.Msg("validating_license"))
+		client := license.NewClient()
+		licenseResp, err := client.Validate(licenseKey)
+		if err != nil {
+			spinner.Fail(ui.Msg("license_validation_failed"))
+			ui.ShowBoxedError(ui.ErrorSuggestion{
+				Title:      ui.Msg("license_validation_failed"),
+				Message:    err.Error(),
+				Suggestion: ui.Msg("license_check_key"),
+			})
+			return err
+		}
+		spinner.Success(ui.IconCheck + " " + ui.Msg("license_validated"))
+
+		// Store license data for later use
+		licenseData.Key = licenseKey
+		licenseData.PublicKey = licenseResp.PublicKey
 	}
 
 	// Step 1: Check Docker
@@ -247,11 +270,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	cfg.Language = langChoice
 	_ = cfg.Save() // Best effort, don't fail init if config save fails
 
-	// Get working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
+	// cwd already obtained earlier for loading existing env
 	fmt.Printf("\n%s %s\n\n", ui.IconFolder, ui.MsgF("init_in_dir", cwd))
 
 	// Check if already initialized
@@ -314,7 +333,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Step 4: Domain Configuration
 	ui.ShowStepHeader(4, 7, ui.Msg("step_domain"))
-	domain := "localhost"
+	// Pre-fill domain from existing env or use localhost
+	domain := existingEnv["SYSTEM_DOMAIN"]
+	if domain == "" {
+		domain = "localhost"
+	}
 	if !forceInit {
 		domainForm := huh.NewForm(
 			huh.NewGroup(
@@ -336,30 +359,60 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 5: Environment Configuration
 	ui.ShowStepHeader(5, 7, ui.Msg("step_credentials"))
 
-	// Pre-generate all secrets with retry logic
-	jwtSecret, err := generatePasswordWithRetry(32)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_jwt_secret"), err)
+	// Load secrets from existing env or generate new ones
+	// Only use existing values if they meet minimum length requirements
+	jwtSecret := existingEnv["JWT_SECRET"]
+	if len(jwtSecret) < 32 {
+		var err error
+		jwtSecret, err = generatePasswordWithRetry(32)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_jwt_secret"), err)
+		}
 	}
-	dbPass, err := generatePasswordWithRetry(24)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_db_password"), err)
+
+	dbPass := existingEnv["DB_PASSWORD"]
+	if len(dbPass) < 16 {
+		var err error
+		dbPass, err = generatePasswordWithRetry(24)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_db_password"), err)
+		}
 	}
-	dbRootPass, err := generatePasswordWithRetry(24)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_db_root_pass"), err)
+
+	dbRootPass := existingEnv["DB_ROOT_PASSWORD"]
+	if len(dbRootPass) < 16 {
+		var err error
+		dbRootPass, err = generatePasswordWithRetry(24)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_db_root_pass"), err)
+		}
 	}
-	redisPass, err := generatePasswordWithRetry(24)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_redis_pass"), err)
+
+	redisPass := existingEnv["REDIS_PASSWORD"]
+	if len(redisPass) < 16 {
+		var err error
+		redisPass, err = generatePasswordWithRetry(24)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_redis_pass"), err)
+		}
 	}
-	s3AccessKey, err := generateS3AccessKeyWithRetry(20)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_s3_access_key"), err)
+
+	s3AccessKey := existingEnv["S3_ACCESS_KEY"]
+	if len(s3AccessKey) < 16 {
+		var err error
+		s3AccessKey, err = generateS3AccessKeyWithRetry(20)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_s3_access_key"), err)
+		}
 	}
-	s3SecretKey, err := generatePasswordWithRetry(40)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ui.Msg("error_s3_secret_key"), err)
+
+	s3SecretKey := existingEnv["S3_SECRET_KEY"]
+	if len(s3SecretKey) < 32 {
+		var err error
+		s3SecretKey, err = generatePasswordWithRetry(40)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_s3_secret_key"), err)
+		}
 	}
 
 	// Ask: Use random secrets?
@@ -479,7 +532,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// backupExistingConfigs creates .bak backups of existing config files
+// backupExistingConfigs creates timestamped .bak backups of existing config files
 func backupExistingConfigs(dir string) error {
 	configFiles := []string{
 		"docker-compose.yml",
@@ -489,12 +542,13 @@ func backupExistingConfigs(dir string) error {
 		"kkphp.conf",
 	}
 
+	timestamp := time.Now().Format("060102-150405")
 	var backedUp []string
 	for _, filename := range configFiles {
 		srcPath := filepath.Join(dir, filename)
 		if _, err := os.Stat(srcPath); err == nil {
-			// File exists, create backup
-			bakPath := srcPath + ".bak"
+			// File exists, create backup with timestamp
+			bakPath := srcPath + "-" + timestamp + ".bak"
 
 			// Read source
 			data, err := os.ReadFile(srcPath)
@@ -585,4 +639,37 @@ func validateMinLength(minLen int, fieldName string) func(string) error {
 		}
 		return nil
 	}
+}
+
+// loadExistingEnv parses existing .env file and returns key-value map
+func loadExistingEnv(dir string) map[string]string {
+	result := make(map[string]string)
+	envPath := filepath.Join(dir, ".env")
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return result // File doesn't exist or unreadable
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// Remove surrounding quotes (single or double)
+			if len(value) >= 2 {
+				if (value[0] == '"' && value[len(value)-1] == '"') ||
+					(value[0] == '\'' && value[len(value)-1] == '\'') {
+					value = value[1 : len(value)-1]
+				}
+			}
+			result[key] = value
+		}
+	}
+	return result
 }

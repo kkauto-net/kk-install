@@ -27,9 +27,10 @@ var messagesVI = map[string]string{
 	"yes":                     "Có",
 
 	// Init flow
-	"init_in_dir":    "Khởi tạo trong: %s",
-	"compose_exists": "docker-compose.yml đã tồn tại. Ghi đè?",
-	"init_cancelled": "Hủy khởi tạo",
+	"init_in_dir":          "Khởi tạo trong: %s",
+	"compose_exists":       "docker-compose.yml đã tồn tại. Ghi đè?",
+	"init_cancelled":       "Hủy khởi tạo",
+	"loading_existing_env": "Đang tải cấu hình từ file .env hiện có",
 
 	// Prompts
 	"enable_seaweedfs": "Bật SeaweedFS file storage?",

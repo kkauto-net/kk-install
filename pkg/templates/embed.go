@@ -86,14 +86,6 @@ func RenderTemplate(name string, cfg Config, outputPath string) error {
 		return err
 	}
 
-	// Backup existing file if it exists
-	if _, err := os.Stat(outputPath); err == nil {
-		backupPath := outputPath + ".bak"
-		if err := os.Rename(outputPath, backupPath); err != nil {
-			return err
-		}
-	}
-
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return err

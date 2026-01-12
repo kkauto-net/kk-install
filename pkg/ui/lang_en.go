@@ -27,9 +27,10 @@ var messagesEN = map[string]string{
 	"yes":                     "Yes",
 
 	// Init flow
-	"init_in_dir":    "Initializing in: %s",
-	"compose_exists": "docker-compose.yml already exists. Overwrite?",
-	"init_cancelled": "Initialization cancelled",
+	"init_in_dir":          "Initializing in: %s",
+	"compose_exists":       "docker-compose.yml already exists. Overwrite?",
+	"init_cancelled":       "Initialization cancelled",
+	"loading_existing_env": "Loading configuration from existing .env file",
 
 	// Prompts
 	"enable_seaweedfs": "Enable SeaweedFS file storage?",
