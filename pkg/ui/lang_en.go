@@ -209,4 +209,21 @@ Next steps:
 	"ready":            "ready",
 	"unhealthy":        "unhealthy",
 	"services_started": "Services started",
+
+	// Selfupdate
+	"step_check_update":     "Check for Updates",
+	"step_install_update":   "Install Update",
+	"checking_cli_update":   "Checking for updates...",
+	"check_update_failed":   "Failed to check for updates",
+	"current_version":       "Current version",
+	"latest_version":        "Latest version",
+	"cli_up_to_date":        "kk CLI is already up to date",
+	"update_available":      "A new version is available!",
+	"to_update_run":         "To update, run",
+	"confirm_cli_update":    "Update to the latest version?",
+	"selfupdate_cancelled":  "Update cancelled",
+	"downloading_update":    "Downloading and installing...",
+	"update_install_failed": "Failed to install update",
+	"selfupdate_complete":   "Successfully updated!",
+	"selfupdate_desc":       "Update kk CLI",
 }

@@ -51,6 +51,7 @@ kk status
 | `kk restart` | Restart all running services |
 | `kk status` | Display status of all containers |
 | `kk update` | Update to latest version and pull new images |
+| `kk selfupdate` | Update kk CLI to the latest version |
 | `kk completion` | Generate shell completion script |
 
 ## Supported Components

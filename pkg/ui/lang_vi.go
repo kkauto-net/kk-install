@@ -209,4 +209,21 @@ Bước tiếp theo:
 	"ready":            "sẵn sàng",
 	"unhealthy":        "không khỏe mạnh",
 	"services_started": "Đã khởi động dịch vụ",
+
+	// Selfupdate
+	"step_check_update":     "Kiểm tra cập nhật",
+	"step_install_update":   "Cài đặt cập nhật",
+	"checking_cli_update":   "Đang kiểm tra cập nhật...",
+	"check_update_failed":   "Không thể kiểm tra cập nhật",
+	"current_version":       "Phiên bản hiện tại",
+	"latest_version":        "Phiên bản mới nhất",
+	"cli_up_to_date":        "kk CLI đã là phiên bản mới nhất",
+	"update_available":      "Có phiên bản mới!",
+	"to_update_run":         "Để cập nhật, chạy",
+	"confirm_cli_update":    "Cập nhật lên phiên bản mới nhất?",
+	"selfupdate_cancelled":  "Đã hủy cập nhật",
+	"downloading_update":    "Đang tải và cài đặt...",
+	"update_install_failed": "Không thể cài đặt cập nhật",
+	"selfupdate_complete":   "Cập nhật thành công!",
+	"selfupdate_desc":       "Cập nhật kk CLI",
 }
