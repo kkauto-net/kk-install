@@ -11,10 +11,11 @@ import (
 )
 
 type PortStatus struct {
-	Port    int
-	InUse   bool
-	PID     int
-	Process string
+	Port           int
+	InUse          bool
+	PID            int
+	Process        string
+	UsedByKKEngine bool // true if port is used by kkengine container
 }
 
 // RequiredPorts defines ports needed by kkengine stack
@@ -29,8 +30,22 @@ var OptionalPorts = map[string]int{
 }
 
 // CheckPort uses net.Listen to check if port is available
+// For privileged ports (<1024), uses alternative methods if not root
 func CheckPort(port int) PortStatus {
 	status := PortStatus{Port: port}
+
+	// For privileged ports, check if we're root first
+	if port < 1024 && os.Getuid() != 0 {
+		// Not root - use ss/netstat to check instead of net.Listen
+		inUse, pid, process := checkPortWithSS(port)
+		if inUse {
+			status.InUse = true
+			status.PID = pid
+			status.Process = process
+			status.UsedByKKEngine = isPortUsedByKKEngine(port)
+		}
+		return status
+	}
 
 	addr := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", addr)
@@ -40,10 +55,59 @@ func CheckPort(port int) PortStatus {
 		pid, process := findProcessUsingPort(port)
 		status.PID = pid
 		status.Process = process
+		status.UsedByKKEngine = isPortUsedByKKEngine(port)
 		return status
 	}
 	listener.Close()
 	return status
+}
+
+// isPortUsedByKKEngine checks if port is being used by a kkengine container
+func isPortUsedByKKEngine(port int) bool {
+	// Use docker ps to check if any kkengine_ container is using this port
+	cmd := exec.Command("docker", "ps", "--filter", "name=kkengine_", "--format", "{{.Ports}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	portStr := fmt.Sprintf(":%d->", port)
+	return strings.Contains(string(output), portStr)
+}
+
+// checkPortWithSS uses ss command to check if port is in use (works without root)
+func checkPortWithSS(port int) (inUse bool, pid int, process string) {
+	// Try ss first (more common on modern Linux)
+	cmd := exec.Command("ss", "-tlnp", fmt.Sprintf("sport = :%d", port))
+	output, err := cmd.Output()
+	if err == nil {
+		lines := strings.Split(string(output), "\n")
+		// First line is header, check if there's actual data
+		for _, line := range lines[1:] {
+			if strings.TrimSpace(line) != "" && strings.Contains(line, fmt.Sprintf(":%d", port)) {
+				// Port is in use
+				return true, 0, ""
+			}
+		}
+		return false, 0, ""
+	}
+
+	// Fallback to netstat
+	cmd = exec.Command("netstat", "-tlnp")
+	output, err = cmd.Output()
+	if err == nil {
+		portStr := fmt.Sprintf(":%d", port)
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, portStr) && strings.Contains(line, "LISTEN") {
+				return true, 0, ""
+			}
+		}
+		return false, 0, ""
+	}
+
+	// Can't determine - assume available
+	return false, 0, ""
 }
 
 // CheckAllPorts validates all required ports
@@ -55,7 +119,8 @@ func CheckAllPorts(includeCaddy bool) ([]PortStatus, error) {
 	for name, port := range RequiredPorts {
 		status := CheckPort(port)
 		results = append(results, status)
-		if status.InUse {
+		// Only report conflict if port is NOT used by our own kkengine containers
+		if status.InUse && !status.UsedByKKEngine {
 			conflicts = append(conflicts, formatPortConflict(name, status))
 		}
 	}
@@ -65,7 +130,8 @@ func CheckAllPorts(includeCaddy bool) ([]PortStatus, error) {
 		for name, port := range OptionalPorts {
 			status := CheckPort(port)
 			results = append(results, status)
-			if status.InUse {
+			// Only report conflict if port is NOT used by our own kkengine containers
+			if status.InUse && !status.UsedByKKEngine {
 				conflicts = append(conflicts, formatPortConflict(name, status))
 			}
 		}

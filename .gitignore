@@ -4,6 +4,7 @@ kk
 *.dll
 *.so
 *.dylib
+node_modules/
 
 # Build output
 build/
@@ -45,7 +46,7 @@ test/
 
 # Vibe code
 .claude
-#plans/
+plans/
 docs/
 CLAUDE.md
 repomix-output.xml

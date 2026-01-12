@@ -48,6 +48,8 @@ kk status
 |---------|-------------|
 | `kk init` | Initialize Docker Compose stack with interactive prompts |
 | `kk start` | Run preflight checks and start all services |
+| `kk stop` | Stop all running services |
+| `kk remove` | Remove all containers, networks (use `-v` to also remove volumes) |
 | `kk restart` | Restart all running services |
 | `kk status` | Display status of all containers |
 | `kk update` | Update to latest version and pull new images |
