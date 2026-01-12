@@ -100,7 +100,8 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Show access info if any services running
 	for _, s := range statuses {
 		if s.Running {
-			ui.PrintAccessInfo(statuses)
+			domain := config.ReadEnvValue(cwd, "SYSTEM_DOMAIN")
+			ui.PrintAccessInfo(statuses, domain)
 			break
 		}
 	}

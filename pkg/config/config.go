@@ -115,6 +115,30 @@ func EnsureProjectDir() (string, error) {
 	return projectDir, nil
 }
 
+// ReadEnvValue reads a specific key from the .env file in projectDir.
+// Returns empty string if file doesn't exist or key not found.
+func ReadEnvValue(projectDir, key string) string {
+	envPath := filepath.Join(projectDir, ".env")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return ""
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if idx := strings.Index(line, "="); idx > 0 {
+			k := strings.TrimSpace(line[:idx])
+			if k == key {
+				return strings.TrimSpace(line[idx+1:])
+			}
+		}
+	}
+	return ""
+}
+
 // IsProjectNotConfiguredError returns true if the error is about project not being configured
 func IsProjectNotConfiguredError(err error) bool {
 	if err == nil {

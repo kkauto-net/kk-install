@@ -26,5 +26,5 @@ func TestPrintAccessInfo(t *testing.T) {
 	statuses := []monitor.ServiceStatus{
 		{Name: "kkengine", Status: "running", Ports: "8019/tcp", Running: true},
 	}
-	PrintAccessInfo(statuses)
+	PrintAccessInfo(statuses, "example.com")
 }

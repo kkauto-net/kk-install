@@ -122,6 +122,10 @@ Bước tiếp theo:
 	"col_setting":    "Cài đặt",
 	"col_value":      "Giá trị",
 
+	// Access URLs
+	"main_url":       "URL chính",
+	"manager_system": "Quản lý",
+
 	// Init summary
 	"config_summary":   "Tóm tắt cấu hình",
 	"created_files":    "Các file đã tạo",

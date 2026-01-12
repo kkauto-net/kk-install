@@ -153,7 +153,8 @@ func runStart(cmd *cobra.Command, args []string) error {
 	statuses, err := monitor.GetStatusWithServices(timeoutCtx, executor, definedServices)
 	if err == nil {
 		ui.PrintCommandResult(statuses, "kk start", "start_summary_success", "start_summary_partial")
-		ui.PrintAccessInfo(statuses)
+		domain := config.ReadEnvValue(cwd, "SYSTEM_DOMAIN")
+		ui.PrintAccessInfo(statuses, domain)
 	}
 
 	return nil

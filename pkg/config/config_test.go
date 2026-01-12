@@ -236,3 +236,42 @@ func TestIsProjectNotConfiguredError(t *testing.T) {
 		})
 	}
 }
+
+func TestReadEnvValue(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create test .env file
+	envContent := `# Comment line
+SYSTEM_DOMAIN=example.com
+DB_PASSWORD=secret123
+EMPTY_VALUE=
+SPACED_KEY = spaced_value
+`
+	err := os.WriteFile(filepath.Join(tmpDir, ".env"), []byte(envContent), 0644)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		key      string
+		expected string
+	}{
+		{"existing key", "SYSTEM_DOMAIN", "example.com"},
+		{"another key", "DB_PASSWORD", "secret123"},
+		{"empty value", "EMPTY_VALUE", ""},
+		{"spaced key", "SPACED_KEY", "spaced_value"},
+		{"non-existent key", "NOT_EXISTS", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ReadEnvValue(tmpDir, tt.key)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+
+	// Test non-existent directory
+	t.Run("non-existent dir", func(t *testing.T) {
+		result := ReadEnvValue("/nonexistent/path", "SYSTEM_DOMAIN")
+		assert.Equal(t, "", result)
+	})
+}

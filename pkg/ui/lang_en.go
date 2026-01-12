@@ -122,6 +122,10 @@ Next steps:
 	"col_setting":    "Setting",
 	"col_value":      "Value",
 
+	// Access URLs
+	"main_url":       "Main URL",
+	"manager_system": "Manager",
+
 	// Init summary
 	"config_summary":   "Configuration Summary",
 	"created_files":    "Created Files",

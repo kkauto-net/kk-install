@@ -139,8 +139,9 @@ func truncatePorts(ports string, maxLen int) string {
 	return ports
 }
 
-// PrintAccessInfo shows access URLs for services
-func PrintAccessInfo(statuses []monitor.ServiceStatus) {
+// PrintAccessInfo shows access URLs for services.
+// domain: the configured SYSTEM_DOMAIN from .env (optional)
+func PrintAccessInfo(statuses []monitor.ServiceStatus, domain string) {
 	tableData := pterm.TableData{
 		{Msg("col_service"), Msg("col_url")},
 	}
@@ -153,6 +154,12 @@ func PrintAccessInfo(statuses []monitor.ServiceStatus) {
 		if url != "" {
 			tableData = append(tableData, []string{s.Name, url})
 		}
+	}
+
+	// Add domain URLs if domain is configured and not localhost
+	if domain != "" && domain != "localhost" {
+		tableData = append(tableData, []string{Msg("main_url"), "https://" + domain})
+		tableData = append(tableData, []string{Msg("manager_system"), "https://" + domain + "/wtadmin/"})
 	}
 
 	if len(tableData) > 1 {
