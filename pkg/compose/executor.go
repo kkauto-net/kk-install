@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,12 +32,17 @@ func NewExecutor(workDir string) *Executor {
 
 // Up runs docker-compose up -d
 func (e *Executor) Up(ctx context.Context) error {
-	return e.run(ctx, "up", "-d")
+	return e.runWithStderrCapture(ctx, "up", "-d")
 }
 
 // Down runs docker-compose down
 func (e *Executor) Down(ctx context.Context) error {
 	return e.run(ctx, "down")
+}
+
+// DownWithVolumes runs docker-compose down -v (removes volumes too)
+func (e *Executor) DownWithVolumes(ctx context.Context) error {
+	return e.run(ctx, "down", "-v")
 }
 
 // Restart runs docker-compose restart
@@ -64,6 +70,25 @@ func (e *Executor) run(ctx context.Context, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// runWithStderrCapture runs command with stdout to console but captures stderr for error details
+func (e *Executor) runWithStderrCapture(ctx context.Context, args ...string) error {
+	cmd := e.buildCmd(ctx, args...)
+	var stderr bytes.Buffer
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
+
+	err := cmd.Run()
+	if err != nil {
+		// Include stderr in error message for better error detection
+		stderrStr := stderr.String()
+		if stderrStr != "" {
+			return fmt.Errorf("%s", stderrStr)
+		}
+		return err
+	}
+	return nil
 }
 
 func (e *Executor) runWithOutput(ctx context.Context, args ...string) (string, error) {

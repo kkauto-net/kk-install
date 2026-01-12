@@ -105,3 +105,47 @@ func ShowBoxedErrors(title string, errors []ErrorSuggestion) {
 		WithBoxStyle(pterm.NewStyle(pterm.FgRed)).
 		Println(content.String())
 }
+
+// IsDockerPermissionError checks if error is Docker permission denied
+func IsDockerPermissionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "permission denied") &&
+		strings.Contains(errMsg, "docker")
+}
+
+// DockerPermissionSuggestion returns suggestion for Docker permission error
+func DockerPermissionSuggestion() (suggestion, command string) {
+	return "Add user to docker group",
+		"sudo usermod -aG docker $USER && newgrp docker"
+}
+
+// IsContainerConflictError checks if error is Docker container name conflict
+func IsContainerConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "conflict") &&
+		strings.Contains(errMsg, "container name") &&
+		strings.Contains(errMsg, "already in use")
+}
+
+// ContainerConflictSuggestion returns suggestion for container conflict error
+func ContainerConflictSuggestion() (suggestion, command string) {
+	return Msg("container_conflict_suggestion"),
+		"docker rm -f $(docker ps -aq --filter 'name=kkengine_') 2>/dev/null; docker network rm kkengine_net 2>/dev/null"
+}
+
+// IsNetworkConflictError checks if error is Docker network conflict
+func IsNetworkConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "network") &&
+		strings.Contains(errMsg, "exists") &&
+		strings.Contains(errMsg, "not created for project")
+}
