@@ -187,6 +187,25 @@ Bước tiếp theo:
 	"step_pull_images":    "Tải images",
 	"step_recreate":       "Tạo lại containers",
 
+	// Stop command
+	"step_stop_services": "Dừng dịch vụ",
+	"stopping_services":  "Đang dừng dịch vụ...",
+	"stop_failed":        "Dừng thất bại",
+	"stop_complete":      "Tất cả dịch vụ đã dừng",
+	"stop_desc":          "Dừng tất cả dịch vụ",
+
+	// Remove command
+	"step_remove_services": "Xóa dịch vụ",
+	"removing_services":    "Đang xóa containers và networks...",
+	"remove_failed":        "Xóa thất bại",
+	"remove_complete":      "Đã xóa tất cả containers và networks",
+	"removed_containers":   "Đã xóa containers và networks",
+	"removed_with_volumes": "Đã xóa containers, networks và volumes",
+	"remove_desc":          "Xóa tất cả containers",
+
+	// Container conflict errors
+	"container_conflict_suggestion": "Containers từ project khác đang sử dụng cùng tên. Hãy xóa chúng trước",
+
 	// Command banners
 	"status_desc":  "Trạng thái dịch vụ",
 	"init_desc":    "Khởi tạo Docker Stack",
@@ -226,4 +245,14 @@ Bước tiếp theo:
 	"update_install_failed": "Không thể cài đặt cập nhật",
 	"selfupdate_complete":   "Cập nhật thành công!",
 	"selfupdate_desc":       "Cập nhật kk CLI",
+
+	// Project configuration
+	"project_not_configured":  "Chưa cấu hình Project",
+	"run_init_to_configure":   "Chạy 'kk init' trong thư mục project của bạn",
+	"config_load_failed":      "Không thể tải cấu hình",
+	"config_title":            "Cấu hình:",
+	"config_language":         "Ngôn ngữ",
+	"config_project_dir":      "Thư mục Project",
+	"config_file_path":        "File cấu hình",
+	"config_not_set":          "(chưa thiết lập)",
 }

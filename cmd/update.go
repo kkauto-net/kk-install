@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/compose"
+	"github.com/kkauto-net/kk-install/pkg/config"
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 	"github.com/kkauto-net/kk-install/pkg/ui"
 	"github.com/kkauto-net/kk-install/pkg/updater"
@@ -32,8 +33,14 @@ func init() {
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
-	cwd, err := os.Getwd()
+	cwd, err := config.EnsureProjectDir()
 	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("project_not_configured"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("run_init_to_configure"),
+			Command:    "kk init",
+		})
 		return err
 	}
 
@@ -61,10 +68,18 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	output, err := executor.Pull(pullCtx)
 	if err != nil {
 		spinner.Fail(ui.Msg("pull_failed"))
+
+		suggestion := "Check internet connection or Docker Hub status"
+		command := ""
+		if ui.IsDockerPermissionError(err) {
+			suggestion, command = ui.DockerPermissionSuggestion()
+		}
+
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("pull_failed"),
 			Message:    err.Error(),
-			Suggestion: "Check internet connection or Docker Hub status",
+			Suggestion: suggestion,
+			Command:    command,
 		})
 		return err
 	}

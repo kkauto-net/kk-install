@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/compose"
+	"github.com/kkauto-net/kk-install/pkg/config"
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 	"github.com/kkauto-net/kk-install/pkg/ui"
 )
@@ -27,8 +28,14 @@ func init() {
 }
 
 func runRestart(cmd *cobra.Command, args []string) error {
-	cwd, err := os.Getwd()
+	cwd, err := config.EnsureProjectDir()
 	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("project_not_configured"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("run_init_to_configure"),
+			Command:    "kk init",
+		})
 		return err
 	}
 
@@ -55,11 +62,18 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	spinner := ui.StartPtermSpinner(ui.Msg("restarting"))
 	if err := executor.Restart(timeoutCtx); err != nil {
 		spinner.Fail(ui.Msg("restart_failed"))
+
+		suggestion := "Check if services are running"
+		command := "kk status"
+		if ui.IsDockerPermissionError(err) {
+			suggestion, command = ui.DockerPermissionSuggestion()
+		}
+
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("restart_failed"),
 			Message:    err.Error(),
-			Suggestion: "Check if services are running",
-			Command:    "kk status",
+			Suggestion: suggestion,
+			Command:    command,
 		})
 		return err
 	}

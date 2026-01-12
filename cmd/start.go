@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/compose"
+	"github.com/kkauto-net/kk-install/pkg/config"
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 	"github.com/kkauto-net/kk-install/pkg/ui"
 	"github.com/kkauto-net/kk-install/pkg/validator"
@@ -28,8 +29,14 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
-	cwd, err := os.Getwd()
+	cwd, err := config.EnsureProjectDir()
 	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("project_not_configured"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("run_init_to_configure"),
+			Command:    "kk init",
+		})
 		return err
 	}
 
@@ -80,11 +87,22 @@ func runStart(cmd *cobra.Command, args []string) error {
 	spinner := ui.StartPtermSpinner(ui.Msg("starting_services"))
 	if err := executor.Up(timeoutCtx); err != nil {
 		spinner.Fail(ui.Msg("start_failed"))
+
+		suggestion := "Check Docker logs for details"
+		command := "docker compose logs"
+
+		// Check for specific error types and provide better suggestions
+		if ui.IsDockerPermissionError(err) {
+			suggestion, command = ui.DockerPermissionSuggestion()
+		} else if ui.IsContainerConflictError(err) {
+			suggestion, command = ui.ContainerConflictSuggestion()
+		}
+
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("start_failed"),
 			Message:    err.Error(),
-			Suggestion: "Check Docker logs for details",
-			Command:    "docker compose logs",
+			Suggestion: suggestion,
+			Command:    command,
 		})
 		return err
 	}

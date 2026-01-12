@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -103,4 +104,135 @@ func TestLoad_CorruptYAML(t *testing.T) {
 	// Load should return error
 	_, err = Load()
 	assert.Error(t, err)
+}
+
+func TestEnsureProjectDir_NoProjectConfigured(t *testing.T) {
+	// Use temp dir
+	origHome := os.Getenv("HOME")
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	defer func() {
+		t.Setenv("HOME", origHome)
+	}()
+
+	// No config file = no project configured
+	_, err := EnsureProjectDir()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no project configured")
+}
+
+func TestEnsureProjectDir_DirectoryNotExists(t *testing.T) {
+	// Use temp dir
+	origHome := os.Getenv("HOME")
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	defer func() {
+		t.Setenv("HOME", origHome)
+	}()
+
+	// Save config with non-existent directory
+	cfg := &Config{
+		Language:   "en",
+		ProjectDir: "/nonexistent/directory/path",
+	}
+	err := cfg.Save()
+	require.NoError(t, err)
+
+	// EnsureProjectDir should fail
+	_, err = EnsureProjectDir()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "project directory no longer exists")
+
+	// Config should be cleared
+	loaded, _ := Load()
+	assert.Empty(t, loaded.ProjectDir)
+}
+
+func TestEnsureProjectDir_NoDockerCompose(t *testing.T) {
+	// Use temp dir
+	origHome := os.Getenv("HOME")
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	defer func() {
+		t.Setenv("HOME", origHome)
+	}()
+
+	// Create project directory without docker-compose.yml
+	projectDir := filepath.Join(tmpDir, "myproject")
+	err := os.MkdirAll(projectDir, 0755)
+	require.NoError(t, err)
+
+	// Save config
+	cfg := &Config{
+		Language:   "en",
+		ProjectDir: projectDir,
+	}
+	err = cfg.Save()
+	require.NoError(t, err)
+
+	// EnsureProjectDir should fail
+	_, err = EnsureProjectDir()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "docker-compose.yml not found")
+
+	// Config should be cleared
+	loaded, _ := Load()
+	assert.Empty(t, loaded.ProjectDir)
+}
+
+func TestEnsureProjectDir_Success(t *testing.T) {
+	// Use temp dir
+	origHome := os.Getenv("HOME")
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	defer func() {
+		t.Setenv("HOME", origHome)
+	}()
+
+	// Create valid project directory with docker-compose.yml
+	projectDir := filepath.Join(tmpDir, "myproject")
+	err := os.MkdirAll(projectDir, 0755)
+	require.NoError(t, err)
+
+	composePath := filepath.Join(projectDir, "docker-compose.yml")
+	err = os.WriteFile(composePath, []byte("version: '3'\n"), 0644)
+	require.NoError(t, err)
+
+	// Save config
+	cfg := &Config{
+		Language:   "en",
+		ProjectDir: projectDir,
+	}
+	err = cfg.Save()
+	require.NoError(t, err)
+
+	// EnsureProjectDir should succeed
+	resultDir, err := EnsureProjectDir()
+	assert.NoError(t, err)
+	assert.Equal(t, projectDir, resultDir)
+
+	// Verify we changed to the correct directory
+	cwd, _ := os.Getwd()
+	assert.Equal(t, projectDir, cwd)
+}
+
+func TestIsProjectNotConfiguredError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{"nil error", nil, false},
+		{"no project", errors.New("no project configured, run 'kk init' first"), true},
+		{"dir not exists", errors.New("project directory no longer exists: /foo"), true},
+		{"no compose", errors.New("docker-compose.yml not found in: /foo"), true},
+		{"other error", errors.New("some other error"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsProjectNotConfiguredError(tt.err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

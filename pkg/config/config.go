@@ -1,8 +1,11 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -14,7 +17,8 @@ const (
 
 // Config represents user configuration
 type Config struct {
-	Language string `yaml:"language"` // "en" or "vi"
+	Language   string `yaml:"language"`    // "en" or "vi"
+	ProjectDir string `yaml:"project_dir"` // Path to project with docker-compose.yml
 }
 
 // ConfigDir returns the config directory path (~/.kk)
@@ -65,4 +69,59 @@ func (c *Config) Save() error {
 	}
 
 	return os.WriteFile(ConfigPath(), data, 0644)
+}
+
+// EnsureProjectDir validates and changes to the configured project directory.
+// Returns the project directory path or error if not configured/invalid.
+// If the project directory is invalid, it will be cleared from config.
+func EnsureProjectDir() (string, error) {
+	cfg, err := Load()
+	if err != nil {
+		return "", fmt.Errorf("failed to load config: %w", err)
+	}
+
+	if cfg.ProjectDir == "" {
+		return "", errors.New("no project configured, run 'kk init' first")
+	}
+
+	projectDir := cfg.ProjectDir
+
+	// Check directory exists
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		// Clear invalid config and save
+		cfg.ProjectDir = ""
+		if saveErr := cfg.Save(); saveErr != nil {
+			// Log but don't fail - the main error is more important
+			fmt.Fprintf(os.Stderr, "Warning: failed to clear invalid config: %v\n", saveErr)
+		}
+		return "", fmt.Errorf("project directory no longer exists: %s", projectDir)
+	}
+
+	// Check docker-compose.yml exists
+	composePath := filepath.Join(projectDir, "docker-compose.yml")
+	if _, err := os.Stat(composePath); os.IsNotExist(err) {
+		cfg.ProjectDir = ""
+		if saveErr := cfg.Save(); saveErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to clear invalid config: %v\n", saveErr)
+		}
+		return "", fmt.Errorf("docker-compose.yml not found in: %s", projectDir)
+	}
+
+	// Change to project directory
+	if err := os.Chdir(projectDir); err != nil {
+		return "", fmt.Errorf("failed to change to project directory %s: %w", projectDir, err)
+	}
+
+	return projectDir, nil
+}
+
+// IsProjectNotConfiguredError returns true if the error is about project not being configured
+func IsProjectNotConfiguredError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return msg == "no project configured, run 'kk init' first" ||
+		strings.Contains(msg, "project directory no longer exists") ||
+		strings.Contains(msg, "docker-compose.yml not found in")
 }

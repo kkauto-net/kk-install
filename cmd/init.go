@@ -455,6 +455,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	spinner.Success(ui.IconCheck + " " + ui.Msg("files_generated"))
 
+	// Save project directory to config
+	cfg.ProjectDir = cwd
+	_ = cfg.Save()
+
 	// Show completion summary
 	// Collect created files
 	createdFiles := []string{"docker-compose.yml", ".env", "kkphp.conf"}

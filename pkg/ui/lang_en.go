@@ -187,6 +187,25 @@ Next steps:
 	"step_pull_images":    "Pull Images",
 	"step_recreate":       "Recreate Containers",
 
+	// Stop command
+	"step_stop_services": "Stop Services",
+	"stopping_services":  "Stopping services...",
+	"stop_failed":        "Stop failed",
+	"stop_complete":      "All services stopped",
+	"stop_desc":          "Stop All Services",
+
+	// Remove command
+	"step_remove_services": "Remove Services",
+	"removing_services":    "Removing containers and networks...",
+	"remove_failed":        "Remove failed",
+	"remove_complete":      "All containers and networks removed",
+	"removed_containers":   "Containers and networks removed",
+	"removed_with_volumes": "Containers, networks, and volumes removed",
+	"remove_desc":          "Remove All Containers",
+
+	// Container conflict errors
+	"container_conflict_suggestion": "Containers from another project are using the same names. Remove them first",
+
 	// Command banners
 	"status_desc":  "Service Status",
 	"init_desc":    "Docker Stack Initialization",
@@ -226,4 +245,14 @@ Next steps:
 	"update_install_failed": "Failed to install update",
 	"selfupdate_complete":   "Successfully updated!",
 	"selfupdate_desc":       "Update kk CLI",
+
+	// Project configuration
+	"project_not_configured":  "Project Not Configured",
+	"run_init_to_configure":   "Run 'kk init' in your project folder",
+	"config_load_failed":      "Failed to load configuration",
+	"config_title":            "Configuration:",
+	"config_language":         "Language",
+	"config_project_dir":      "Project Dir",
+	"config_file_path":        "Config File",
+	"config_not_set":          "(not set)",
 }
