@@ -47,11 +47,33 @@ func (v *DockerValidator) CheckDockerDaemon() error {
 	defer cancel()
 
 	cmd := v.CommandContext(ctx, "docker", "info")
-	if err := cmd.Run(); err != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		outputStr := strings.ToLower(string(output))
+		// Check if it's a permission error (user not in docker group)
+		if strings.Contains(outputStr, "permission denied") ||
+			strings.Contains(outputStr, "got permission denied") ||
+			strings.Contains(outputStr, "connect: permission denied") {
+			return &UserError{
+				Key:        "docker_permission_denied",
+				Message:    "Khong co quyen truy cap Docker",
+				Suggestion: "Them user vao docker group: sudo usermod -aG docker $USER && newgrp docker",
+			}
+		}
+		// Check if daemon is not running
+		if strings.Contains(outputStr, "cannot connect") ||
+			strings.Contains(outputStr, "is the docker daemon running") {
+			return &UserError{
+				Key:        "docker_not_running",
+				Message:    "Docker daemon khong chay",
+				Suggestion: "Chay: sudo systemctl start docker",
+			}
+		}
+		// Generic error
 		return &UserError{
 			Key:        "docker_not_running",
-			Message:    "Docker daemon khong chay",
-			Suggestion: "Chay: sudo systemctl start docker",
+			Message:    "Docker daemon khong chay hoac khong co quyen",
+			Suggestion: "Thu: sudo systemctl start docker HOAC sudo usermod -aG docker $USER && newgrp docker",
 		}
 	}
 	return nil
@@ -124,6 +146,9 @@ func (v *DockerValidator) InstallDocker() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Print newline before sudo prompt for better formatting
+	fmt.Println()
+
 	// Use official Docker install script for Linux
 	// curl -fsSL https://get.docker.com | sh
 	cmd := v.CommandContext(ctx, "sh", "-c", "curl -fsSL https://get.docker.com | sudo sh")
@@ -149,6 +174,9 @@ func (v *DockerValidator) InstallDocker() error {
 func (v *DockerValidator) StartDockerDaemon() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Print newline before sudo prompt for better formatting
+	fmt.Println()
 
 	// Try systemctl first (most common on Linux)
 	cmd := v.CommandContext(ctx, "sudo", "systemctl", "start", "docker")
