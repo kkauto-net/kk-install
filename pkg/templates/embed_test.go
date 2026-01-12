@@ -286,9 +286,9 @@ func TestCaddyfileSyntax(t *testing.T) {
 		t.Errorf("Caddyfile has mismatched braces: %d open, %d close", openBraces, closeBraces)
 	}
 
-	// Check domain is present
-	if !strings.Contains(rendered, cfg.Domain) {
-		t.Error("Caddyfile does not contain domain")
+	// Check SYSTEM_DOMAIN env var placeholder is present (Caddy reads from .env)
+	if !strings.Contains(rendered, "{$SYSTEM_DOMAIN}") {
+		t.Error("Caddyfile does not contain {$SYSTEM_DOMAIN} placeholder")
 	}
 
 	// Check reverse_proxy directive exists

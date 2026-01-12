@@ -1,3 +1,26 @@
-example.com {
-    reverse_proxy kkengine:8019
+{$SYSTEM_DOMAIN} {
+    # Route S3/SeaweedFS requests (any bucket path)
+    @s3_buckets {
+        path /data-videos/* /data-images/* /data-files/* 
+    }
+    handle @s3_buckets {
+        reverse_proxy seaweedfs:8333 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Default: PHP application with static file caching
+    handle {
+        encode zstd gzip
+        
+        @static {
+            path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.otf
+        }
+        header @static Cache-Control "public, max-age=7776000"
+        
+        reverse_proxy kkengine:8019
+    }
 }
