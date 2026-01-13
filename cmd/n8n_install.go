@@ -257,16 +257,6 @@ func checkKKEngineNetwork() bool {
 	return cmd.Run() == nil
 }
 
-// runN8nStartInternal is called to start n8n after install
-// This is a forward declaration - actual implementation in n8n_start.go
-func runN8nStartInternal() error {
-	// Placeholder - will be implemented in Phase 3
-	pterm.Println()
-	ui.ShowSuccess(ui.Msg("n8n_install_complete"))
-	pterm.Println("  " + ui.Msg("n8n_run_start"))
-	return nil
-}
-
 // validateN8nDomain validates domain format
 func validateN8nDomain(s string) error {
 	if s == "" {
