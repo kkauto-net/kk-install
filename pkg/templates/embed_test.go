@@ -163,6 +163,7 @@ func TestAllConfigCombinations(t *testing.T) {
 				EnableSeaweedFS: combo.seaweed,
 				EnableCaddy:     combo.caddy,
 				Domain:          "test.example.com",
+				Timezone:        "Asia/Ho_Chi_Minh",
 				JWTSecret:       "test_jwt_secret_32chars_long!!!!",
 				DBPassword:      "test_db_password_16!",
 				DBRootPassword:  "test_root_password!",
@@ -295,6 +296,7 @@ func TestGoldenFiles(t *testing.T) {
 		EnableSeaweedFS: true,
 		EnableCaddy:     true,
 		Domain:          "example.com",
+		Timezone:        "Asia/Ho_Chi_Minh",
 		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
 		LicenseKey:      "LICENSE-TESTKEY12345678",
 		ServerPublicKey: "test_public_key_encrypted",
@@ -348,7 +350,7 @@ func TestValidateSecrets(t *testing.T) {
 			name: "valid config",
 			cfg: Config{
 				JWTSecret:      "this_is_a_32_character_secret!!!", // 32 chars
-				DBPassword:     "password_16chars", // 16 chars
+				DBPassword:     "password_16chars",                 // 16 chars
 				DBRootPassword: "password_16chars",
 				RedisPassword:  "password_16chars",
 			},

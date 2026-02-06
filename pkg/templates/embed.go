@@ -18,7 +18,9 @@ type Config struct {
 	EnableCaddy     bool
 
 	// System
-	Domain    string
+	Domain   string
+	Timezone string
+
 	JWTSecret string
 
 	// License

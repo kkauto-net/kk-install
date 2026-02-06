@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -15,6 +16,7 @@ func main() {
 		EnableSeaweedFS: true,
 		EnableCaddy:     true,
 		Domain:          "example.com",
+		Timezone:        "Asia/Ho_Chi_Minh",
 		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
 		LicenseKey:      "LICENSE-TESTKEY12345678",
 		ServerPublicKey: "test_public_key_encrypted",

@@ -17,6 +17,7 @@ const (
 	IconComplete = "✅"  // Complete
 	IconCheck    = "✅"  // Success (same as complete)
 	IconKey      = "🔑"  // License key
+	IconClock    = "🕐"  // Timezone
 )
 
 // Status icons for service/health states

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -31,7 +32,7 @@ var initCmd = &cobra.Command{
 }
 
 var (
-	forceInit bool
+	forceInit               bool
 	DockerValidatorInstance *validator.DockerValidator
 )
 
@@ -67,7 +68,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	licenseForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
-				Title(ui.IconKey+" "+ui.Msg("enter_license")).
+				Title(ui.IconKey + " " + ui.Msg("enter_license")).
 				Value(&licenseKey).
 				Placeholder("LICENSE-XXXXXXXXXXXXXXXX").
 				Validate(func(s string) error {
@@ -136,7 +137,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			installForm := huh.NewForm(
 				huh.NewGroup(
 					huh.NewConfirm().
-						Title(ui.IconDocker+" "+ui.Msg("ask_install_docker")).
+						Title(ui.IconDocker + " " + ui.Msg("ask_install_docker")).
 						Description(ui.Msg("ask_install_docker_desc")).
 						Affirmative(ui.Msg("yes_install")).
 						Negative(ui.Msg("no_manual")).
@@ -186,7 +187,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 				startForm := huh.NewForm(
 					huh.NewGroup(
 						huh.NewConfirm().
-							Title(ui.IconDocker+" "+ui.Msg("ask_start_docker")).
+							Title(ui.IconDocker + " " + ui.Msg("ask_start_docker")).
 							Affirmative(ui.Msg("yes")).
 							Negative(ui.Msg("no")).
 							Value(&startDocker),
@@ -356,6 +357,28 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Timezone detection and prompt (within domain step)
+	timezone := existingEnv["TZ"]
+	if timezone == "" {
+		timezone = getSystemTimezone()
+	}
+	if !forceInit {
+		tzForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title(ui.IconClock + " " + ui.Msg("enter_timezone")).
+					Value(&timezone).
+					Placeholder("Asia/Ho_Chi_Minh"),
+			),
+		)
+		if err := tzForm.Run(); err != nil {
+			return err
+		}
+		if timezone == "" {
+			timezone = "Asia/Ho_Chi_Minh"
+		}
+	}
+
 	// Step 5: Environment Configuration
 	ui.ShowStepHeader(5, 7, ui.Msg("step_credentials"))
 
@@ -491,6 +514,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		EnableSeaweedFS: enableSeaweedFS,
 		EnableCaddy:     enableCaddy,
 		Domain:          domain,
+		Timezone:        timezone,
 		JWTSecret:       jwtSecret,
 		LicenseKey:      licenseData.Key,
 		ServerPublicKey: licenseData.PublicKey,
@@ -639,6 +663,40 @@ func validateMinLength(minLen int, fieldName string) func(string) error {
 		}
 		return nil
 	}
+}
+
+// getSystemTimezone detects the system timezone on Linux.
+// Tries: timedatectl → /etc/timezone → /etc/localtime symlink → fallback.
+func getSystemTimezone() string {
+	const fallback = "Asia/Ho_Chi_Minh"
+
+	// Method 1: timedatectl (systemd)
+	out, err := exec.Command("timedatectl", "show", "--property=Timezone", "--value").Output()
+	if err == nil {
+		if tz := strings.TrimSpace(string(out)); tz != "" {
+			return tz
+		}
+	}
+
+	// Method 2: /etc/timezone (Debian/Ubuntu)
+	data, err := os.ReadFile("/etc/timezone")
+	if err == nil {
+		if tz := strings.TrimSpace(string(data)); tz != "" {
+			return tz
+		}
+	}
+
+	// Method 3: /etc/localtime symlink (RHEL/Fedora/Arch)
+	link, err := os.Readlink("/etc/localtime")
+	if err == nil {
+		// e.g. /usr/share/zoneinfo/Asia/Ho_Chi_Minh → Asia/Ho_Chi_Minh
+		const prefix = "zoneinfo/"
+		if idx := strings.LastIndex(link, prefix); idx != -1 {
+			return link[idx+len(prefix):]
+		}
+	}
+
+	return fallback
 }
 
 // loadExistingEnv parses existing .env file and returns key-value map
