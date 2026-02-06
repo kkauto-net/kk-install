@@ -46,6 +46,7 @@ test/
 
 # Vibe code
 .claude
+.opencode
 plans/
 docs/
 .beads/
