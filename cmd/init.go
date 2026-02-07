@@ -556,7 +556,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// backupExistingConfigs creates timestamped .bak backups of existing config files
+// backupExistingConfigs creates a timestamped backup folder and copies existing config files into it
 func backupExistingConfigs(dir string) error {
 	configFiles := []string{
 		"docker-compose.yml",
@@ -566,31 +566,47 @@ func backupExistingConfigs(dir string) error {
 		"kkphp.conf",
 	}
 
-	timestamp := time.Now().Format("060102-150405")
-	var backedUp []string
+	timestamp := time.Now().Format("20060102150405")
+	backupDirName := "backup-" + timestamp
+	backupDir := filepath.Join(dir, backupDirName)
+
+	// First pass: check which files exist
+	var toBackup []string
 	for _, filename := range configFiles {
 		srcPath := filepath.Join(dir, filename)
 		if _, err := os.Stat(srcPath); err == nil {
-			// File exists, create backup with timestamp
-			bakPath := srcPath + "-" + timestamp + ".bak"
-
-			// Read source
-			data, err := os.ReadFile(srcPath)
-			if err != nil {
-				continue // Skip on error
-			}
-
-			// Write backup
-			if err := os.WriteFile(bakPath, data, 0644); err != nil {
-				continue // Skip on error
-			}
-
-			backedUp = append(backedUp, filename)
+			toBackup = append(toBackup, filename)
 		}
 	}
 
+	if len(toBackup) == 0 {
+		return nil
+	}
+
+	// Create backup folder
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return fmt.Errorf("cannot create backup dir: %w", err)
+	}
+
+	// Copy each file into backup folder
+	var backedUp []string
+	for _, filename := range toBackup {
+		srcPath := filepath.Join(dir, filename)
+		data, err := os.ReadFile(srcPath)
+		if err != nil {
+			continue // Skip on error
+		}
+
+		dstPath := filepath.Join(backupDir, filename)
+		if err := os.WriteFile(dstPath, data, 0644); err != nil {
+			continue // Skip on error
+		}
+
+		backedUp = append(backedUp, filename)
+	}
+
 	if len(backedUp) > 0 {
-		ui.ShowInfo(fmt.Sprintf("Backed up: %s", strings.Join(backedUp, ", ")))
+		ui.ShowInfo(fmt.Sprintf("Backed up to: %s/", backupDirName))
 	}
 
 	return nil
