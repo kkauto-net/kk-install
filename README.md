@@ -42,11 +42,45 @@ kk start
 kk status
 ```
 
+## Unattended VPS Install
+
+Use this mode for backend provisioning scripts where no interactive prompts are available.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
+
+kk init \
+  --yes \
+  --license LICENSE-ABCDEF0123456789 \
+  --domain example.com \
+  --language en
+
+kk start
+kk status
+```
+
+Notes:
+- Supported languages: `en`, `vi`.
+- The license key is validated with the kk license API.
+- Generated `.env` is written with owner-only permissions.
+- Existing config files are overwritten after a timestamped backup when `--yes` is used.
+- Do not commit generated `.env` or share license/private secrets.
+
+Unattended mode exits with deterministic codes:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `2` | Flag or input validation failed |
+| `3` | License validation failed |
+| `4` | Docker preflight failed |
+| `5` | Template render or file write failed |
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `kk init` | Initialize Docker Compose stack with interactive prompts |
+| `kk init` | Initialize Docker Compose stack with interactive prompts or unattended flags |
 | `kk start` | Run preflight checks and start all services |
 | `kk stop` | Stop all running services |
 | `kk remove` | Remove all containers, networks (use `-v` to also remove volumes) |

@@ -33,17 +33,29 @@ var initCmd = &cobra.Command{
 
 var (
 	forceInit               bool
+	yesInit                 bool
+	initLicense             string
+	initDomain              string
+	initLanguage            string
 	DockerValidatorInstance *validator.DockerValidator
 )
 
 func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Bỏ qua tất cả các lời nhắc tương tác và sử dụng các giá trị mặc định")
+	initCmd.Flags().BoolVar(&yesInit, "yes", false, "Run init without interactive prompts")
+	initCmd.Flags().StringVar(&initLicense, "license", "", "License key for unattended init")
+	initCmd.Flags().StringVar(&initDomain, "domain", "", "Domain for unattended init")
+	initCmd.Flags().StringVar(&initLanguage, "language", "", "Language for unattended init (en or vi)")
 	DockerValidatorInstance = validator.NewDockerValidator()
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
 	var spinner *pterm.SpinnerPrinter
+	opts := collectInitOptions()
+	if err := validateInitOptions(opts); err != nil {
+		return err
+	}
 	// Command banner
 	ui.ShowCommandBanner("kk init", ui.Msg("init_desc"))
 
@@ -65,25 +77,29 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Pre-fill license from existing env
 	licenseKey := existingEnv["LICENSE_KEY"]
-	licenseForm := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Title(ui.IconKey + " " + ui.Msg("enter_license")).
-				Value(&licenseKey).
-				Placeholder("LICENSE-XXXXXXXXXXXXXXXX").
-				Validate(func(s string) error {
-					if s == "" {
-						return errors.New(ui.Msg("license_required"))
-					}
-					if !license.ValidateFormat(s) {
-						return errors.New(ui.Msg("license_invalid_format"))
-					}
-					return nil
-				}),
-		),
-	)
-	if err := licenseForm.Run(); err != nil {
-		return err
+	if opts.NonInteractive {
+		licenseKey = opts.License
+	} else {
+		licenseForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title(ui.IconKey + " " + ui.Msg("enter_license")).
+					Value(&licenseKey).
+					Placeholder("LICENSE-XXXXXXXXXXXXXXXX").
+					Validate(func(s string) error {
+						if s == "" {
+							return errors.New(ui.Msg("license_required"))
+						}
+						if !license.ValidateFormat(s) {
+							return errors.New(ui.Msg("license_invalid_format"))
+						}
+						return nil
+					}),
+			),
+		)
+		if err := licenseForm.Run(); err != nil {
+			return err
+		}
 	}
 
 	var licenseData struct {
@@ -94,7 +110,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Skip license validation in test environment
 	if os.Getenv("KK_TEST_SKIP_LICENSE_VALIDATION") == "true" {
 		ui.ShowWarning("Skipping license validation for test environment")
-		licenseData.Key = "TEST-LICENSE-KEY"
+		licenseData.Key = licenseKey
 		licenseData.PublicKey = "TEST-PUBLIC-KEY"
 	} else {
 		// Validate license against API
@@ -102,13 +118,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 		client := license.NewClient()
 		licenseResp, err := client.Validate(licenseKey)
 		if err != nil {
+			safeMessage := sanitizeLicenseError(err.Error(), licenseKey)
 			spinner.Fail(ui.Msg("license_validation_failed"))
 			ui.ShowBoxedError(ui.ErrorSuggestion{
 				Title:      ui.Msg("license_validation_failed"),
-				Message:    err.Error(),
+				Message:    safeMessage,
 				Suggestion: ui.Msg("license_check_key"),
 			})
-			return err
+			return NewExitError(exitCodeLicenseValidation, errors.New(safeMessage))
 		}
 		spinner.Success(ui.IconCheck + " " + ui.Msg("license_validated"))
 
@@ -124,10 +141,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Check Docker installation
 	dockerInstalled := true
 	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
-		if forceInit {
+		if opts.Force {
 			ui.ShowWarning(ui.Msg("docker_not_installed_force_init"))
 			// In force mode, assume Docker will be handled externally or allow to proceed with potential issues
 			dockerInstalled = true
+		} else if opts.NonInteractive {
+			ui.ShowBoxedError(ui.ErrorSuggestion{
+				Title:      ui.Msg("docker_not_found"),
+				Message:    ui.Msg("docker_required"),
+				Suggestion: "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
+			})
+			return NewExitError(exitCodeDockerValidation, err)
 		} else {
 			dockerInstalled = false
 			ui.ShowWarning(ui.Msg("docker_not_installed"))
@@ -176,9 +200,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Check Docker daemon if Docker is installed
 	if dockerInstalled {
 		if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
-			if forceInit {
+			if opts.Force {
 				ui.ShowWarning(ui.Msg("docker_daemon_not_running_force_init"))
 				// In force mode, assume daemon will be started externally or allow to proceed
+			} else if opts.NonInteractive {
+				ui.ShowBoxedError(ui.ErrorSuggestion{
+					Title:      ui.Msg("docker_daemon_stopped"),
+					Message:    ui.Msg("docker_required"),
+					Suggestion: ui.Msg("docker_start_suggestion"),
+					Command:    "sudo systemctl start docker && kk init --yes ...",
+				})
+				return NewExitError(exitCodeDockerValidation, err)
 			} else {
 				ui.ShowWarning(ui.Msg("docker_not_running"))
 
@@ -224,8 +256,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 		// Check Docker Compose version
 		if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
-			if forceInit {
+			if opts.Force {
 				ui.ShowWarning(ui.Msg("docker_compose_issue_force_init"))
+			} else if opts.NonInteractive {
+				ui.ShowBoxedError(ui.ErrorSuggestion{
+					Title:      ui.Msg("docker_compose_issue"),
+					Message:    err.Error(),
+					Suggestion: "Update Docker to latest version or rerun with --force to bypass preflight checks.",
+				})
+				return NewExitError(exitCodeDockerValidation, err)
 			} else {
 				ui.ShowBoxedError(ui.ErrorSuggestion{
 					Title:      ui.Msg("docker_compose_issue"),
@@ -242,7 +281,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 2: Language selection
 	ui.ShowStepHeader(2, 7, ui.Msg("step_language"))
 	var langChoice string
-	if forceInit {
+	if opts.NonInteractive {
+		langChoice = opts.Language
+	} else if opts.Force {
 		langChoice = "en" // Default to English in force mode
 	} else {
 		langForm := huh.NewForm(
@@ -278,7 +319,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	composePath := filepath.Join(cwd, "docker-compose.yml")
 	if _, err := os.Stat(composePath); err == nil {
 		var overwrite bool
-		if forceInit {
+		if opts.NonInteractive || opts.Force {
 			overwrite = true // Auto-overwrite in force mode
 			ui.ShowInfo(ui.Msg("compose_exists_force_init"))
 		} else {
@@ -308,7 +349,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	enableSeaweedFS := true // Default: enabled (recommended)
 	enableCaddy := true     // Default: enabled (recommended)
 
-	if !forceInit {
+	if !opts.NonInteractive && !opts.Force {
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -336,10 +377,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowStepHeader(4, 7, ui.Msg("step_domain"))
 	// Pre-fill domain from existing env or use localhost
 	domain := existingEnv["SYSTEM_DOMAIN"]
-	if domain == "" {
+	if opts.NonInteractive {
+		domain = opts.Domain
+	} else if domain == "" {
 		domain = "localhost"
 	}
-	if !forceInit {
+	if !opts.NonInteractive && !opts.Force {
 		domainForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
@@ -362,7 +405,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if timezone == "" {
 		timezone = getSystemTimezone()
 	}
-	if !forceInit {
+	if !opts.NonInteractive && !opts.Force {
 		tzForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
@@ -440,7 +483,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Ask: Use random secrets?
 	useRandom := true // Always use random secrets in force mode
-	if !forceInit {
+	if !opts.NonInteractive && !opts.Force {
 		confirmForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -457,7 +500,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// If No -> Show grouped edit form
-	if !useRandom && !forceInit {
+	if !useRandom && !opts.NonInteractive && !opts.Force {
 		groups := []*huh.Group{}
 
 		// Group 1: System Configuration
@@ -526,8 +569,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := templates.RenderAll(tmplCfg, cwd); err != nil {
-		spinner.Fail(ui.MsgF("error_create_file", err.Error()))
-		return fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err)
+		spinner.Fail(fmt.Sprintf("%s: %v", ui.Msg("error_create_file"), err))
+		return NewExitError(exitCodeRenderFailure, fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err))
 	}
 
 	spinner.Success(ui.IconCheck + " " + ui.Msg("files_generated"))
@@ -598,7 +641,11 @@ func backupExistingConfigs(dir string) error {
 		}
 
 		dstPath := filepath.Join(backupDir, filename)
-		if err := os.WriteFile(dstPath, data, 0644); err != nil {
+		mode := os.FileMode(0644)
+		if filename == ".env" {
+			mode = 0600
+		}
+		if err := os.WriteFile(dstPath, data, mode); err != nil {
 			continue // Skip on error
 		}
 

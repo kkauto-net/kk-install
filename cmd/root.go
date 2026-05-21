@@ -25,7 +25,7 @@ func Execute() {
 
 	if err := rootCmd.Execute(); err != nil {
 		// Error already displayed via ShowBoxedError in command handlers
-		os.Exit(1)
+		os.Exit(ExitCode(err))
 	}
 }
 
