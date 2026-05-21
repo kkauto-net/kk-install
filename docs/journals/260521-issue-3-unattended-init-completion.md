@@ -11,9 +11,11 @@ type: journal
 
 Implemented true non-interactive `kk init` for backend VPS provisioning.
 
+Superseded by issue #4 for license input guidance: current automation docs recommend `--license-file` with `0600` temporary files and trap-based cleanup. Legacy `--license <key>` remains compatibility only and is discouraged for provisioning scripts.
+
 ## Completed Work
 
-- Added `kk init --yes --license <key> --domain <domain> --language <en|vi>`.
+- Added initial unattended `kk init --yes --license <key> --domain <domain> --language <en|vi>` support. This argv license form is now legacy compatibility after issue #4.
 - Added deterministic exit-code mapping for unattended validation, license, Docker, and render failures.
 - Preserved interactive behavior while skipping all prompts in unattended mode.
 - Added license masking for validation errors.

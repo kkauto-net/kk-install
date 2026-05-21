@@ -12,6 +12,8 @@ type: journal
 
 Created an implementation plan for GitHub issue #3: true non-interactive `kk init` for backend VPS provisioning.
 
+Superseded guidance: issue #4 changed current automation recommendations to `--license-file` with a `0600` temporary file and trap-based cleanup. Do not use this historical plan as current license-input guidance.
+
 ## What Happened
 
 - Read project README and global development rules.
@@ -25,7 +27,7 @@ Created an implementation plan for GitHub issue #3: true non-interactive `kk ini
 
 - Use `--yes` as the explicit unattended mode.
 - Keep `--force` as legacy bypass/default behavior.
-- Require `--license`, `--domain`, and `--language` when `--yes` is used.
+- Historical issue #3 decision: require `--license`, `--domain`, and `--language` when `--yes` is used. Current issue #4 behavior requires exactly one license source and recommends `--license-file` over legacy `--license`.
 - Reuse existing license API and template render flow.
 - Add deterministic typed exit codes with fallback exit code `1` for legacy errors.
 - Avoid new service-disable flags for Caddy or SeaweedFS in this issue.

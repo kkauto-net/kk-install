@@ -33,9 +33,10 @@
 | PDR-005 | CLI must validate license keys against the kk license API during init | Implemented |
 | PDR-006 | CLI must support English and Vietnamese language selection | Implemented |
 | PDR-007 | CLI must generate strong secrets for rendered configuration | Implemented |
-| PDR-008 | CLI must support unattended VPS provisioning with `kk init --yes --license <key> --domain <domain> --language <en|vi>` | Current uncommitted issue #3 implementation |
-| PDR-009 | Unattended init must avoid interactive prompts when required flags are valid | Current uncommitted issue #3 implementation |
-| PDR-010 | Unattended init must return deterministic exit codes for automation | Current uncommitted issue #3 implementation |
+| PDR-008 | CLI must support unattended VPS provisioning with `kk init --yes --license-file <path> --domain <domain> --language <en|vi>` | Implemented |
+| PDR-009 | Unattended init must avoid interactive prompts when required flags are valid | Implemented |
+| PDR-010 | Unattended init must return deterministic exit codes for automation | Implemented |
+| PDR-011 | Automation docs must avoid argv license input and use owner-only temp license files with failure-safe cleanup | Implemented |
 
 ## Non-Functional Requirements
 
@@ -47,13 +48,15 @@
 | Reliability | Existing untyped command errors retain legacy exit code `1` |
 | Maintainability | CLI behavior must be covered by focused Go tests where feasible |
 
-## Issue #3 Acceptance Criteria
+## Unattended Init Acceptance Criteria
 
-Verified against current uncommitted code and tests:
+Verified against current code and tests:
 
 | Criterion | Evidence |
 |---|---|
-| `kk init --yes --license ... --domain ... --language ...` exists | Flags registered in `cmd/init.go` |
+| `kk init --yes --license-file ... --domain ... --language ...` exists | Flags registered in `cmd/init.go` |
+| Legacy `--license` remains compatible | Source resolver in `cmd/init_options.go` |
+| Multiple or missing license sources fail deterministically | `resolveInitLicenseSource` tests in `cmd/init_test.go` |
 | Missing unattended flags fail before prompts | `validateInitOptions` in `cmd/init_options.go` |
 | Invalid license format fails before API call | `pkg/license.ValidateFormat` used by `validateInitOptions` |
 | Invalid domain/language fail deterministically | `validateInitOptions` tests in `cmd/init_test.go` |
@@ -62,6 +65,7 @@ Verified against current uncommitted code and tests:
 | Render/write failures return exit code `5` | `templates.RenderAll` error wrapping in `cmd/init.go` |
 | `.env` remains private | `pkg/templates.RenderAll` chmods `.env`; `backupExistingConfigs` uses `0600` for `.env` backups |
 | README contains unattended install example | `README.md` current uncommitted update |
+| Automation docs discourage legacy `--license` | README and evergreen docs recommend `--license-file`; `--license` is documented only as compatibility |
 
 ## Constraints
 

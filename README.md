@@ -49,9 +49,17 @@ Use this mode for backend provisioning scripts where no interactive prompts are 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 
+install -d -m 700 /root/.kk
+license_file="$(mktemp /root/.kk/license.XXXXXX)"
+cleanup_license_file() { rm -f "$license_file"; }
+trap cleanup_license_file EXIT
+
+printf '%s\n' "$KKAUTO_LICENSE" > "$license_file"
+chmod 600 "$license_file"
+
 kk init \
   --yes \
-  --license LICENSE-ABCDEF0123456789 \
+  --license-file "$license_file" \
   --domain example.com \
   --language en
 
@@ -62,6 +70,8 @@ kk status
 Notes:
 - Supported languages: `en`, `vi`.
 - The license key is validated with the kk license API.
+- Use `--license-file` for automation. Avoid `--license <key>` in provisioning scripts because argv can be visible through process listings, shell history, audit tooling, or telemetry.
+- Keep temporary license files owner-only (`0600`) and clean them up with a trap so failures do not leave secrets behind.
 - Generated `.env` is written with owner-only permissions.
 - Existing config files are overwritten after a timestamped backup when `--yes` is used.
 - Do not commit generated `.env` or share license/private secrets.

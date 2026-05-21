@@ -1,6 +1,6 @@
 # Codebase Summary
 
-Generated from `./repomix-output.xml` on 2026-05-21 and verified against current source files.
+Generated from `./repomix-output.xml` on 2026-05-22 and verified against current source files.
 
 ## Overview
 
@@ -45,18 +45,27 @@ Core commands verified in `cmd/*.go`:
 | `kk completion` | Generate shell completion |
 | `kk n8n ...` | Manage n8n workflow automation commands |
 
-## Issue #3: Unattended VPS Install Impact
+## Unattended VPS Install Impact
 
-Current uncommitted implementation adds true non-interactive initialization:
+Current implementation supports true non-interactive initialization with a non-argv license source:
 
 ```bash
-kk init --yes --license LICENSE-ABCDEF0123456789 --domain example.com --language en
+install -d -m 700 /root/.kk
+license_file="$(mktemp /root/.kk/license.XXXXXX)"
+cleanup_license_file() { rm -f "$license_file"; }
+trap cleanup_license_file EXIT
+printf '%s\n' "$KKAUTO_LICENSE" > "$license_file"
+chmod 600 "$license_file"
+kk init --yes --license-file "$license_file" --domain example.com --language en
 ```
 
 Verified behavior from `cmd/init.go`, `cmd/init_options.go`, and tests:
 
 - `--yes` enables unattended mode and skips `huh` prompt forms.
-- `--license`, `--domain`, and `--language` are required when `--yes` is set.
+- Exactly one license source is required when `--yes` is set: recommended `--license-file`, explicit `--license-stdin`, or legacy `--license`.
+- `--license` remains compatible but is discouraged for automation because argv can leak through process listings or logs.
+- Automation examples should create the temporary license file with `0600` permissions and remove it with a shell trap.
+- `--domain` and `--language` are required when `--yes` is set.
 - `--language` accepts only `en` or `vi`.
 - License format is validated before the API call by `pkg/license.ValidateFormat`.
 - Domain validation reuses `validateDomain` in `cmd/init.go`.
@@ -96,8 +105,6 @@ Commands run during this documentation review:
 ```bash
 repomix --style xml -o repomix-output.xml
 ```
-
-`go test ./...` passed.
 
 ## Related Docs
 

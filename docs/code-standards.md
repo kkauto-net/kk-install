@@ -2,7 +2,7 @@
 
 ## Scope
 
-These standards reflect the current Go CLI codebase and the issue #3 unattended init implementation.
+These standards reflect the current Go CLI codebase and the unattended init implementation.
 
 ## Repository Structure
 
@@ -46,9 +46,11 @@ Verified current behavior:
 - Interactive mode uses `huh` forms for license, language, service selection, domain, timezone, and secret edits.
 - `--force` bypasses selected prompts and Docker validation failures with defaults.
 - `--yes` is unattended mode and requires:
-  - `--license`
+  - exactly one license source: `--license-file`, `--license-stdin`, or legacy `--license`
   - `--domain`
   - `--language`
+- Automation should use `--license-file`; legacy `--license` remains available but is discouraged for provisioning scripts.
+- Automation examples must create temporary license files with owner-only permissions (`0600`) and cleanup via `trap` so failed init runs do not leave secrets behind.
 - `--language` accepts only `en` and `vi`.
 - Existing config files are backed up before overwrite when unattended or force mode overwrites them.
 - Template rendering must continue through `pkg/templates.RenderAll`.
@@ -71,6 +73,9 @@ Do not wrap every legacy error just to change exit behavior. Use typed errors wh
 
 - Never print full license keys in command errors.
 - Mask license keys as `LICENSE-************6789` when display is unavoidable.
+- Do not recommend argv license input for automation; use a non-argv source such as `--license-file`.
+- License source errors should name the source, not the license value.
+- Treat `--license <key>` as legacy compatibility only; do not present it as a current recommended automation path.
 - Never print generated secret values such as `JWT_SECRET`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, or `S3_SECRET_KEY`.
 - Generated `.env` files must remain `0600`.
 - `.env` backups must remain `0600`.

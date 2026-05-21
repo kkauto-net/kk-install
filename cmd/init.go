@@ -35,6 +35,8 @@ var (
 	forceInit               bool
 	yesInit                 bool
 	initLicense             string
+	initLicenseFile         string
+	initLicenseStdin        bool
 	initDomain              string
 	initLanguage            string
 	DockerValidatorInstance *validator.DockerValidator
@@ -44,7 +46,9 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Bỏ qua tất cả các lời nhắc tương tác và sử dụng các giá trị mặc định")
 	initCmd.Flags().BoolVar(&yesInit, "yes", false, "Run init without interactive prompts")
-	initCmd.Flags().StringVar(&initLicense, "license", "", "License key for unattended init")
+	initCmd.Flags().StringVar(&initLicense, "license", "", "License key for unattended init (discouraged for automation; prefer --license-file)")
+	initCmd.Flags().StringVar(&initLicenseFile, "license-file", "", "Read license key from file for unattended init")
+	initCmd.Flags().BoolVar(&initLicenseStdin, "license-stdin", false, "Read license key from stdin for unattended init")
 	initCmd.Flags().StringVar(&initDomain, "domain", "", "Domain for unattended init")
 	initCmd.Flags().StringVar(&initLanguage, "language", "", "Language for unattended init (en or vi)")
 	DockerValidatorInstance = validator.NewDockerValidator()
@@ -53,7 +57,14 @@ func init() {
 func runInit(cmd *cobra.Command, args []string) error {
 	var spinner *pterm.SpinnerPrinter
 	opts := collectInitOptions()
+	var err error
+	opts, err = resolveInitLicenseSource(opts, cmd.InOrStdin())
+	if err != nil {
+		showInitInputError(err)
+		return err
+	}
 	if err := validateInitOptions(opts); err != nil {
+		showInitInputError(err)
 		return err
 	}
 	// Command banner
@@ -597,6 +608,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowCompletionBanner(true, ui.IconComplete+" "+ui.Msg("init_complete"), ui.Msg("next_steps_box"))
 
 	return nil
+}
+
+func showInitInputError(err error) {
+	if err == nil || ExitCode(err) != exitCodeInputValidation {
+		return
+	}
+	ui.ShowBoxedError(ui.ErrorSuggestion{
+		Title:      "Invalid init input",
+		Message:    err.Error(),
+		Suggestion: "Use exactly one license source and provide valid --domain and --language flags.",
+	})
 }
 
 // backupExistingConfigs creates a timestamped backup folder and copies existing config files into it

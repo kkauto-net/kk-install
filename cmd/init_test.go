@@ -68,6 +68,197 @@ func TestValidateInitOptionsDoesNotExposeLicense(t *testing.T) {
 	}
 }
 
+func TestResolveInitLicenseSource(t *testing.T) {
+	licenseKey := "LICENSE-ABCDEF0123456789"
+	dir := t.TempDir()
+	licensePath := filepath.Join(dir, "license.tmp")
+	if err := os.WriteFile(licensePath, []byte(" "+licenseKey+"\n"), 0600); err != nil {
+		t.Fatalf("write license fixture: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		opts        initOptions
+		stdin       string
+		wantLicense string
+		wantCode    int
+	}{
+		{
+			name: "interactive mode ignores sources",
+			opts: initOptions{LicenseFile: filepath.Join(dir, "missing")},
+		},
+		{
+			name:     "missing source",
+			opts:     initOptions{NonInteractive: true},
+			wantCode: exitCodeInputValidation,
+		},
+		{
+			name:     "multiple sources",
+			opts:     initOptions{NonInteractive: true, License: licenseKey, LicenseFile: licensePath},
+			wantCode: exitCodeInputValidation,
+		},
+		{
+			name:        "legacy argv source",
+			opts:        initOptions{NonInteractive: true, License: licenseKey},
+			wantLicense: licenseKey,
+		},
+		{
+			name:        "file source trims whitespace",
+			opts:        initOptions{NonInteractive: true, LicenseFile: licensePath},
+			wantLicense: licenseKey,
+		},
+		{
+			name:        "stdin source trims whitespace",
+			opts:        initOptions{NonInteractive: true, LicenseStdin: true},
+			stdin:       "\n" + licenseKey + "\n",
+			wantLicense: licenseKey,
+		},
+		{
+			name:     "empty stdin source",
+			opts:     initOptions{NonInteractive: true, LicenseStdin: true},
+			stdin:    "\n",
+			wantCode: exitCodeInputValidation,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := resolveInitLicenseSource(tt.opts, strings.NewReader(tt.stdin))
+			if tt.wantCode == 0 {
+				if err != nil {
+					t.Fatalf("resolveInitLicenseSource() error = %v", err)
+				}
+				if got.License != tt.wantLicense {
+					t.Fatalf("resolved license mismatch")
+				}
+				return
+			}
+
+			if err == nil {
+				t.Fatal("resolveInitLicenseSource() expected error")
+			}
+			if code := ExitCode(err); code != tt.wantCode {
+				t.Fatalf("ExitCode() = %d, want %d", code, tt.wantCode)
+			}
+			if strings.Contains(err.Error(), licenseKey) {
+				t.Fatalf("source error exposed full license: %q", err.Error())
+			}
+		})
+	}
+}
+
+func TestResolveInitLicenseFileErrors(t *testing.T) {
+	licenseKey := "LICENSE-ABCDEF0123456789"
+	dir := t.TempDir()
+	emptyPath := filepath.Join(dir, "empty.tmp")
+	badPath := filepath.Join(dir, "bad.tmp")
+	if err := os.WriteFile(emptyPath, []byte("\n"), 0600); err != nil {
+		t.Fatalf("write empty fixture: %v", err)
+	}
+	if err := os.WriteFile(badPath, []byte(licenseKey), 0600); err != nil {
+		t.Fatalf("write bad fixture: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "missing file", path: filepath.Join(dir, "missing.tmp")},
+		{name: "non regular file", path: dir},
+		{name: "empty file", path: emptyPath},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := resolveInitLicenseSource(initOptions{NonInteractive: true, LicenseFile: tt.path}, strings.NewReader(""))
+			if err == nil {
+				t.Fatal("resolveInitLicenseSource() expected error")
+			}
+			if code := ExitCode(err); code != exitCodeInputValidation {
+				t.Fatalf("ExitCode() = %d, want %d", code, exitCodeInputValidation)
+			}
+			if strings.Contains(err.Error(), licenseKey) {
+				t.Fatalf("file source error exposed full license: %q", err.Error())
+			}
+		})
+	}
+
+	unreadablePath := filepath.Join(dir, "unreadable.tmp")
+	if err := os.WriteFile(unreadablePath, []byte(licenseKey), 0600); err != nil {
+		t.Fatalf("write unreadable fixture: %v", err)
+	}
+	if err := os.Chmod(unreadablePath, 0000); err != nil {
+		t.Fatalf("chmod unreadable fixture: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(unreadablePath, 0600) })
+	_, err := resolveInitLicenseSource(initOptions{NonInteractive: true, LicenseFile: unreadablePath}, strings.NewReader(""))
+	if err == nil {
+		t.Skip("current user can read chmod 0000 files; skipping unreadable-file assertion")
+	}
+	if code := ExitCode(err); code != exitCodeInputValidation {
+		t.Fatalf("ExitCode() = %d, want %d", code, exitCodeInputValidation)
+	}
+}
+
+func TestResolveInitLicenseSourceRejectsLargeInputs(t *testing.T) {
+	dir := t.TempDir()
+	largeValue := strings.Repeat("A", maxInitLicenseSourceBytes+1)
+	largePath := filepath.Join(dir, "large.tmp")
+	if err := os.WriteFile(largePath, []byte(largeValue), 0600); err != nil {
+		t.Fatalf("write large fixture: %v", err)
+	}
+
+	tests := []struct {
+		name  string
+		opts  initOptions
+		stdin string
+	}{
+		{name: "large file", opts: initOptions{NonInteractive: true, LicenseFile: largePath}},
+		{name: "large stdin", opts: initOptions{NonInteractive: true, LicenseStdin: true}, stdin: largeValue},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := resolveInitLicenseSource(tt.opts, strings.NewReader(tt.stdin))
+			if err == nil {
+				t.Fatal("resolveInitLicenseSource() expected error")
+			}
+			if code := ExitCode(err); code != exitCodeInputValidation {
+				t.Fatalf("ExitCode() = %d, want %d", code, exitCodeInputValidation)
+			}
+		})
+	}
+}
+
+func TestLicenseFileInvalidFormatUsesInputExitCode(t *testing.T) {
+	dir := t.TempDir()
+	licensePath := filepath.Join(dir, "license.tmp")
+	if err := os.WriteFile(licensePath, []byte("bad-license\n"), 0600); err != nil {
+		t.Fatalf("write invalid fixture: %v", err)
+	}
+
+	opts, err := resolveInitLicenseSource(initOptions{
+		NonInteractive: true,
+		LicenseFile:    licensePath,
+		Domain:         "example.com",
+		Language:       "en",
+	}, strings.NewReader(""))
+	if err != nil {
+		t.Fatalf("resolveInitLicenseSource() error = %v", err)
+	}
+
+	err = validateInitOptions(opts)
+	if err == nil {
+		t.Fatal("validateInitOptions() expected error")
+	}
+	if code := ExitCode(err); code != exitCodeInputValidation {
+		t.Fatalf("ExitCode() = %d, want %d", code, exitCodeInputValidation)
+	}
+	if strings.Contains(err.Error(), "bad-license") {
+		t.Fatalf("validation error exposed file content: %q", err.Error())
+	}
+}
+
 func TestSanitizeLicenseErrorMasksLicense(t *testing.T) {
 	licenseKey := "LICENSE-ABCDEF0123456789"
 	message := sanitizeLicenseError("license LICENSE-ABCDEF0123456789 is invalid", licenseKey)
@@ -120,15 +311,19 @@ func TestBackupExistingConfigsSecuresEnvBackup(t *testing.T) {
 
 func TestCollectInitOptionsTrimsFlags(t *testing.T) {
 	oldYes, oldForce := yesInit, forceInit
-	oldLicense, oldDomain, oldLanguage := initLicense, initDomain, initLanguage
+	oldLicense, oldLicenseFile, oldLicenseStdin := initLicense, initLicenseFile, initLicenseStdin
+	oldDomain, oldLanguage := initDomain, initLanguage
 	t.Cleanup(func() {
 		yesInit, forceInit = oldYes, oldForce
-		initLicense, initDomain, initLanguage = oldLicense, oldDomain, oldLanguage
+		initLicense, initLicenseFile, initLicenseStdin = oldLicense, oldLicenseFile, oldLicenseStdin
+		initDomain, initLanguage = oldDomain, oldLanguage
 	})
 
 	yesInit = true
 	forceInit = true
 	initLicense = " LICENSE-ABCDEF0123456789 "
+	initLicenseFile = " /tmp/license.tmp "
+	initLicenseStdin = true
 	initDomain = " example.com "
 	initLanguage = " en "
 
@@ -136,7 +331,7 @@ func TestCollectInitOptionsTrimsFlags(t *testing.T) {
 	if !opts.NonInteractive || !opts.Force {
 		t.Fatalf("collectInitOptions() booleans = %+v", opts)
 	}
-	if opts.License != "LICENSE-ABCDEF0123456789" || opts.Domain != "example.com" || opts.Language != "en" {
+	if opts.License != "LICENSE-ABCDEF0123456789" || opts.LicenseFile != "/tmp/license.tmp" || !opts.LicenseStdin || opts.Domain != "example.com" || opts.Language != "en" {
 		t.Fatalf("collectInitOptions() did not trim strings: %+v", opts)
 	}
 }

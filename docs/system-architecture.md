@@ -47,11 +47,12 @@ kk init
 
 ### Unattended Mode
 
-Current uncommitted issue #3 implementation adds:
+Unattended init supports non-interactive provisioning with a secret-safe license source:
 
 ```text
-kk init --yes --license <key> --domain <domain> --language <en|vi>
+kk init --yes --license-file <path> --domain <domain> --language <en|vi>
   -> collectInitOptions()
+  -> resolveInitLicenseSource()
   -> validateInitOptions()
   -> validate license through pkg/license
   -> run Docker checks without prompts
@@ -60,6 +61,10 @@ kk init --yes --license <key> --domain <domain> --language <en|vi>
   -> pkg/templates.RenderAll
   -> save local project config
 ```
+
+`--license-file` is the recommended automation path because license content does not appear in process arguments. `--license-stdin` is available for explicit stdin input. Legacy `--license <key>` remains supported for compatibility, but should not be used in provisioning scripts.
+
+Provisioning scripts should create temporary license files with owner-only permissions (`0600`) and register a cleanup trap before running `kk init` so failed runs do not leave license material on disk.
 
 `--force` can be combined with `--yes` to preserve existing Docker preflight bypass behavior.
 
@@ -73,7 +78,7 @@ kk init --yes --license <key> --domain <domain> --language <en|vi>
 | API call | `LicenseClient.Validate` posts to `/api/license/config` on `https://kkauto.net` |
 | Success condition | API response `status` must equal `success` |
 
-Command code must not expose raw license values in error messages.
+Command code must not expose raw license values in error messages. License source errors name the source (`--license-file` or `--license-stdin`) instead of the value.
 
 ## Template Rendering
 
@@ -116,6 +121,8 @@ kk start
 ## Security Boundaries
 
 - License validation is remote, but license format is checked locally before API calls.
+- Unattended automation should pass license content through `--license-file` or explicit stdin, not argv.
+- Temporary license files used for `--license-file` should be chmodded to `0600` and removed by a shell trap.
 - Generated stack secrets are held in memory long enough to build `templates.Config` and render files.
 - `.env` output is chmodded to `0600` by `pkg/templates.RenderAll`.
 - `.env` backups are written with `0600` by `backupExistingConfigs`.
