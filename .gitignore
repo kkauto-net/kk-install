@@ -48,7 +48,6 @@ test/
 .claude
 .opencode
 plans/
-docs/
 .beads/
 CLAUDE.md
 AGENTS.md
