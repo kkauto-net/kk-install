@@ -105,7 +105,15 @@ jobs:
           if [ -f docker-compose.yml ]; then
             docker compose --env-file .env -f docker-compose.yml down -v --remove-orphans
           fi
-          rm -rf "${E2E_HOME}" "${E2E_PROJECT}"
+          safe_rm() {
+            path="$1"
+            if [ -z "${path}" ] || [ "${path}" = "/" ]; then
+              return 0
+            fi
+            rm -rf "${path}" 2>/dev/null || sudo rm -rf "${path}" || true
+          }
+          safe_rm "${E2E_HOME:-}"
+          safe_rm "${E2E_PROJECT:-}"
 
       - name: Upload diagnostics
         if: always() && env.E2E_ARTIFACT_DIR != ''

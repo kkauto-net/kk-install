@@ -32,19 +32,37 @@ jobs:
         run: make test-smoke
 
   lint:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
+      - name: Determine lint baseline
+        id: lint-base
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_rev="${{ github.event.pull_request.base.sha }}"
+          else
+            base_rev="${{ github.event.before }}"
+          fi
+          if [ -z "${base_rev}" ] || [ "${base_rev}" = "0000000000000000000000000000000000000000" ]; then
+            base_rev="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          echo "base_rev=${base_rev}" >> "${GITHUB_OUTPUT}"
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+          args: --new-from-rev=${{ steps.lint-base.outputs.base_rev }}
 
   race-shuffle:
     if: github.event_name != 'pull_request'
