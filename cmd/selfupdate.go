@@ -24,8 +24,8 @@ var selfupdateCmd = &cobra.Command{
 }
 
 var (
-	checkOnly        bool
-	forceSelfupdate  bool
+	checkOnly       bool
+	forceSelfupdate bool
 )
 
 func init() {

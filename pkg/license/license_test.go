@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -129,4 +131,50 @@ func TestValidate_NetworkError(t *testing.T) {
 	_, err := client.Validate("LICENSE-64ABBE22C2134D1D")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to call license API")
+}
+
+func TestValidate_MalformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":`))
+	}))
+	defer server.Close()
+
+	client := &LicenseClient{BaseURL: server.URL, HTTPClient: http.DefaultClient}
+
+	_, err := client.Validate("LICENSE-64ABBE22C2134D1D")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode response")
+}
+
+func TestValidate_Timeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(50 * time.Millisecond)
+	}))
+	defer server.Close()
+
+	client := &LicenseClient{
+		BaseURL:    server.URL,
+		HTTPClient: &http.Client{Timeout: time.Millisecond},
+	}
+
+	_, err := client.Validate("LICENSE-64ABBE22C2134D1D")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to call license API")
+}
+
+func TestValidate_DoesNotEchoLicenseOnErrors(t *testing.T) {
+	licenseKey := "LICENSE-64ABBE22C2134D1D"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	client := &LicenseClient{BaseURL: server.URL, HTTPClient: http.DefaultClient}
+
+	_, err := client.Validate(licenseKey)
+	require.Error(t, err)
+	if strings.Contains(err.Error(), licenseKey) {
+		t.Fatalf("Validate() error exposed full license: %q", err.Error())
+	}
 }

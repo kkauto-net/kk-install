@@ -2,52 +2,50 @@
 
 ## Overview
 
-`kkcli` is a single-binary Go CLI. The root command delegates to Cobra subcommands in `cmd/`, which orchestrate domain packages under `pkg/`. The CLI renders Docker Compose stack files, validates Docker readiness, starts containers, and reports health/status.
-
-## High-Level Flow
+`kkcli` is a single-binary Go CLI. `main.go` calls the Cobra root command in `cmd/`; command handlers orchestrate domain packages in `pkg/`; domain packages perform file, HTTP, Docker, template, config, and terminal UI work.
 
 ```text
 main.go
   -> cmd.Execute()
-    -> Cobra command
-      -> pkg/* domain package
-        -> Docker/HTTP/filesystem/template operation
+    -> Cobra command in cmd/
+      -> package in pkg/
+        -> Docker / HTTP / filesystem / template / terminal operation
 ```
 
-## Package Responsibilities
+## Component Responsibilities
 
-| Package | Role |
+| Component | Responsibility |
 |---|---|
-| `cmd` | CLI command orchestration, flag parsing, prompt flow, exit-code mapping |
-| `pkg/license` | License key format validation and kk license API calls |
-| `pkg/templates` | Embedded template rendering and secret length validation |
-| `pkg/validator` | Docker, Compose, file, port, and preflight validations |
-| `pkg/compose` | Docker Compose command execution and Compose file parsing |
-| `pkg/monitor` | Container status and health checks |
-| `pkg/ui` | Terminal output, messages, colors, tables, and suggestions |
-| `pkg/config` | Project directory/config helpers |
-| `pkg/updater` | Docker pull output parsing |
-| `pkg/n8n` | n8n-specific template/config support |
+| `cmd` | Command tree, flags, prompt flow, typed exit errors, command orchestration. |
+| `pkg/config` | User config load/save and project directory checks. |
+| `pkg/license` | License regex validation and kk license API calls. |
+| `pkg/templates` | kkengine template rendering and `.env` permissions. |
+| `pkg/compose` | Docker Compose execution and YAML parsing. |
+| `pkg/validator` | Docker/Compose/preflight/ports/env/config/disk validation. |
+| `pkg/monitor` | Docker health and service status. |
+| `pkg/ui` | i18n, progress, tables, banners, suggestions, password generation. |
+| `pkg/updater` | Parse Docker pull output into image update information. |
+| `pkg/selfupdate` | GitHub release check, tarball download/extract, binary replacement. |
+| `pkg/n8n` | n8n stack paths, config validation, template rendering. |
 
-## `kk init` Architecture
+## kkengine Init Flow
 
-### Interactive Mode
+### Interactive
 
 ```text
 kk init
-  -> load existing .env values
-  -> prompt for license with huh
+  -> collect current working directory
+  -> load existing .env values when present
+  -> prompt license/language/services/domain/timezone/secrets
   -> validate license through pkg/license
-  -> prompt or assist Docker setup
-  -> prompt language/services/domain/timezone/secrets
+  -> check Docker installation, daemon, and Compose
   -> build templates.Config
-  -> pkg/templates.RenderAll
-  -> save local project config
+  -> backup existing generated files when needed
+  -> pkg/templates.RenderAll(targetDir)
+  -> save ~/.kk/config.yaml
 ```
 
-### Unattended Mode
-
-Unattended init supports non-interactive provisioning with a secret-safe license source:
+### Unattended
 
 ```text
 kk init --yes --license-file <path> --domain <domain> --language <en|vi>
@@ -55,84 +53,103 @@ kk init --yes --license-file <path> --domain <domain> --language <en|vi>
   -> resolveInitLicenseSource()
   -> validateInitOptions()
   -> validate license through pkg/license
-  -> run Docker checks without prompts
-  -> use default service selection and generated secrets
-  -> build templates.Config
-  -> pkg/templates.RenderAll
-  -> save local project config
+  -> run Docker checks without prompts unless --force bypasses
+  -> generate defaults and secrets
+  -> pkg/templates.RenderAll(targetDir)
+  -> save ~/.kk/config.yaml
 ```
 
-`--license-file` is the recommended automation path because license content does not appear in process arguments. `--license-stdin` is available for explicit stdin input. Legacy `--license <key>` remains supported for compatibility, but should not be used in provisioning scripts.
+`--license-file` is the recommended automation source. `--license-stdin` is supported. `--license` exists but should not be used in provisioning scripts because argv can leak.
 
-Provisioning scripts should create temporary license files with owner-only permissions (`0600`) and register a cleanup trap before running `kk init` so failed runs do not leave license material on disk.
+## Stack Architecture
 
-`--force` can be combined with `--yes` to preserve existing Docker preflight bypass behavior.
+### kkengine Stack
 
-## License Validation
-
-`pkg/license` owns license validation:
-
-| Step | Code |
+| Service | Template evidence |
 |---|---|
-| Format check | `ValidateFormat` expects `LICENSE-[A-F0-9]{16}` |
-| API call | `LicenseClient.Validate` posts to `/api/license/config` on `https://kkauto.net` |
-| Success condition | API response `status` must equal `success` |
+| `kkengine` | `kkauto/kkengine:latest`, published on `8019:8019`. |
+| `db` | MariaDB `10.6`, currently published as `3306:3306`. |
+| `redis` | Redis Alpine with password from `.env`. |
+| `seaweedfs` | Optional object/file storage service. |
+| `caddy` | Optional reverse proxy on ports `80` and `443`. |
 
-Command code must not expose raw license values in error messages. License source errors name the source (`--license-file` or `--license-stdin`) instead of the value.
+Generated files: `docker-compose.yml`, `.env`, `kkphp.conf`, optional `Caddyfile`, optional `kkfiler.toml`.
 
-## Template Rendering
+### n8n Stack
 
-`pkg/templates.RenderAll` validates secret lengths, renders embedded templates, and applies `.env` permissions.
+`kk n8n install` renders n8n `docker-compose.yml` and `.env` through `pkg/n8n.RenderAll`. The n8n directory is `ProjectDir/n8n` when `~/.kk/config.yaml` has `ProjectDir`; otherwise it falls back to `~/.kk/n8n` and then `/tmp/.kk/n8n` for edge cases.
 
-| File | Rendered When |
-|---|---|
-| `docker-compose.yml` | Always |
-| `.env` | Always |
-| `kkphp.conf` | Always |
-| `Caddyfile` | Caddy enabled |
-| `kkfiler.toml` | SeaweedFS enabled |
+## Operation Flows
 
-## Docker Operation Flow
-
-`kk start` verifies the project directory, parses the Compose file, runs preflight checks, calls `compose.Executor.Up`, monitors health, then prints status and access information.
+### Start
 
 ```text
 kk start
-  -> config.EnsureProjectDir
-  -> compose.ParseComposeFile
-  -> validator.RunPreflight
-  -> compose.Executor.Up
-  -> monitor.NewHealthMonitor / MonitorAll
-  -> monitor.GetStatusWithServices
+  -> config.EnsureProjectDir()
+  -> compose.ParseComposeFile()
+  -> validator.RunPreflight()
+  -> compose.Executor.Up()
+  -> monitor health/status
 ```
 
-## Error and Exit-Code Model
+### Update
 
-`cmd/root.go` exits with `ExitCode(err)`. Untyped errors continue to exit with `1`; typed `ExitError` values carry deterministic automation codes.
+```text
+kk update [-f]
+  -> config.EnsureProjectDir()
+  -> compose.Executor.Pull()
+  -> updater.ParsePullOutput()
+  -> optional confirmation
+  -> compose.Executor.ForceRecreate()
+  -> monitor health/status
+```
 
-| Code | Source |
-|---:|---|
-| `1` | Legacy/untyped errors |
-| `2` | `validateInitOptions` input failures |
-| `3` | License API validation failures in `runInit` |
-| `4` | Non-interactive Docker validation failures in `runInit` |
-| `5` | Template render/write failures in `runInit` |
+### Self-update
 
-## Security Boundaries
+```text
+kk selfupdate [--check] [--force]
+  -> GitHub latest release API
+  -> pick asset kkcli_<version>_<goos>_<goarch>.tar.gz
+  -> download archive
+  -> extract kk binary
+  -> replace current executable, with sudo when needed
+```
 
-- License validation is remote, but license format is checked locally before API calls.
-- Unattended automation should pass license content through `--license-file` or explicit stdin, not argv.
-- Temporary license files used for `--license-file` should be chmodded to `0600` and removed by a shell trap.
-- Generated stack secrets are held in memory long enough to build `templates.Config` and render files.
-- `.env` output is chmodded to `0600` by `pkg/templates.RenderAll`.
-- `.env` backups are written with `0600` by `backupExistingConfigs`.
+Security note: installer script verifies checksums when available, but `pkg/selfupdate` has no visible checksum/signature verification.
 
-## Validation
+## Test And CI Architecture
 
-Architecture and issue #3 behavior were reviewed against current files and `go test ./...` passed during this documentation update.
+| Gate | Scope |
+|---|---|
+| PR and main CI | `go test -v ./...`, static lint, build, and Docker-free binary smoke. |
+| Main and scheduled CI | Shuffled tests plus selected race tests for command, license, template, compose, and validator packages. |
+| Release and draft release | Full repository tests before release build steps. |
+| Template validation | Uses Go from `go.mod` and validates template tests/golden YAML. |
+| Nightly/manual e2e | Builds `kk`, runs unattended init, validates Compose config, runs start/status/stop/remove, collects redacted diagnostics, and cleans up resources. |
+
+Real Docker Compose lifecycle tests are kept out of PR gates to avoid network, image-pull, license, and runner flake blocking deterministic changes.
+
+## Data and Configuration
+
+| File/location | Owner | Notes |
+|---|---|---|
+| `~/.kk/config.yaml` | `pkg/config` | Written `0644`; stores language/project directory. |
+| kkengine `.env` | `pkg/templates` | Written and chmodded `0600`. |
+| n8n `.env` | `pkg/n8n` | Written and chmodded `0600`. |
+| `repomix-output.xml` | Documentation workflow | Generated codebase compaction, not runtime input. |
+
+## Error Model
+
+`cmd/root.go` maps command errors through `ExitCode(err)`. Untyped errors exit `1`; typed init errors provide deterministic automation codes `2` through `5`.
+
+## Known Architecture Risks
+
+- Release artifacts are Linux-only while source may build elsewhere.
+- Self-update lacks visible checksum/signature verification.
 
 ## References
 
 - [Project Overview and PDR](./project-overview-pdr.md)
 - [Code Standards](./code-standards.md)
 - [Codebase Summary](./codebase-summary.md)
+- [Deployment Guide](./deployment-guide.md)

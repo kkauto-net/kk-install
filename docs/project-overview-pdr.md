@@ -1,90 +1,103 @@
 # Project Overview and PDR
 
-## Project Overview
+## Overview
 
-`kkcli` is a command-line installer and operator for kkengine Docker Compose deployments. It installs as `kk` and helps users initialize configuration, start services, check status, update images, and manage optional n8n automation components.
+`kkcli` is a Go command-line installer and operator for kkengine Docker Compose deployments. It installs as the `kk` binary and manages stack initialization, lifecycle commands, image updates, health/status output, CLI self-updates, shell completion, local config display, and an optional n8n automation stack.
 
 ## Product Goals
 
-| Goal | Description |
+| Goal | Requirement |
 |---|---|
-| Fast stack setup | Generate all required Compose/config files from embedded templates |
-| Safe operations | Run Docker and Compose preflight checks before starting services |
-| Automation support | Allow backend provisioning systems to run unattended installs over SSH |
-| Secure defaults | Generate strong secrets and restrict `.env` permissions |
-| Operator clarity | Present status, health, and actionable error suggestions in the terminal |
+| Fast setup | Render kkengine Compose and config files from embedded templates. |
+| Safe operation | Validate Docker, Compose, ports, env files, disk space, and config before starting services. |
+| Automation-ready installs | Support non-interactive provisioning with deterministic exit codes. |
+| Secret-safe defaults | Generate crypto-random secrets and write generated `.env` files as `0600`. |
+| Operator clarity | Provide concise terminal UI, status tables, health checks, and actionable suggestions. |
+| Extensible operations | Keep kkengine and n8n stack management separated but consistent. |
 
 ## Primary Users
 
-| User | Need |
+| User | Needs |
 |---|---|
-| Individual operator | Install and manage kkengine locally or on a VPS |
-| Backend provisioning worker | Run non-interactive setup for paid VPS service delivery |
-| Maintainer | Extend CLI commands, templates, and validations safely |
+| VPS operator | Install kkengine, start/stop services, inspect status, and update containers. |
+| Provisioning automation | Run unattended `kk init` over SSH without leaking license keys in argv. |
+| Maintainer | Add commands, validations, templates, tests, and release assets safely. |
 
 ## Functional Requirements
 
-| ID | Requirement | Current Status |
-|---|---|---|
-| PDR-001 | CLI must initialize a kkengine Docker Compose stack with `kk init` | Implemented |
-| PDR-002 | CLI must start services with preflight checks through `kk start` | Implemented |
-| PDR-003 | CLI must show container status through `kk status` | Implemented |
-| PDR-004 | CLI must update images and recreate containers through `kk update` | Implemented |
-| PDR-005 | CLI must validate license keys against the kk license API during init | Implemented |
-| PDR-006 | CLI must support English and Vietnamese language selection | Implemented |
-| PDR-007 | CLI must generate strong secrets for rendered configuration | Implemented |
-| PDR-008 | CLI must support unattended VPS provisioning with `kk init --yes --license-file <path> --domain <domain> --language <en|vi>` | Implemented |
-| PDR-009 | Unattended init must avoid interactive prompts when required flags are valid | Implemented |
-| PDR-010 | Unattended init must return deterministic exit codes for automation | Implemented |
-| PDR-011 | Automation docs must avoid argv license input and use owner-only temp license files with failure-safe cleanup | Implemented |
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| PDR-001 | Initialize kkengine stack with `kk init`. | Implemented | `cmd/init.go` |
+| PDR-002 | Support `--force`, `--yes`, license, domain, and language init flags. | Implemented | `cmd/init.go`, `cmd/init_options.go` |
+| PDR-003 | Validate licenses through `https://kkauto.net/api/license/config`. | Implemented | `pkg/license/license.go` |
+| PDR-004 | Start, stop, restart, remove, update, and show status for kkengine. | Implemented | `cmd/start.go`, `cmd/stop.go`, `cmd/restart.go`, `cmd/remove.go`, `cmd/update.go`, `cmd/status.go` |
+| PDR-005 | Manage local CLI config with `kk config show`. | Implemented | `cmd/config.go`, `pkg/config/config.go` |
+| PDR-006 | Self-update from GitHub releases with `kk selfupdate`. | Implemented | `cmd/selfupdate.go`, `pkg/selfupdate/selfupdate.go` |
+| PDR-007 | Generate shell completions for Bash, Zsh, and Fish. | Implemented | `cmd/completion.go` |
+| PDR-008 | Manage n8n install/lifecycle/logs/update/remove commands. | Implemented | `cmd/n8n*.go`, `pkg/n8n/*` |
+| PDR-009 | Generate kkengine stack files: `docker-compose.yml`, `.env`, `kkphp.conf`, optional `Caddyfile`, optional `kkfiler.toml`. | Implemented | `pkg/templates/embed.go` |
+| PDR-010 | Generate n8n `docker-compose.yml` and `.env` under the configured n8n directory. | Implemented | `pkg/n8n/templates.go` |
+
+## Unattended Init Contract
+
+Use this automation-safe form:
+
+```bash
+kk init --yes --license-file /path/to/license --domain example.com --language en
+```
+
+| Rule | Status |
+|---|---|
+| Exactly one license source is required: `--license-file`, `--license-stdin`, or legacy `--license`. | Implemented |
+| `--license-file` is recommended for automation; `--license` is kept for compatibility only. | Documented |
+| `--domain` is required in unattended mode. | Implemented |
+| `--language` must be `en` or `vi`. | Implemented |
+| License/file/stdin input is capped at 4096 bytes. | Implemented |
+| Non-interactive validation uses deterministic exit codes. | Implemented |
+
+## Exit Codes
+
+| Code | Meaning |
+|---:|---|
+| `0` | Success |
+| `1` | Legacy or untyped error |
+| `2` | Input or flag validation failure |
+| `3` | License validation/API failure |
+| `4` | Docker preflight failure |
+| `5` | Template render or file write failure |
 
 ## Non-Functional Requirements
 
 | Area | Requirement |
 |---|---|
-| Security | Do not expose full license keys or generated secrets in errors/logs |
-| File permissions | Generated `.env` and `.env` backups must use owner-only permissions (`0600`) |
-| Compatibility | Docker Compose v2+ is required for stack operation |
-| Reliability | Existing untyped command errors retain legacy exit code `1` |
-| Maintainability | CLI behavior must be covered by focused Go tests where feasible |
+| Security | Never print full license keys or generated service secrets in errors. |
+| File permissions | Generated kkengine and n8n `.env` files must be `0600`; config file is currently `0644` and should hold non-secret values only. |
+| Compatibility | Runtime requires Docker and Docker Compose v2-compatible commands. |
+| Release scope | Published GoReleaser artifacts currently target Linux `amd64` and `arm64`. |
+| Maintainability | Commands should stay thin and delegate domain behavior to `pkg/*`. |
+| Testability | CI and local development should keep `go test ./...` green. |
 
-## Unattended Init Acceptance Criteria
+## Completed Roadmap Items
 
-Verified against current code and tests:
-
-| Criterion | Evidence |
+| Item | Notes |
 |---|---|
-| `kk init --yes --license-file ... --domain ... --language ...` exists | Flags registered in `cmd/init.go` |
-| Legacy `--license` remains compatible | Source resolver in `cmd/init_options.go` |
-| Multiple or missing license sources fail deterministically | `resolveInitLicenseSource` tests in `cmd/init_test.go` |
-| Missing unattended flags fail before prompts | `validateInitOptions` in `cmd/init_options.go` |
-| Invalid license format fails before API call | `pkg/license.ValidateFormat` used by `validateInitOptions` |
-| Invalid domain/language fail deterministically | `validateInitOptions` tests in `cmd/init_test.go` |
-| License API failures return exit code `3` | `NewExitError(exitCodeLicenseValidation, ...)` in `cmd/init.go` |
-| Docker validation failures return exit code `4` unless `--force` bypasses | Non-interactive Docker branches in `cmd/init.go` |
-| Render/write failures return exit code `5` | `templates.RenderAll` error wrapping in `cmd/init.go` |
-| `.env` remains private | `pkg/templates.RenderAll` chmods `.env`; `backupExistingConfigs` uses `0600` for `.env` backups |
-| README contains unattended install example | `README.md` current uncommitted update |
-| Automation docs discourage legacy `--license` | README and evergreen docs recommend `--license-file`; `--license` is documented only as compatibility |
-
-## Constraints
-
-- The license API endpoint and response handling are owned by `pkg/license` and should not be duplicated in command code.
-- Template output is owned by `pkg/templates`; command code should pass `templates.Config` rather than writing stack files directly.
-- Unattended mode must not add service-disable flags unless a separate requirement introduces them.
-- Documentation examples must use fake license keys only.
+| Secret-safe unattended license input | `--license-file` and `--license-stdin` avoid argv exposure. |
+| Deterministic unattended init exits | Typed `ExitError` codes are mapped in `cmd/root.go`. |
+| n8n command group | `install`, lifecycle, logs, update, remove, and status commands exist. |
 
 ## Success Metrics
 
 | Metric | Target |
 |---|---|
-| Automated install command | Runs without TTY prompts when valid flags are supplied |
-| Test suite | `go test ./...` passes |
-| Secret exposure | No full license or generated secret in validation errors |
-| Operator docs | README and docs describe unattended flow and exit codes consistently |
+| Unattended provisioning | Valid `kk init --yes ...` runs without prompts. |
+| Test suite | `go test ./...` passes before release handoff. |
+| Secret exposure | No full license or generated secret appears in CLI errors/docs examples. |
+| Documentation | README and evergreen docs describe only verified commands and flags. |
 
 ## References
 
 - [Codebase Summary](./codebase-summary.md)
 - [System Architecture](./system-architecture.md)
 - [Code Standards](./code-standards.md)
+- [Deployment Guide](./deployment-guide.md)
+- [Project Roadmap](./project-roadmap.md)

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	DefaultBaseURL     = "https://kkauto.net"
-	DefaultTimeout     = 30 * time.Second
+	DefaultBaseURL      = "https://kkauto.net"
+	DefaultTimeout      = 30 * time.Second
 	maxResponseBodySize = 1 << 20 // 1MB limit for response body
 )
 

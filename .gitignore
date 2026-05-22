@@ -49,7 +49,9 @@ test/
 .opencode
 plans/
 .beads/
-CLAUDE.md
-AGENTS.md
 repomix-output.xml
 kk-install
+
+# Env
+.env
+.env.development

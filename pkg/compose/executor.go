@@ -110,13 +110,13 @@ func (e *Executor) buildCmd(ctx context.Context, args ...string) *exec.Cmd {
 	cmdArgs := append([]string{"compose", "-f", e.ComposeFile}, args...)
 
 	// Check if docker compose v2 is available
-	if _, err := execLookPath("docker"); err == nil {
-		testCmd := exec.Command("docker", "compose", "version")
-		if testCmd.Run() != nil {
-			// Fallback to docker-compose v1
-			cmdName = "docker-compose"
-			cmdArgs = append([]string{"-f", e.ComposeFile}, args...)
-		}
+	if _, err := execLookPath("docker"); err != nil {
+		cmdName = "docker-compose"
+		cmdArgs = append([]string{"-f", e.ComposeFile}, args...)
+	} else if execCommand(ctx, "docker", "compose", "version").Run() != nil {
+		// Fallback to docker-compose v1
+		cmdName = "docker-compose"
+		cmdArgs = append([]string{"-f", e.ComposeFile}, args...)
 	}
 
 	cmd := execCommand(ctx, cmdName, cmdArgs...)

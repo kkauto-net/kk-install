@@ -20,7 +20,7 @@ type PortStatus struct {
 
 // RequiredPorts defines ports needed by kkengine stack
 var RequiredPorts = map[string]int{
-	"MariaDB":  3307,
+	"MariaDB":  3306,
 	"kkengine": 8019,
 }
 

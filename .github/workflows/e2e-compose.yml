@@ -1,0 +1,117 @@
+name: E2E Compose
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 20 * * *'
+
+concurrency:
+  group: e2e-compose-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      KKAUTO_LICENSE: ${{ secrets.KKAUTO_E2E_LICENSE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build kk
+        run: CGO_ENABLED=0 go build -o build/kk .
+
+      - name: Prepare e2e workspace
+        run: |
+          set -euo pipefail
+          e2e_home="$(mktemp -d)"
+          e2e_project="$(mktemp -d)"
+          artifact_dir="${RUNNER_TEMP}/e2e-compose-artifacts"
+          mkdir -p "${artifact_dir}"
+          {
+            echo "E2E_HOME=${e2e_home}"
+            echo "E2E_PROJECT=${e2e_project}"
+            echo "E2E_ARTIFACT_DIR=${artifact_dir}"
+          } >> "${GITHUB_ENV}"
+          if [ -z "${KKAUTO_LICENSE}" ]; then
+            echo "KKAUTO_E2E_LICENSE repository secret is required for compose e2e."
+            exit 1
+          fi
+          echo "::add-mask::${KKAUTO_LICENSE}"
+
+      - name: Init project
+        working-directory: ${{ env.E2E_PROJECT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          license_file="$(mktemp "${RUNNER_TEMP}/kk-license.XXXXXX")"
+          trap 'rm -f "${license_file}"' EXIT
+          printf '%s' "${KKAUTO_LICENSE}" > "${license_file}"
+          HOME="${E2E_HOME}" "${GITHUB_WORKSPACE}/build/kk" init --yes --license-file "${license_file}" --domain e2e.local --language en
+
+      - name: Validate compose config
+        working-directory: ${{ env.E2E_PROJECT }}
+        run: docker compose --env-file .env -f docker-compose.yml config --quiet
+
+      - name: Run full lifecycle
+        working-directory: ${{ env.E2E_PROJECT }}
+        run: |
+          set -euo pipefail
+          HOME="${E2E_HOME}" "${GITHUB_WORKSPACE}/build/kk" start
+          HOME="${E2E_HOME}" "${GITHUB_WORKSPACE}/build/kk" status
+          HOME="${E2E_HOME}" "${GITHUB_WORKSPACE}/build/kk" stop
+          HOME="${E2E_HOME}" "${GITHUB_WORKSPACE}/build/kk" remove -v
+
+      - name: Collect diagnostics
+        if: always()
+        working-directory: ${{ env.E2E_PROJECT }}
+        run: |
+          set +e
+          mkdir -p "${E2E_ARTIFACT_DIR}"
+          {
+            echo "workflow=${GITHUB_WORKFLOW}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "sha=${GITHUB_SHA}"
+            echo "event=${GITHUB_EVENT_NAME}"
+          } > "${E2E_ARTIFACT_DIR}/metadata.txt"
+          if [ -f docker-compose.yml ]; then
+            docker compose --env-file .env -f docker-compose.yml ps --all > "${E2E_ARTIFACT_DIR}/compose-ps.txt" 2>&1
+            docker compose --env-file .env -f docker-compose.yml logs --no-color > "${E2E_ARTIFACT_DIR}/compose-logs.txt" 2>&1
+            if [ -f .env ]; then
+              while IFS='=' read -r key value; do
+                case "${key}" in
+                  ''|'#'*) continue ;;
+                  *PASSWORD*|*SECRET*|*KEY*|*LICENSE*)
+                    if [ -n "${value}" ]; then
+                      SECRET_VALUE="${value}" perl -0pi -e 's/\Q$ENV{SECRET_VALUE}\E/[REDACTED]/g' "${E2E_ARTIFACT_DIR}/compose-logs.txt"
+                    fi
+                    ;;
+                esac
+              done < .env
+            fi
+          fi
+
+      - name: Cleanup compose resources
+        if: always()
+        working-directory: ${{ env.E2E_PROJECT }}
+        run: |
+          set +e
+          if [ -f docker-compose.yml ]; then
+            docker compose --env-file .env -f docker-compose.yml down -v --remove-orphans
+          fi
+          rm -rf "${E2E_HOME}" "${E2E_PROJECT}"
+
+      - name: Upload diagnostics
+        if: always() && env.E2E_ARTIFACT_DIR != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-compose-diagnostics
+          path: ${{ env.E2E_ARTIFACT_DIR }}/
+          if-no-files-found: ignore
+          retention-days: 7

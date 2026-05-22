@@ -1,113 +1,111 @@
 # Codebase Summary
 
-Generated from `./repomix-output.xml` on 2026-05-22 and verified against current source files.
+Generated from `./repomix-output.xml` on 2026-05-22 with:
+
+```bash
+repomix --style xml -o repomix-output.xml
+```
+
+Repomix packed 120 files and reported no suspicious files. This summary was then checked against current source files.
 
 ## Overview
 
-`kkcli` is a Go CLI for provisioning and operating kkengine Docker Compose stacks. The binary is exposed as `kk` and is implemented with Cobra commands under `cmd/`.
+`kkcli` is a Go CLI module at `github.com/kkauto-net/kk-install`. The distributed binary is `kk`. The CLI provisions and operates kkengine Docker Compose stacks and includes a separate command group for n8n workflow automation.
 
 ## Runtime Stack
 
 | Area | Implementation |
 |---|---|
-| Language | Go `1.24.2` (`go.mod`) |
-| CLI framework | `github.com/spf13/cobra` |
-| Interactive prompts | `github.com/charmbracelet/huh` |
-| Terminal UI | `github.com/pterm/pterm` plus internal `pkg/ui` helpers |
-| Compose operations | Shells out through `pkg/compose.Executor` |
-| Templates | Embedded files in `pkg/templates/*.tmpl` |
-| Tests | Go tests across `cmd` and `pkg/*` |
+| Language | Go `1.24.2` |
+| CLI framework | Cobra |
+| Interactive prompts | Charmbracelet `huh` |
+| Terminal UI | `pterm` and internal `pkg/ui` helpers |
+| Docker access | Docker CLI/Compose wrappers plus Docker SDK use in monitor/validator packages |
+| Config formats | YAML and TOML |
+| Tests | Go tests with `testify` and `go-cmp` |
 
-## Main Entry Points
+## Repository Map
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
-| `main.go` | Calls `cmd.Execute()` |
-| `cmd/root.go` | Defines root `kk` command and maps command errors to process exit codes |
-| `cmd/init.go` | Initializes stack config and renders Compose/template files |
-| `cmd/init_options.go` | Collects and validates unattended `kk init` flags |
-| `cmd/exit_error.go` | Typed exit-code wrapper for deterministic CLI failures |
+| `main.go` | Process entry point; calls `cmd.Execute()`. |
+| `cmd/` | Cobra command definitions, flags, orchestration, exit-code mapping. |
+| `pkg/config/` | User config under `~/.kk/config.yaml` and project directory helpers. |
+| `pkg/license/` | License format validation and remote license API client. |
+| `pkg/templates/` | Embedded kkengine templates and render/write logic. |
+| `pkg/compose/` | Docker Compose command execution and Compose YAML parsing. |
+| `pkg/validator/` | Docker, Compose, ports, env, config, disk, and preflight validation. |
+| `pkg/monitor/` | Container status and Docker health monitoring. |
+| `pkg/ui/` | i18n messages, banners, progress, tables, errors, password generation. |
+| `pkg/updater/` | Docker pull output parsing. |
+| `pkg/selfupdate/` | GitHub release lookup, archive download, binary replacement. |
+| `pkg/n8n/` | n8n directories, config validation, and templates. |
+| `scripts/` | Installer script. |
+| `.github/workflows/` | CI, reviewdog, template validation, e2e compose, auto-version, release, draft-release. |
 
-## Command Surface
+## Verified Command Surface
 
-Core commands verified in `cmd/*.go`:
-
-| Command | Purpose |
+| Command | Verified flags/subcommands |
 |---|---|
-| `kk init` | Create Docker Compose stack config using interactive prompts, `--force`, or unattended `--yes` flags |
-| `kk start` | Run preflight checks, start services, and report health/status |
-| `kk stop` | Stop services |
-| `kk restart` | Restart services |
-| `kk remove` | Remove services; supports volume removal through command flags |
-| `kk status` | Show container status |
-| `kk update` | Pull images and recreate containers |
-| `kk selfupdate` | Update the CLI binary |
-| `kk completion` | Generate shell completion |
-| `kk n8n ...` | Manage n8n workflow automation commands |
+| `kk init` | `--force/-f`, `--yes`, `--license`, `--license-file`, `--license-stdin`, `--domain`, `--language` |
+| `kk start` | Starts configured kkengine stack after preflight. |
+| `kk stop` | Stops configured kkengine stack. |
+| `kk restart` | Restarts configured kkengine stack. |
+| `kk remove` | `--volumes/-v` also removes data volumes. |
+| `kk status` | Shows container status. |
+| `kk update` | `--force/-f` skips confirmation. |
+| `kk selfupdate` | `--check/-c`, `--force/-f` |
+| `kk config show` | Shows language, project dir, config path. |
+| `kk completion` | `bash`, `zsh`, `fish` |
+| `kk n8n install` | `--force/-f` |
+| `kk n8n logs` | `--follow/-f`, `--tail/-n`, `--all/-a` |
+| `kk n8n remove` | `--volumes/-v` |
+| `kk n8n update` | `--force/-f` |
+| `kk n8n start/stop/restart/status` | n8n lifecycle/status commands. |
 
-## Unattended VPS Install Impact
+## Generated Files
 
-Current implementation supports true non-interactive initialization with a non-argv license source:
-
-```bash
-install -d -m 700 /root/.kk
-license_file="$(mktemp /root/.kk/license.XXXXXX)"
-cleanup_license_file() { rm -f "$license_file"; }
-trap cleanup_license_file EXIT
-printf '%s\n' "$KKAUTO_LICENSE" > "$license_file"
-chmod 600 "$license_file"
-kk init --yes --license-file "$license_file" --domain example.com --language en
-```
-
-Verified behavior from `cmd/init.go`, `cmd/init_options.go`, and tests:
-
-- `--yes` enables unattended mode and skips `huh` prompt forms.
-- Exactly one license source is required when `--yes` is set: recommended `--license-file`, explicit `--license-stdin`, or legacy `--license`.
-- `--license` remains compatible but is discouraged for automation because argv can leak through process listings or logs.
-- Automation examples should create the temporary license file with `0600` permissions and remove it with a shell trap.
-- `--domain` and `--language` are required when `--yes` is set.
-- `--language` accepts only `en` or `vi`.
-- License format is validated before the API call by `pkg/license.ValidateFormat`.
-- Domain validation reuses `validateDomain` in `cmd/init.go`.
-- Existing config files are backed up before overwrite; `.env` backups use `0600` permissions.
-- Template rendering still uses `pkg/templates.RenderAll`, which chmods generated `.env` to `0600`.
-- `--force` keeps Docker preflight bypass behavior when used with unattended mode.
-
-## Deterministic Exit Codes
-
-Verified in `cmd/exit_error.go` and `cmd/root.go`:
-
-| Code | Meaning |
-|---:|---|
-| `0` | Success |
-| `1` | Legacy/untyped error |
-| `2` | Input/flag validation failure |
-| `3` | License validation/API failure |
-| `4` | Docker validation failure |
-| `5` | Template render or file write failure |
-
-## Generated Stack Files
-
-`pkg/templates.RenderAll` writes these files from embedded templates:
-
-| Output | Condition |
+| Stack | Files |
 |---|---|
-| `docker-compose.yml` | Always |
-| `.env` | Always; chmod `0600` |
-| `kkphp.conf` | Always |
-| `Caddyfile` | When Caddy is enabled |
-| `kkfiler.toml` | When SeaweedFS is enabled |
+| kkengine | `docker-compose.yml`, `.env`, `kkphp.conf`, optional `Caddyfile`, optional `kkfiler.toml` |
+| n8n | `docker-compose.yml`, `.env` under `pkg/n8n.N8nDir()` |
 
-## Validation Snapshot
+`pkg/templates.RenderAll` and `pkg/n8n.RenderAll` chmod generated `.env` files to `0600`.
 
-Commands run during this documentation review:
+## Security Snapshot
 
-```bash
-repomix --style xml -o repomix-output.xml
-```
+| Area | Current behavior |
+|---|---|
+| License format | `LICENSE-[A-F0-9]{16}` before API call. |
+| License API | POST to `https://kkauto.net/api/license/config`. |
+| License input | `--license-file` and `--license-stdin` avoid argv exposure; input cap is 4096 bytes. |
+| Secrets | Generated with `crypto/rand` in `cmd/init.go` and `pkg/ui/passwords.go`. |
+| Config file | `~/.kk/config.yaml` is written `0644` and currently stores non-secret project/language data. |
+| Installer checksum | `scripts/install.sh` verifies `checksums.txt` when available. |
+| Self-update risk | `pkg/selfupdate` downloads release tarballs and replaces the binary; no visible checksum/signature verification in that package. |
+
+## CI and Release Snapshot
+
+| Workflow/tool | Verified behavior |
+|---|---|
+| `make test` | `go test -v ./...` |
+| `make test-smoke` | Builds `kk` and verifies Docker-free command wiring. |
+| `make build` | `CGO_ENABLED=0 go build` to `build/kk` |
+| CI | Tests `./...`, builds `kk`, runs binary smoke, runs golangci-lint on push and PR, and runs race/shuffle outside PRs. |
+| Reviewdog | Runs golangci-lint and shellcheck. |
+| Template validation | Uses Go from `go.mod`, checks template content, runs template tests, validates golden YAML. |
+| Release | GoReleaser publishes Linux `amd64`/`arm64` tarballs and checksums. |
+| E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, cleanup, and redacted diagnostics. |
+
+## Known Inconsistencies to Track
+
+- Draft-release references `steps.changelog.outputs.previous_tag`, but that output is not set in the visible workflow.
+- `pkg/selfupdate` lacks visible checksum/signature verification.
 
 ## Related Docs
 
 - [Project Overview and PDR](./project-overview-pdr.md)
 - [System Architecture](./system-architecture.md)
 - [Code Standards](./code-standards.md)
+- [Deployment Guide](./deployment-guide.md)
+- [Project Roadmap](./project-roadmap.md)

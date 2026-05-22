@@ -40,8 +40,8 @@ func TestFormatPortConflict(t *testing.T) {
 		{
 			name:     "Port with PID and process",
 			portName: "MariaDB",
-			status:   PortStatus{Port: 3307, InUse: true, PID: 1234, Process: "mysqld"},
-			expected: "  - Port 3307 (MariaDB): dang dung boi mysqld (PID 1234). Stop: sudo kill 1234",
+			status:   PortStatus{Port: 3306, InUse: true, PID: 1234, Process: "mysqld"},
+			expected: "  - Port 3306 (MariaDB): dang dung boi mysqld (PID 1234). Stop: sudo kill 1234",
 		},
 		{
 			name:     "Port with PID only",

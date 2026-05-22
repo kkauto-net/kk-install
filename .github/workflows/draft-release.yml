@@ -27,7 +27,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Run tests
-        run: go test -v ./pkg/...
+        run: go test -v ./...
 
       - name: Create changelog
         id: changelog

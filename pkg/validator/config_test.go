@@ -27,7 +27,7 @@ services:
   db:
     image: mariadb:10.6
     ports:
-      - "3307:3306"`
+      - "3306:3306"`
 		os.WriteFile(filepath.Join(tmpDir, "docker-compose.yml"), []byte(content), 0644)
 
 		err := ValidateDockerCompose(tmpDir)

@@ -1,11 +1,21 @@
 package cmd
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/kkauto-net/kk-install/pkg/license"
+	"github.com/kkauto-net/kk-install/pkg/templates"
+	"github.com/kkauto-net/kk-install/pkg/validator"
+	"github.com/spf13/cobra"
 )
 
 func TestValidateInitOptions(t *testing.T) {
@@ -351,4 +361,145 @@ func TestNewExitErrorNil(t *testing.T) {
 	if err := NewExitError(exitCodeInputValidation, nil); err != nil {
 		t.Fatalf("NewExitError(nil) = %v, want nil", err)
 	}
+}
+
+func TestRunInitUnattendedExitCodeContracts(t *testing.T) {
+	licenseKey := "LICENSE-ABCDEF0123456789"
+
+	tests := []struct {
+		name      string
+		configure func(t *testing.T)
+		wantCode  int
+	}{
+		{
+			name: "input validation failure",
+			configure: func(t *testing.T) {
+				initLicense = ""
+			},
+			wantCode: exitCodeInputValidation,
+		},
+		{
+			name: "license validation failure",
+			configure: func(t *testing.T) {
+				newLicenseClient = func() *license.LicenseClient {
+					return &license.LicenseClient{
+						BaseURL: "http://127.0.0.1",
+						HTTPClient: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+							return nil, fmt.Errorf("license %s rejected", licenseKey)
+						})},
+					}
+				}
+			},
+			wantCode: exitCodeLicenseValidation,
+		},
+		{
+			name: "docker validation failure",
+			configure: func(t *testing.T) {
+				DockerValidatorInstance = &validator.DockerValidator{
+					LookPath: func(string) (string, error) { return "", os.ErrNotExist },
+				}
+			},
+			wantCode: exitCodeDockerValidation,
+		},
+		{
+			name: "render failure",
+			configure: func(t *testing.T) {
+				DockerValidatorInstance = successfulDockerValidator(t)
+				renderTemplates = func(templates.Config, string) error {
+					return errors.New("render failed")
+				}
+			},
+			wantCode: exitCodeRenderFailure,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInitTestGlobals(t)
+			yesInit = true
+			initLicense = licenseKey
+			initDomain = "example.com"
+			initLanguage = "en"
+			newLicenseClient = successfulLicenseClient
+			DockerValidatorInstance = successfulDockerValidator(t)
+			renderTemplates = func(templates.Config, string) error { return nil }
+			startInitSpinner = func(string) initSpinner { return noopInitSpinner{} }
+			tt.configure(t)
+
+			cwd, err := os.Getwd()
+			if err != nil {
+				t.Fatalf("Getwd() error = %v", err)
+			}
+			tmp := t.TempDir()
+			if err := os.Chdir(tmp); err != nil {
+				t.Fatalf("Chdir() error = %v", err)
+			}
+			t.Cleanup(func() { _ = os.Chdir(cwd) })
+			t.Setenv("HOME", t.TempDir())
+
+			err = runInit(&cobra.Command{}, nil)
+			if err == nil {
+				t.Fatal("runInit() expected error")
+			}
+			if got := ExitCode(err); got != tt.wantCode {
+				t.Fatalf("ExitCode() = %d, want %d", got, tt.wantCode)
+			}
+			if strings.Contains(err.Error(), licenseKey) {
+				t.Fatalf("runInit() error exposed full license: %q", err.Error())
+			}
+		})
+	}
+}
+
+func resetInitTestGlobals(t *testing.T) {
+	oldYes, oldForce := yesInit, forceInit
+	oldLicense, oldLicenseFile, oldLicenseStdin := initLicense, initLicenseFile, initLicenseStdin
+	oldDomain, oldLanguage := initDomain, initLanguage
+	oldDockerValidator := DockerValidatorInstance
+	oldNewLicenseClient := newLicenseClient
+	oldRenderTemplates := renderTemplates
+	oldStartInitSpinner := startInitSpinner
+	t.Cleanup(func() {
+		yesInit, forceInit = oldYes, oldForce
+		initLicense, initLicenseFile, initLicenseStdin = oldLicense, oldLicenseFile, oldLicenseStdin
+		initDomain, initLanguage = oldDomain, oldLanguage
+		DockerValidatorInstance = oldDockerValidator
+		newLicenseClient = oldNewLicenseClient
+		renderTemplates = oldRenderTemplates
+		startInitSpinner = oldStartInitSpinner
+	})
+}
+
+type noopInitSpinner struct{}
+
+func (noopInitSpinner) Fail(message ...any) {}
+
+func (noopInitSpinner) Success(message ...any) {}
+
+func successfulLicenseClient() *license.LicenseClient {
+	return &license.LicenseClient{
+		BaseURL: "http://127.0.0.1",
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"status":"success","public_key":"TEST-PUBLIC-KEY"}`)),
+			}, nil
+		})},
+	}
+}
+
+func successfulDockerValidator(t *testing.T) *validator.DockerValidator {
+	t.Helper()
+	return &validator.DockerValidator{
+		LookPath: func(string) (string, error) { return "/usr/bin/docker", nil },
+		CommandContext: func(context.Context, string, ...string) *exec.Cmd {
+			return exec.Command("true")
+		},
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }

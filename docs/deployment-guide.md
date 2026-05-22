@@ -1,0 +1,140 @@
+# Deployment Guide
+
+## Overview
+
+This guide covers installing the `kk` binary and deploying kkengine/n8n Docker Compose stacks. Verified commands come from `README.md`, `scripts/install.sh`, `Makefile`, and `cmd/*.go`.
+
+## Requirements
+
+| Requirement | Notes |
+|---|---|
+| Linux host | Current GoReleaser artifacts are Linux `amd64` and `arm64`. |
+| Docker | `kk init` and `kk start` validate Docker availability. |
+| Docker Compose v2-compatible CLI | Compose operations are invoked through Docker/Compose wrappers. |
+| kk license | Format `LICENSE-[A-F0-9]{16}`; validated through the kk license API. |
+| Network access | Needed for license validation, image pulls, installer, and self-update. |
+
+## Install Binary
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
+kk --version
+```
+
+The installer detects OS/architecture, downloads `kkcli_<version>_<os>_<arch>.tar.gz`, verifies `checksums.txt` when available, and installs `kk` to `/usr/local/bin` with `sudo` if needed.
+
+## Build from Source
+
+```bash
+make deps
+make build
+./build/kk --version
+```
+
+Release-style local Linux builds:
+
+```bash
+make build-all
+```
+
+`make build-all` currently creates Linux `amd64` and `arm64` binaries.
+
+## Interactive kkengine Deployment
+
+```bash
+kk init
+kk start
+kk status
+```
+
+Generated kkengine files in the project directory:
+
+| File | Condition |
+|---|---|
+| `docker-compose.yml` | Always |
+| `.env` | Always; chmod `0600` |
+| `kkphp.conf` | Always |
+| `Caddyfile` | Caddy enabled |
+| `kkfiler.toml` | SeaweedFS enabled |
+
+## Unattended VPS Deployment
+
+Use `--license-file` for automation so license content does not appear in argv.
+
+```bash
+install -d -m 700 /root/.kk
+license_file="$(mktemp /root/.kk/license.XXXXXX)"
+cleanup_license_file() { rm -f "$license_file"; }
+trap cleanup_license_file EXIT
+
+printf '%s\n' "$KKAUTO_LICENSE" > "$license_file"
+chmod 600 "$license_file"
+
+kk init \
+  --yes \
+  --license-file "$license_file" \
+  --domain example.com \
+  --language en
+
+kk start
+kk status
+```
+
+Exit codes for unattended init:
+
+| Code | Meaning |
+|---:|---|
+| `0` | Success |
+| `2` | Input validation failure |
+| `3` | License validation failure |
+| `4` | Docker preflight failure |
+| `5` | Template/file write failure |
+
+## Operations
+
+| Task | Command |
+|---|---|
+| Start kkengine | `kk start` |
+| Stop kkengine | `kk stop` |
+| Restart kkengine | `kk restart` |
+| Show status | `kk status` |
+| Pull/recreate images | `kk update -f` |
+| Remove containers/networks | `kk remove` |
+| Remove containers/networks/volumes | `kk remove -v` |
+| Show CLI config | `kk config show` |
+| Check CLI update | `kk selfupdate --check` |
+| Install CLI update | `kk selfupdate -f` |
+
+## n8n Deployment
+
+```bash
+kk n8n install
+kk n8n start
+kk n8n status
+kk n8n logs -f -n 100
+```
+
+`kk n8n install -f` skips prompts and uses defaults. n8n files are rendered under the configured project directory's `n8n/` subdirectory when project config exists; otherwise under `~/.kk/n8n`.
+
+## Release Pipeline
+
+| Step | Current implementation |
+|---|---|
+| CI | `go test -v ./...`, Docker-free binary smoke, `CGO_ENABLED=0 go build`, golangci-lint on push and PR, race/shuffle outside PRs. |
+| Reviewdog | golangci-lint and shellcheck. |
+| Template validation | Uses Go from `go.mod`, checks templates, and validates golden YAML. |
+| E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, redacted diagnostics, and cleanup. |
+| Versioning | Auto-version workflow uses PR title tags. |
+| Release | Tags `v*.*.*` trigger full tests and GoReleaser. |
+| Artifacts | Linux `amd64` and `arm64` tarballs plus `checksums.txt`. |
+
+## Deployment Risks
+
+- GoReleaser publishes Linux only; do not promise macOS artifacts without config changes.
+- `pkg/selfupdate` does not visibly verify checksums/signatures before replacing the binary.
+
+## References
+
+- [System Architecture](./system-architecture.md)
+- [Project Roadmap](./project-roadmap.md)
+- [Code Standards](./code-standards.md)

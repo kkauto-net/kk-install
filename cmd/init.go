@@ -40,7 +40,18 @@ var (
 	initDomain              string
 	initLanguage            string
 	DockerValidatorInstance *validator.DockerValidator
+	newLicenseClient        = license.NewClient
+	renderTemplates         = templates.RenderAll
+	startInitSpinner        = func(text string) initSpinner {
+		spinner, _ := pterm.DefaultSpinner.Start(text)
+		return spinner
+	}
 )
+
+type initSpinner interface {
+	Fail(message ...any)
+	Success(message ...any)
+}
 
 func init() {
 	rootCmd.AddCommand(initCmd)
@@ -55,7 +66,7 @@ func init() {
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	var spinner *pterm.SpinnerPrinter
+	var spinner initSpinner
 	opts := collectInitOptions()
 	var err error
 	opts, err = resolveInitLicenseSource(opts, cmd.InOrStdin())
@@ -125,8 +136,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		licenseData.PublicKey = "TEST-PUBLIC-KEY"
 	} else {
 		// Validate license against API
-		spinner, _ := pterm.DefaultSpinner.Start(ui.IconKey + " " + ui.Msg("validating_license"))
-		client := license.NewClient()
+		spinner := startInitSpinner(ui.IconKey + " " + ui.Msg("validating_license"))
+		client := newLicenseClient()
 		licenseResp, err := client.Validate(licenseKey)
 		if err != nil {
 			safeMessage := sanitizeLicenseError(err.Error(), licenseKey)
@@ -185,7 +196,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 			if installDocker {
 				// Install Docker with spinner
-				spinner, _ := pterm.DefaultSpinner.Start(ui.IconDocker + " " + ui.Msg("installing_docker"))
+				spinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
 				if err := DockerValidatorInstance.InstallDocker(); err != nil {
 					spinner.Fail(ui.Msg("docker_install_failed"))
 					ui.ShowBoxedError(ui.ErrorSuggestion{
@@ -241,7 +252,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 				}
 
 				if startDocker {
-					spinner, _ := pterm.DefaultSpinner.Start(ui.IconDocker + " " + ui.Msg("starting_docker"))
+					spinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
 					if err := DockerValidatorInstance.StartDockerDaemon(); err != nil {
 						spinner.Fail(ui.Msg("docker_start_failed"))
 						ui.ShowBoxedError(ui.ErrorSuggestion{
@@ -562,7 +573,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowStepHeader(6, 7, ui.Msg("step_generate"))
 
 	// Render templates with spinner
-	spinner, _ = pterm.DefaultSpinner.Start(ui.IconWrite + " " + ui.Msg("generating_files"))
+	spinner = startInitSpinner(ui.IconWrite + " " + ui.Msg("generating_files"))
 
 	tmplCfg := templates.Config{
 		EnableSeaweedFS: enableSeaweedFS,
@@ -579,7 +590,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		S3SecretKey:     s3SecretKey,
 	}
 
-	if err := templates.RenderAll(tmplCfg, cwd); err != nil {
+	if err := renderTemplates(tmplCfg, cwd); err != nil {
 		spinner.Fail(fmt.Sprintf("%s: %v", ui.Msg("error_create_file"), err))
 		return NewExitError(exitCodeRenderFailure, fmt.Errorf("%s: %w", ui.Msg("error_create_file"), err))
 	}

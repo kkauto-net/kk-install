@@ -173,7 +173,7 @@ func getServiceURL(name, _ string) string {
 	case "kkengine":
 		return "http://localhost:8019"
 	case "db":
-		return "localhost:3307"
+		return "localhost:3306"
 	case "caddy":
 		return "http://localhost (HTTPS: https://localhost)"
 	default:

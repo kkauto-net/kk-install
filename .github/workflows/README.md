@@ -5,15 +5,17 @@ Dự án này sử dụng GitHub Actions để tự động hóa CI/CD pipeline.
 ## Workflows
 
 ### 1. CI (`ci.yml`)
-**Trigger:** Push/PR đến branch `main`
+**Trigger:** Push/PR đến branch `main`, cộng với scheduled nightly run
 
 **Jobs:**
-- **test**: Chạy unit tests và build binary
-- **lint**: Chạy golangci-lint để kiểm tra code quality
+- **test**: Chạy `go test -v ./...`, build binary, và `make test-smoke`
+- **lint**: Chạy golangci-lint để kiểm tra code quality trên push/PR
+- **race-shuffle**: Chạy race/shuffle trên non-PR events để tìm flake/race trước khi thành PR blocker
 
 **Sử dụng:**
 - Tự động chạy khi có push hoặc PR
 - Đảm bảo code quality trước khi merge
+- Giữ real Docker Compose e2e ngoài PR gate
 
 ---
 
@@ -21,7 +23,7 @@ Dự án này sử dụng GitHub Actions để tự động hóa CI/CD pipeline.
 **Trigger:** Push tag theo pattern `v*.*.*` (ví dụ: `v0.1.0`)
 
 **Jobs:**
-- **goreleaser**: Build cross-platform binaries, tạo checksums, publish GitHub Release
+- **goreleaser**: Chạy full test suite, build Linux binaries, tạo checksums, publish GitHub Release
 
 **Sử dụng:**
 ```bash
@@ -31,7 +33,7 @@ git push origin v0.1.0
 ```
 
 **Output:**
-- Multi-platform binaries (Linux/Darwin, amd64/arm64)
+- Linux binaries (`amd64`/`arm64`)
 - Checksums file
 - GitHub Release với artifacts
 
@@ -74,6 +76,27 @@ feat: add new Docker Compose manager      → v0.1.0 → v0.2.0
 feat!: redesign CLI interface             → v0.1.0 → v1.0.0
 fix: resolve port conflict issue          → v0.1.0 → v0.1.1
 ```
+
+---
+
+### 5. Template Validation (`validate-templates.yml`)
+**Trigger:** Push/PR khi template files thay đổi
+
+**Jobs:**
+- **validate**: Setup Go từ `go.mod`, chạy template tests, generate golden files, validate YAML
+
+---
+
+### 6. E2E Compose (`e2e-compose.yml`)
+**Trigger:** Manual workflow dispatch và scheduled nightly
+
+**Jobs:**
+- **e2e**: Build `kk`, chạy `kk init --yes`, `docker compose config`, `kk start`, `kk status`, `kk stop`, `kk remove -v`
+
+**Notes:**
+- Cần secret `KKAUTO_E2E_LICENSE`.
+- Có timeout, concurrency guard, cleanup `docker compose down -v --remove-orphans`, và diagnostics artifact đã redact secrets.
+- Không chạy trên PR để tránh Docker/network/license flake làm chậm merge gate.
 
 ---
 
@@ -121,6 +144,7 @@ fix: resolve port conflict issue          → v0.1.0 → v0.1.1
 | Secret | Description | Required For |
 |--------|-------------|--------------|
 | `GITHUB_TOKEN` | Auto-provided by GitHub | All workflows |
+| `KKAUTO_E2E_LICENSE` | Disposable/staging kk license for full lifecycle Compose validation | `e2e-compose.yml` |
 
 ---
 
@@ -137,6 +161,13 @@ fix: resolve port conflict issue          → v0.1.0 → v0.1.1
 - Ensure workflow has write permissions
 
 ### CI fails on tests
-- Run tests locally: `go test ./...`
-- Check Docker daemon is running (for integration tests)
+- Run tests locally: `go test -v ./...`
+- Run binary smoke locally: `make test-smoke`
+- Run targeted race locally: `go test -race ./cmd ./pkg/license ./pkg/templates ./pkg/compose ./pkg/validator`
+- Docker daemon is only required for manual/nightly Compose e2e, not the normal PR gate
 - Verify Go version matches `go.mod`
+
+### E2E Compose fails
+- Verify `KKAUTO_E2E_LICENSE` exists in repository secrets
+- Check whether host ports `80`, `443`, `3306`, or `8000` are already bound on the runner
+- Review uploaded diagnostics artifact; it should not contain `.env` or raw license values

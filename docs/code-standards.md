@@ -2,105 +2,119 @@
 
 ## Scope
 
-These standards reflect the current Go CLI codebase and the unattended init implementation.
+These standards describe the current Go CLI codebase. They are documentation-only guidance for maintainers; code changes must still be verified against implementation and tests.
 
 ## Repository Structure
 
 | Path | Responsibility |
 |---|---|
-| `main.go` | Minimal process entry point |
-| `cmd/` | Cobra command definitions and command-level orchestration |
-| `pkg/compose/` | Docker Compose execution and parsing |
-| `pkg/config/` | Local project configuration helpers |
-| `pkg/license/` | License format and remote API validation |
-| `pkg/monitor/` | Container status and health monitoring |
-| `pkg/n8n/` | n8n template/config helpers |
-| `pkg/templates/` | Embedded kkengine templates and render validation |
-| `pkg/ui/` | Terminal UI, i18n messages, tables, and error formatting |
-| `pkg/updater/` | Docker image update parsing |
-| `pkg/validator/` | Docker, Compose, port, env, and preflight checks |
-| `scripts/` | Install and utility scripts |
-| `docs/` | Evergreen project documentation |
-| `plans/` | Time-scoped implementation plans and reports |
+| `main.go` | Minimal process entry point. |
+| `cmd/` | Cobra commands, flags, command orchestration, exit-code mapping. |
+| `pkg/compose/` | Docker Compose execution and Compose YAML parsing. |
+| `pkg/config/` | `~/.kk/config.yaml` and project directory helpers. |
+| `pkg/license/` | License regex and kk license API client. |
+| `pkg/monitor/` | Container status and health checks. |
+| `pkg/n8n/` | n8n config, directories, embedded templates. |
+| `pkg/selfupdate/` | GitHub release check, archive download, binary replacement. |
+| `pkg/templates/` | kkengine embedded templates and render validation. |
+| `pkg/ui/` | i18n, terminal UI, tables, progress, passwords. |
+| `pkg/updater/` | Docker pull output parsing. |
+| `pkg/validator/` | Docker, Compose, ports, env, config, disk, preflight checks. |
+| `scripts/` | Installer and operational scripts. |
+| `docs/` | Evergreen project documentation. |
 
-## Go Code Guidelines
+## Go Standards
 
-- Keep `main.go` thin; command behavior belongs in `cmd/`.
-- Keep package APIs focused by domain (`license`, `templates`, `validator`, etc.).
-- Prefer small helpers for command option collection/validation when command files grow large.
-- Return errors instead of calling `os.Exit` outside the root command execution boundary.
-- Avoid duplicating validation already owned by a package.
-
-## CLI Command Standards
-
-- Define commands with Cobra in `cmd/*.go`.
+- Keep `main.go` thin; all behavior should flow through `cmd.Execute()`.
+- Keep command files focused on CLI orchestration; move reusable behavior into `pkg/*`.
 - Use `RunE` for commands that can fail.
-- Register flags in each command's `init()` function.
-- Preserve legacy behavior unless a requirement explicitly changes it.
-- Keep interactive prompts behind explicit interactive branches so automation paths remain prompt-free.
+- Return errors instead of calling `os.Exit` outside the root command boundary.
+- Preserve existing command names and flags unless a migration requirement exists.
+- Keep validation ownership clear: license validation in `pkg/license`, template validation in `pkg/templates`, Docker/preflight validation in `pkg/validator`.
+- Prefer small helper functions for command option resolution, especially when automation behavior needs tests.
+
+## CLI Standards
+
+| Area | Standard |
+|---|---|
+| Flags | Register flags near command definitions in `init()`. |
+| Automation | Keep non-interactive paths free of prompt calls. |
+| Output | Use `pkg/ui` helpers for user-facing terminal messages where practical. |
+| Errors | Use typed `ExitError` only where stable automation exits are part of the contract. |
+| Backward compatibility | Keep legacy behavior unless explicitly replaced. |
 
 ## `kk init` Standards
 
-Verified current behavior:
-
-- Interactive mode uses `huh` forms for license, language, service selection, domain, timezone, and secret edits.
-- `--force` bypasses selected prompts and Docker validation failures with defaults.
-- `--yes` is unattended mode and requires:
-  - exactly one license source: `--license-file`, `--license-stdin`, or legacy `--license`
-  - `--domain`
-  - `--language`
-- Automation should use `--license-file`; legacy `--license` remains available but is discouraged for provisioning scripts.
-- Automation examples must create temporary license files with owner-only permissions (`0600`) and cleanup via `trap` so failed init runs do not leave secrets behind.
+- Interactive mode may use `huh` prompts.
+- `--yes` is unattended mode and requires exactly one license source, `--domain`, and `--language`.
+- Recommended automation license source is `--license-file`; `--license-stdin` is also non-argv; `--license` is compatibility only.
 - `--language` accepts only `en` and `vi`.
-- Existing config files are backed up before overwrite when unattended or force mode overwrites them.
-- Template rendering must continue through `pkg/templates.RenderAll`.
+- License format is `LICENSE-[A-F0-9]{16}`.
+- File/stdin license input is capped at 4096 bytes.
+- Existing generated config files should be backed up before overwrite where current init behavior does so.
+- kkengine template writes must continue through `pkg/templates.RenderAll`.
 
-## Exit Error Standards
+## Exit-Code Standards
 
-Use typed errors from `cmd/exit_error.go` for deterministic automation outcomes.
-
-| Code | Use For |
+| Code | Use |
 |---:|---|
-| `1` | Legacy/untyped command errors |
-| `2` | Flag or user input validation failures |
+| `0` | Success |
+| `1` | Legacy or untyped command errors |
+| `2` | Input/flag validation failures |
 | `3` | License validation/API failures |
 | `4` | Docker/Compose preflight failures |
 | `5` | Template render or file write failures |
 
-Do not wrap every legacy error just to change exit behavior. Use typed errors where automation contracts require stable codes.
+Do not convert every legacy error to a typed error without a product requirement; stable codes are part of the unattended init contract.
 
 ## Security Standards
 
 - Never print full license keys in command errors.
-- Mask license keys as `LICENSE-************6789` when display is unavoidable.
-- Do not recommend argv license input for automation; use a non-argv source such as `--license-file`.
-- License source errors should name the source, not the license value.
-- Treat `--license <key>` as legacy compatibility only; do not present it as a current recommended automation path.
-- Never print generated secret values such as `JWT_SECRET`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, or `S3_SECRET_KEY`.
-- Generated `.env` files must remain `0600`.
-- `.env` backups must remain `0600`.
-- Documentation examples must use fake license keys.
+- Mask licenses as `LICENSE-************6789` when display is unavoidable.
+- Do not recommend argv license input for automation.
+- Do not print generated values for `JWT_SECRET`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, or n8n encryption keys in logs/errors.
+- Generated kkengine and n8n `.env` files must remain `0600`.
+- `~/.kk/config.yaml` is currently `0644`; keep it non-secret unless permissions and migration are redesigned.
+- Installer checksum verification should remain enabled when release checksums are available.
+- Treat self-update checksum/signature verification as a roadmap security item.
 
 ## Testing Standards
 
-- Run the full suite before documentation or release handoff:
+Run these local checks before release handoff:
 
 ```bash
-go test ./...
+make fmt
+make lint
+make test
+make test-smoke
+make build
 ```
 
-- Add focused tests for command option validation, secret masking, file permissions, and exit-code mapping.
-- Prefer tests against helpers (`validateInitOptions`, `ExitCode`, render helpers) over brittle terminal prompt tests.
+`make test` runs `go test -v ./...`. `make test-smoke` builds the CLI and verifies root command wiring without a Docker daemon.
+
+Run race and shuffle checks before promoting them to required PR gates:
+
+```bash
+go test -shuffle=on ./...
+go test -race ./cmd ./pkg/license ./pkg/templates ./pkg/compose ./pkg/validator
+```
+
+Nightly/manual Docker Compose validation lives in `.github/workflows/e2e-compose.yml`. It is intentionally not a PR requirement because it depends on Docker runtime, image pulls, network, and `KKAUTO_E2E_LICENSE`.
+
+Add focused tests for command option validation, exit-code mapping, render permissions, secret masking, port/template contracts, and parser behavior.
 
 ## Documentation Standards
 
-- Public usage changes belong in `README.md`.
-- Architecture, product requirements, and implementation standards belong in `docs/`.
-- Keep docs evidence-based: verify flags, function names, file paths, and exit codes in code before documenting.
-- Keep generated docs under 800 lines per file; split by topic when needed.
+- Public quick-start and command lists belong in `README.md`.
+- Architecture, requirements, deployment, roadmap, and design guidance belong in `docs/`.
+- Keep evergreen documentation filenames kebab-case.
+- Verify command names, flags, paths, and function references before documenting them.
+- Do not document `.env` values from real environments.
+- Keep README under 300 lines and docs under the project line target.
 
 ## References
 
 - [Project Overview and PDR](./project-overview-pdr.md)
 - [System Architecture](./system-architecture.md)
 - [Codebase Summary](./codebase-summary.md)
+- [Deployment Guide](./deployment-guide.md)

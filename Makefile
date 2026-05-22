@@ -1,4 +1,4 @@
-.PHONY: build build-all test clean install release lint fmt deps test-coverage uninstall
+.PHONY: build build-all test test-smoke clean install release lint fmt deps test-coverage uninstall
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-s -w -X github.com/kkauto-net/kk-install/cmd.Version=$(VERSION)"
@@ -19,6 +19,14 @@ build-all: clean
 # Run tests
 test:
 	go test -v ./...
+
+# Build and smoke-test the CLI without Docker
+test-smoke: build
+	./$(BUILD_DIR)/$(BINARY) --help >/dev/null
+	./$(BUILD_DIR)/$(BINARY) --version >/dev/null
+	./$(BUILD_DIR)/$(BINARY) completion bash >/dev/null
+	HOME=$$(mktemp -d) ./$(BUILD_DIR)/$(BINARY) config show >/dev/null
+	HOME=$$(mktemp -d) ./$(BUILD_DIR)/$(BINARY) init --yes --domain example.com --language en >/dev/null 2>&1; test $$? -eq 2
 
 # Run tests with coverage
 test-coverage:

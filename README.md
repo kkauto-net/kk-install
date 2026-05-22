@@ -5,15 +5,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/kkauto-net/kk-install/actions/workflows/ci.yml/badge.svg)](https://github.com/kkauto-net/kk-install/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/kkauto-net/kk-install)](https://github.com/kkauto-net/kk-install/releases)
-![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos-blue)
+![Platform](https://img.shields.io/badge/release%20artifacts-linux-blue)
 
-A CLI tool for managing kkengine Docker Compose stacks with ease.
+`kkcli` is a Go CLI for installing and operating kkengine Docker Compose stacks. The installed binary is `kk`.
 
 ## Quick Install
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 ```
+
+Current GoReleaser artifacts are Linux `amd64` and `arm64`. Other platforms may build from source, but are not published by the current release config.
 
 Verify installation:
 
@@ -28,6 +30,7 @@ kk --version
 - 🔄 **Auto Update** - Keep images up-to-date with one command
 - 🌐 **Multi-language** - English and Vietnamese support
 - 🔒 **Secure by Default** - Auto-generates strong passwords
+- 🤖 **n8n Support** - Optional n8n stack install and lifecycle commands
 
 ## Quick Start
 
@@ -96,9 +99,23 @@ Unattended mode exits with deterministic codes:
 | `kk remove` | Remove all containers, networks (use `-v` to also remove volumes) |
 | `kk restart` | Restart all running services |
 | `kk status` | Display status of all containers |
-| `kk update` | Update to latest version and pull new images |
-| `kk selfupdate` | Update kk CLI to the latest version |
-| `kk completion` | Generate shell completion script |
+| `kk update -f` | Pull images and recreate containers; `-f` skips confirmation |
+| `kk selfupdate --check` | Check or install latest CLI release; use `-f` to skip confirmation |
+| `kk config show` | Show language, project directory, and config path |
+| `kk completion bash\|zsh\|fish` | Generate shell completion script |
+
+### n8n Commands
+
+| Command | Description |
+|---------|-------------|
+| `kk n8n install -f` | Render n8n Compose files with defaults when `-f` is set |
+| `kk n8n start` | Start the n8n stack |
+| `kk n8n stop` | Stop the n8n stack |
+| `kk n8n restart` | Restart the n8n stack |
+| `kk n8n status` | Show n8n container status |
+| `kk n8n logs -f -n 100 -a` | Tail logs; `-a` includes all n8n containers |
+| `kk n8n update -f` | Pull and recreate n8n containers; `-f` skips confirmation |
+| `kk n8n remove -v` | Remove n8n containers; `-v` also removes volumes after confirmation |
 
 ## Supported Components
 
@@ -119,6 +136,15 @@ Unattended mode exits with deterministic codes:
 
 Contributions welcome! See [Code Standards](./docs/code-standards.md) and [System Architecture](./docs/system-architecture.md).
 
+```bash
+make deps
+make fmt
+make lint
+make test
+make test-smoke
+make build
+```
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
@@ -129,3 +155,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [Codebase Summary](./docs/codebase-summary.md)
 - [Code Standards](./docs/code-standards.md)
 - [System Architecture](./docs/system-architecture.md)
+- [Deployment Guide](./docs/deployment-guide.md)
+- [Design Guidelines](./docs/design-guidelines.md)
+- [Project Roadmap](./docs/project-roadmap.md)

@@ -1,14 +1,17 @@
 package templates
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
 	"github.com/google/go-cmp/cmp"
+	"github.com/kkauto-net/kk-install/pkg/validator"
 	"gopkg.in/yaml.v3"
 )
 
@@ -258,6 +261,129 @@ func TestValidateYAML(t *testing.T) {
 			t.Errorf("docker-compose.yml missing required key: %s", key)
 		}
 	}
+}
+
+func TestRenderedComposePortsMatchValidatorContracts(t *testing.T) {
+	cfg := Config{
+		EnableCaddy: true,
+		Domain:      "test.com",
+	}
+
+	rendered, err := RenderTemplateToString("docker-compose.yml", cfg)
+	if err != nil {
+		t.Fatalf("Failed to render docker-compose.yml: %v", err)
+	}
+
+	var compose struct {
+		Services map[string]struct {
+			Ports []string `yaml:"ports"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(rendered), &compose); err != nil {
+		t.Fatalf("docker-compose.yml has invalid YAML syntax: %v", err)
+	}
+
+	servicePorts := map[string][]string{
+		"MariaDB":     compose.Services["db"].Ports,
+		"kkengine":    compose.Services["kkengine"].Ports,
+		"Caddy HTTP":  compose.Services["caddy"].Ports,
+		"Caddy HTTPS": compose.Services["caddy"].Ports,
+	}
+
+	for name, port := range validator.RequiredPorts {
+		if !hasPublishedHostPort(servicePorts[name], port) {
+			t.Errorf("required port %s=%d not published by generated compose ports %v", name, port, servicePorts[name])
+		}
+	}
+
+	for name, port := range validator.OptionalPorts {
+		if !hasPublishedHostPort(servicePorts[name], port) {
+			t.Errorf("optional port %s=%d not published by generated compose ports %v", name, port, servicePorts[name])
+		}
+	}
+}
+
+func TestRenderedEnvDefaultDBPortMatchesMariaDBPublish(t *testing.T) {
+	composeRendered, err := RenderTemplateToString("docker-compose.yml", Config{Domain: "test.com"})
+	if err != nil {
+		t.Fatalf("Failed to render docker-compose.yml: %v", err)
+	}
+	envRendered, err := RenderTemplateToString("env", Config{
+		Domain:         "test.com",
+		JWTSecret:      "test_jwt_secret_32chars_long!!!!",
+		LicenseKey:     "LICENSE-TESTKEY12345678",
+		DBPassword:     "test_db_pass",
+		DBRootPassword: "test_db_root_pass",
+		RedisPassword:  "test_redis_pass",
+	})
+	if err != nil {
+		t.Fatalf("Failed to render env: %v", err)
+	}
+
+	mariaDBHostPort, err := renderedServiceHostPort(composeRendered, "db", 3306)
+	if err != nil {
+		t.Fatal(err)
+	}
+	envDBPort, err := renderedEnvValue(envRendered, "DB_PORT")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if envDBPort != strconv.Itoa(mariaDBHostPort) {
+		t.Fatalf("DB_PORT=%s does not match generated MariaDB host port %d", envDBPort, mariaDBHostPort)
+	}
+}
+
+func hasPublishedHostPort(ports []string, want int) bool {
+	for _, mapping := range ports {
+		parts := strings.Split(mapping, ":")
+		if len(parts) < 2 {
+			continue
+		}
+		hostPort, err := strconv.Atoi(parts[len(parts)-2])
+		if err == nil && hostPort == want {
+			return true
+		}
+	}
+	return false
+}
+
+func renderedServiceHostPort(rendered, service string, containerPort int) (int, error) {
+	var compose struct {
+		Services map[string]struct {
+			Ports []string `yaml:"ports"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(rendered), &compose); err != nil {
+		return 0, err
+	}
+	ports := compose.Services[service].Ports
+	for _, mapping := range ports {
+		parts := strings.Split(mapping, ":")
+		if len(parts) < 2 {
+			continue
+		}
+		publishedContainerPort, err := strconv.Atoi(parts[len(parts)-1])
+		if err != nil || publishedContainerPort != containerPort {
+			continue
+		}
+		hostPort, err := strconv.Atoi(parts[len(parts)-2])
+		if err != nil {
+			return 0, err
+		}
+		return hostPort, nil
+	}
+	return 0, fmt.Errorf("service %s does not publish container port %d in %v", service, containerPort, ports)
+}
+
+func renderedEnvValue(rendered, key string) (string, error) {
+	for _, line := range strings.Split(rendered, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, key+"=") {
+			return strings.TrimPrefix(line, key+"="), nil
+		}
+	}
+	return "", fmt.Errorf("env key %s not found", key)
 }
 
 // TestCaddyfileSyntax validates Caddyfile structure
