@@ -15,13 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine version bump
         id: version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Get latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -34,8 +36,6 @@ jobs:
           PATCH=$(echo $VERSION | cut -d. -f3)
 
           # Check PR labels/title for version bump type
-          PR_TITLE="${{ github.event.pull_request.title }}"
-
           if echo "$PR_TITLE" | grep -qiE "^(feat|feature)(\(.*\))?!:|^breaking:"; then
             # Breaking change - bump major
             MAJOR=$((MAJOR + 1))

@@ -99,7 +99,7 @@ func Update(ctx context.Context, result *UpdateResult) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer removeAll(tmpDir)
 
 	// Download the archive
 	archivePath := filepath.Join(tmpDir, result.AssetName)
@@ -140,7 +140,7 @@ func getLatestRelease(ctx context.Context) (*Release, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeReader(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
@@ -175,7 +175,7 @@ func downloadFile(ctx context.Context, url, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeReader(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
@@ -185,7 +185,7 @@ func downloadFile(ctx context.Context, url, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer closeReader(out)
 
 	_, err = io.Copy(out, resp.Body)
 	return err
@@ -196,13 +196,13 @@ func extractBinary(archivePath, destPath string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer closeReader(f)
 
 	gzr, err := gzip.NewReader(f)
 	if err != nil {
 		return err
 	}
-	defer gzr.Close()
+	defer closeReader(gzr)
 
 	tr := tar.NewReader(gzr)
 
@@ -221,7 +221,7 @@ func extractBinary(archivePath, destPath string) error {
 			if err != nil {
 				return err
 			}
-			defer out.Close()
+			defer closeReader(out)
 
 			_, err = io.Copy(out, tr)
 			return err
@@ -248,12 +248,16 @@ func replaceBinary(oldPath, newPath string) error {
 	// Move new binary
 	if err := os.Rename(newPath, oldPath); err != nil {
 		// Restore backup
-		os.Rename(backupPath, oldPath)
+		if restoreErr := os.Rename(backupPath, oldPath); restoreErr != nil {
+			return fmt.Errorf("move new binary: %w; restore backup: %v", err, restoreErr)
+		}
 		return err
 	}
 
 	// Remove backup
-	os.Remove(backupPath)
+	if err := os.Remove(backupPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: updated binary but failed to remove backup %s: %v\n", backupPath, err)
+	}
 	return nil
 }
 
@@ -290,10 +294,33 @@ func isWritable(path string) bool {
 		if err != nil {
 			return false
 		}
-		f.Close()
-		os.Remove(tmpFile)
+		if err := f.Close(); err != nil {
+			removeFile(tmpFile)
+			return false
+		}
+		if err := os.Remove(tmpFile); err != nil {
+			return false
+		}
 		return true
 	}
 
 	return false
+}
+
+func closeReader(closer io.Closer) {
+	if err := closer.Close(); err != nil {
+		return
+	}
+}
+
+func removeAll(path string) {
+	if err := os.RemoveAll(path); err != nil {
+		return
+	}
+}
+
+func removeFile(path string) {
+	if err := os.Remove(path); err != nil {
+		return
+	}
 }

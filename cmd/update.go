@@ -117,8 +117,9 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 			),
 		)
 
-		if err := form.Run(); err != nil {
-			return err
+		formErr := form.Run()
+		if formErr != nil {
+			return formErr
 		}
 
 		if !confirm {
@@ -133,7 +134,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	recreateCtx, recreateCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer recreateCancel()
 
-	if err := executor.ForceRecreate(recreateCtx); err != nil {
+	err = executor.ForceRecreate(recreateCtx)
+	if err != nil {
 		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
 	}
 
@@ -145,8 +147,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 			definedServices = append(definedServices, name)
 		}
 
-		healthMonitor, err := monitor.NewHealthMonitor()
-		if err == nil {
+		healthMonitor, monitorErr := monitor.NewHealthMonitor()
+		if monitorErr == nil {
 			defer healthMonitor.Close()
 
 			var containers []monitor.ContainerInfo

@@ -17,10 +17,10 @@ jobs:
       KKAUTO_LICENSE: ${{ secrets.KKAUTO_E2E_LICENSE }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
 
@@ -117,9 +117,9 @@ jobs:
 
       - name: Upload diagnostics
         if: always() && env.E2E_ARTIFACT_DIR != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-compose-diagnostics
           path: ${{ env.E2E_ARTIFACT_DIR }}/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1

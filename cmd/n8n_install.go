@@ -136,7 +136,9 @@ func runN8nInstall(cmd *cobra.Command, args []string) error {
 						Value(&cfg.ConnectKKEngine),
 				),
 			)
-			_ = form.Run()
+			if err := form.Run(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -214,7 +216,7 @@ func runN8nInstall(cmd *cobra.Command, args []string) error {
 	// Show summary
 	pterm.Println()
 	pterm.DefaultSection.Println(ui.Msg("n8n_install_summary"))
-	pterm.DefaultTable.
+	if err := pterm.DefaultTable.
 		WithHasHeader(false).
 		WithBoxed(true).
 		WithData(pterm.TableData{
@@ -223,7 +225,9 @@ func runN8nInstall(cmd *cobra.Command, args []string) error {
 			{"Database", "PostgreSQL (n8n-postgres)"},
 			{"Port", "5678"},
 		}).
-		Render()
+		Render(); err != nil {
+		return fmt.Errorf("render n8n install summary: %w", err)
+	}
 
 	// Step 6: Ask to start
 	ui.ShowStepHeader(6, 6, ui.Msg("n8n_ready_to_start"))
@@ -236,7 +240,9 @@ func runN8nInstall(cmd *cobra.Command, args []string) error {
 					Value(&startNow),
 			),
 		)
-		_ = startForm.Run()
+		if err := startForm.Run(); err != nil {
+			return err
+		}
 	} else {
 		startNow = true
 	}

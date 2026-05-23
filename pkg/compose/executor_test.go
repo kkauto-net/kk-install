@@ -144,7 +144,9 @@ func TestFakeExecutorProcess(t *testing.T) {
 	if os.Getenv("KK_FAKE_EXEC") != "1" {
 		return
 	}
-	_, _ = os.Stderr.WriteString(os.Getenv("KK_FAKE_EXEC_OUTPUT"))
+	if _, err := os.Stderr.WriteString(os.Getenv("KK_FAKE_EXEC_OUTPUT")); err != nil {
+		os.Exit(1)
+	}
 	if os.Getenv("KK_FAKE_EXEC_EXIT_CODE") != "0" {
 		os.Exit(1)
 	}

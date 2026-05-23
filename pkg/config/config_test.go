@@ -12,7 +12,8 @@ import (
 
 func TestConfigDir(t *testing.T) {
 	dir := ConfigDir()
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
 	expected := filepath.Join(home, ".kk")
 	assert.Equal(t, expected, dir)
 }
@@ -144,7 +145,8 @@ func TestEnsureProjectDir_DirectoryNotExists(t *testing.T) {
 	assert.Contains(t, err.Error(), "project directory no longer exists")
 
 	// Config should be cleared
-	loaded, _ := Load()
+	loaded, err := Load()
+	require.NoError(t, err)
 	assert.Empty(t, loaded.ProjectDir)
 }
 
@@ -176,7 +178,8 @@ func TestEnsureProjectDir_NoDockerCompose(t *testing.T) {
 	assert.Contains(t, err.Error(), "docker-compose.yml not found")
 
 	// Config should be cleared
-	loaded, _ := Load()
+	loaded, err := Load()
+	require.NoError(t, err)
 	assert.Empty(t, loaded.ProjectDir)
 }
 
@@ -212,7 +215,8 @@ func TestEnsureProjectDir_Success(t *testing.T) {
 	assert.Equal(t, projectDir, resultDir)
 
 	// Verify we changed to the correct directory
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
 	assert.Equal(t, projectDir, cwd)
 }
 

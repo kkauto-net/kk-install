@@ -102,7 +102,7 @@ func parseEnvFile(path string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer closeFile(file)
 
 	vars := make(map[string]string)
 	scanner := bufio.NewScanner(file)

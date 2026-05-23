@@ -9,21 +9,25 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // CaptureStdout is a helper function to capture stdout
-func CaptureStdout(f func()) string {
+func CaptureStdout(t *testing.T, f func()) string {
+	t.Helper()
 	old := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	f()
 
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
 	return buf.String()
 }
 
@@ -33,7 +37,8 @@ func TestSimpleSpinner_Lifecycle(t *testing.T) {
 
 	// Redirect stdout to capture output
 	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	spinner.Start()
@@ -45,12 +50,13 @@ func TestSimpleSpinner_Lifecycle(t *testing.T) {
 	time.Sleep(50 * time.Millisecond) // Shorten sleep for faster test
 	spinner.Stop(true)
 
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = oldStdout
 
 	// Read all remaining output to prevent pipe deadlock
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
 	output := buf.String()
 
 	// Check if the final "OK" message with updated message is present

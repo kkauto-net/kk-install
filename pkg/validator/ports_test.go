@@ -16,14 +16,20 @@ func TestCheckPort(t *testing.T) {
 
 func TestCheckAllPorts(t *testing.T) {
 	t.Run("Check all ports without Caddy", func(t *testing.T) {
-		results, _ := CheckAllPorts(false)
+		results, err := CheckAllPorts(false)
+		if err != nil {
+			t.Logf("CheckAllPorts returned environment-dependent conflict: %v", err)
+		}
 		if len(results) < 2 {
 			t.Errorf("Expected at least 2 port checks, got %d", len(results))
 		}
 	})
 
 	t.Run("Check all ports with Caddy", func(t *testing.T) {
-		results, _ := CheckAllPorts(true)
+		results, err := CheckAllPorts(true)
+		if err != nil {
+			t.Logf("CheckAllPorts returned environment-dependent conflict: %v", err)
+		}
 		if len(results) < 4 {
 			t.Errorf("Expected at least 4 port checks, got %d", len(results))
 		}

@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -24,7 +23,7 @@ func TestValidateEnvFile(t *testing.T) {
 		tmpDir := t.TempDir()
 		content := "DB_PASSWORD=verylongpassword123456\nDB_ROOT_PASSWORD=verylongrootpass123\nREDIS_PASSWORD=verylongredispass123"
 		envFile := filepath.Join(tmpDir, ".e"+"nv")
-		os.WriteFile(envFile, []byte(content), 0600)
+		writeTestFile(t, envFile, []byte(content), 0600)
 
 		err := ValidateEnvFile(tmpDir)
 		if err != nil {
@@ -36,7 +35,7 @@ func TestValidateEnvFile(t *testing.T) {
 		tmpDir := t.TempDir()
 		content := "DB_PASSWORD=test123456789012"
 		envFile := filepath.Join(tmpDir, ".e"+"nv")
-		os.WriteFile(envFile, []byte(content), 0600)
+		writeTestFile(t, envFile, []byte(content), 0600)
 
 		err := ValidateEnvFile(tmpDir)
 		if err == nil {
@@ -55,7 +54,7 @@ func TestParseEnvFile(t *testing.T) {
 		tmpDir := t.TempDir()
 		content := "KEY1=value1\nKEY2=\"value2\"\n# Comment line\nKEY3='value3'"
 		envPath := filepath.Join(tmpDir, ".e"+"nv")
-		os.WriteFile(envPath, []byte(content), 0600)
+		writeTestFile(t, envPath, []byte(content), 0600)
 
 		vars, err := parseEnvFile(envPath)
 		if err != nil {

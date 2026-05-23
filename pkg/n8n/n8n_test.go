@@ -135,9 +135,7 @@ func TestEnsureDirectories(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Override N8nDir for this test by setting env
-	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	t.Setenv("HOME", tmpDir)
 
 	err := EnsureDirectories()
 	if err != nil {
@@ -163,9 +161,7 @@ func TestRenderAll(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Override HOME for N8nDir fallback
-	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	t.Setenv("HOME", tmpDir)
 
 	cfg := N8nConfig{
 		Domain:          "n8n.example.com",
@@ -189,7 +185,7 @@ func TestRenderAll(t *testing.T) {
 	}
 
 	for _, path := range expectedFiles {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
 			t.Errorf("RenderAll() did not create %q", path)
 		}
 	}
@@ -230,9 +226,7 @@ func TestRenderAllWithKKEngine(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Override HOME for N8nDir fallback
-	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	t.Setenv("HOME", tmpDir)
 
 	cfg := N8nConfig{
 		Domain:          "n8n.example.com",

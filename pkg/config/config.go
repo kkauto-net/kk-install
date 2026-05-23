@@ -23,7 +23,13 @@ type Config struct {
 
 // ConfigDir returns the config directory path (~/.kk)
 func ConfigDir() string {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		home = os.Getenv("HOME")
+	}
+	if home == "" {
+		return configDirName
+	}
 	return filepath.Join(home, configDirName)
 }
 

@@ -4,6 +4,7 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 LDFLAGS := -ldflags "-s -w -X github.com/kkauto-net/kk-install/cmd.Version=$(VERSION)"
 BINARY := kk
 BUILD_DIR := build
+GOLANGCI_LINT_VERSION := v2.4.0
 
 # Build for current platform
 build:
@@ -49,7 +50,7 @@ uninstall:
 
 # Run linter
 lint:
-	golangci-lint run
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
 
 # Format code
 fmt:

@@ -39,11 +39,25 @@ func PrintUpdatesTable(updates []ImageUpdate) {
 	}
 
 	pterm.DefaultSection.Println(Msg("updates_available"))
-	pterm.DefaultTable.
+	renderTable(pterm.DefaultTable.
 		WithHasHeader(true).
 		WithBoxed(true).
-		WithData(tableData).
-		Render()
+		WithData(tableData))
+}
+
+func renderTable(table *pterm.TablePrinter) {
+	if err := table.Render(); err != nil {
+		pterm.Warning.Printfln("failed to render table: %v", err)
+	}
+}
+
+func srenderTable(table *pterm.TablePrinter) string {
+	tableStr, err := table.Srender()
+	if err != nil {
+		pterm.Warning.Printfln("failed to render table: %v", err)
+		return ""
+	}
+	return strings.TrimSuffix(tableStr, "\n")
 }
 
 func truncateDigest(digest string, maxLen int) string {
@@ -80,11 +94,9 @@ func PrintStatusTable(statuses []monitor.ServiceStatus) {
 	}
 
 	// Render table to string first, trim trailing newline
-	tableStr, _ := pterm.DefaultTable.
+	tableStr := srenderTable(pterm.DefaultTable.
 		WithHasHeader(true).
-		WithData(tableData).
-		Srender()
-	tableStr = strings.TrimSuffix(tableStr, "\n")
+		WithData(tableData))
 
 	// Print as boxed panel with title
 	pterm.DefaultBox.
@@ -164,7 +176,7 @@ func PrintAccessInfo(statuses []monitor.ServiceStatus, domain string) {
 
 	if len(tableData) > 1 {
 		fmt.Println() // Add spacing
-		pterm.DefaultTable.WithHasHeader(true).WithBoxed(true).WithData(tableData).Render()
+		renderTable(pterm.DefaultTable.WithHasHeader(true).WithBoxed(true).WithData(tableData))
 	}
 }
 
@@ -211,11 +223,9 @@ func PrintCommandResult(statuses []monitor.ServiceStatus, cmdName, successMsgKey
 	}
 
 	// Render table to string first, trim trailing newline
-	tableStr, _ := pterm.DefaultTable.
+	tableStr := srenderTable(pterm.DefaultTable.
 		WithHasHeader(true).
-		WithData(tableData).
-		Srender()
-	tableStr = strings.TrimSuffix(tableStr, "\n")
+		WithData(tableData))
 
 	// Print as boxed panel with command title
 	pterm.DefaultBox.

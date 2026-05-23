@@ -42,8 +42,13 @@ var (
 	DockerValidatorInstance *validator.DockerValidator
 	newLicenseClient        = license.NewClient
 	renderTemplates         = templates.RenderAll
+	domainRegex             = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z]{2,}$`)
 	startInitSpinner        = func(text string) initSpinner {
-		spinner, _ := pterm.DefaultSpinner.Start(text)
+		spinner, err := pterm.DefaultSpinner.Start(text)
+		if err != nil {
+			ui.ShowWarning(fmt.Sprintf("failed to start spinner: %v", err))
+			return pterm.DefaultSpinner.WithText(text)
+		}
 		return spinner
 	}
 )
@@ -74,7 +79,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		showInitInputError(err)
 		return err
 	}
-	if err := validateInitOptions(opts); err != nil {
+	err = validateInitOptions(opts)
+	if err != nil {
 		showInitInputError(err)
 		return err
 	}
@@ -119,8 +125,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 					}),
 			),
 		)
-		if err := licenseForm.Run(); err != nil {
-			return err
+		if formErr := licenseForm.Run(); formErr != nil {
+			return formErr
 		}
 	}
 
@@ -136,11 +142,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		licenseData.PublicKey = "TEST-PUBLIC-KEY"
 	} else {
 		// Validate license against API
-		spinner := startInitSpinner(ui.IconKey + " " + ui.Msg("validating_license"))
+		spinner = startInitSpinner(ui.IconKey + " " + ui.Msg("validating_license"))
 		client := newLicenseClient()
-		licenseResp, err := client.Validate(licenseKey)
-		if err != nil {
-			safeMessage := sanitizeLicenseError(err.Error(), licenseKey)
+		licenseResp, validateErr := client.Validate(licenseKey)
+		if validateErr != nil {
+			safeMessage := sanitizeLicenseError(validateErr.Error(), licenseKey)
 			spinner.Fail(ui.Msg("license_validation_failed"))
 			ui.ShowBoxedError(ui.ErrorSuggestion{
 				Title:      ui.Msg("license_validation_failed"),
@@ -162,7 +168,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Check Docker installation
 	dockerInstalled := true
-	if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
+	err = DockerValidatorInstance.CheckDockerInstalled()
+	if err != nil {
 		if opts.Force {
 			ui.ShowWarning(ui.Msg("docker_not_installed_force_init"))
 			// In force mode, assume Docker will be handled externally or allow to proceed with potential issues
@@ -175,7 +182,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 			})
 			return NewExitError(exitCodeDockerValidation, err)
 		} else {
-			dockerInstalled = false
 			ui.ShowWarning(ui.Msg("docker_not_installed"))
 
 			// Ask user if they want to install Docker
@@ -190,15 +196,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 						Value(&installDocker),
 				),
 			)
-			if err := installForm.Run(); err != nil {
-				return err
+			if formErr := installForm.Run(); formErr != nil {
+				return formErr
 			}
 
 			if installDocker {
 				// Install Docker with spinner
-				spinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
-				if err := DockerValidatorInstance.InstallDocker(); err != nil {
-					spinner.Fail(ui.Msg("docker_install_failed"))
+				installSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
+				err = DockerValidatorInstance.InstallDocker()
+				if err != nil {
+					installSpinner.Fail(ui.Msg("docker_install_failed"))
 					ui.ShowBoxedError(ui.ErrorSuggestion{
 						Title:      ui.Msg("docker_install_failed"),
 						Message:    err.Error(),
@@ -206,7 +213,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 					})
 					return err
 				}
-				spinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
+				installSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
 				dockerInstalled = true
 			} else {
 				ui.ShowBoxedError(ui.ErrorSuggestion{
@@ -221,7 +228,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Check Docker daemon if Docker is installed
 	if dockerInstalled {
-		if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
+		err = DockerValidatorInstance.CheckDockerDaemon()
+		if err != nil {
 			if opts.Force {
 				ui.ShowWarning(ui.Msg("docker_daemon_not_running_force_init"))
 				// In force mode, assume daemon will be started externally or allow to proceed
@@ -247,14 +255,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 							Value(&startDocker),
 					),
 				)
-				if err := startForm.Run(); err != nil {
-					return err
+				if formErr := startForm.Run(); formErr != nil {
+					return formErr
 				}
 
 				if startDocker {
-					spinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
-					if err := DockerValidatorInstance.StartDockerDaemon(); err != nil {
-						spinner.Fail(ui.Msg("docker_start_failed"))
+					startSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
+					err = DockerValidatorInstance.StartDockerDaemon()
+					if err != nil {
+						startSpinner.Fail(ui.Msg("docker_start_failed"))
 						ui.ShowBoxedError(ui.ErrorSuggestion{
 							Title:      ui.Msg("docker_daemon_stopped"),
 							Message:    err.Error(),
@@ -263,7 +272,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 						})
 						return err
 					}
-					spinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
+					startSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
 				} else {
 					ui.ShowBoxedError(ui.ErrorSuggestion{
 						Title:      ui.Msg("docker_daemon_stopped"),
@@ -277,7 +286,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 
 		// Check Docker Compose version
-		if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
+		err = DockerValidatorInstance.CheckComposeVersion()
+		if err != nil {
 			if opts.Force {
 				ui.ShowWarning(ui.Msg("docker_compose_issue_force_init"))
 			} else if opts.NonInteractive {
@@ -319,8 +329,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 					Value(&langChoice),
 			),
 		)
-		if err := langForm.Run(); err != nil {
-			return err
+		if formErr := langForm.Run(); formErr != nil {
+			return formErr
 		}
 		// Set default to English if no selection
 		if langChoice == "" {
@@ -330,9 +340,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.SetLanguage(ui.Language(langChoice))
 
 	// Save language preference to config
-	cfg, _ := config.Load()
-	cfg.Language = langChoice
-	_ = cfg.Save() // Best effort, don't fail init if config save fails
+	cfg, err := config.Load()
+	if err != nil {
+		ui.ShowWarning(fmt.Sprintf("Cannot load config: %v", err))
+		cfg = &config.Config{Language: langChoice}
+	} else {
+		cfg.Language = langChoice
+	}
+	if saveErr := cfg.Save(); saveErr != nil {
+		ui.ShowWarning(fmt.Sprintf("Cannot save config: %v", saveErr))
+	}
 
 	// cwd already obtained earlier for loading existing env
 	fmt.Printf("\n%s %s\n\n", ui.IconFolder, ui.MsgF("init_in_dir", cwd))
@@ -599,7 +616,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Save project directory to config
 	cfg.ProjectDir = cwd
-	_ = cfg.Save()
+	if saveErr := cfg.Save(); saveErr != nil {
+		ui.ShowWarning(fmt.Sprintf("Cannot save config: %v", saveErr))
+	}
 
 	// Show completion summary
 	// Collect created files
@@ -742,10 +761,7 @@ func validateDomain(s string) error {
 	if s == "localhost" {
 		return nil
 	}
-	// RFC 1123 hostname pattern
-	pattern := `^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z]{2,}$`
-	matched, _ := regexp.MatchString(pattern, s)
-	if !matched {
+	if !domainRegex.MatchString(s) {
 		return errors.New(ui.Msg("error_invalid_domain"))
 	}
 	return nil

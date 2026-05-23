@@ -62,7 +62,7 @@ func TestValidate_Success(t *testing.T) {
 			Message:   "License configuration retrieved successfully",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -92,7 +92,7 @@ func TestValidate_InvalidLicense(t *testing.T) {
 			Message: "Invalid license key",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -136,7 +136,8 @@ func TestValidate_NetworkError(t *testing.T) {
 func TestValidate_MalformedJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":`))
+		_, err := w.Write([]byte(`{"status":`))
+		require.NoError(t, err)
 	}))
 	defer server.Close()
 

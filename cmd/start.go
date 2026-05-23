@@ -85,7 +85,8 @@ func runStart(cmd *cobra.Command, args []string) error {
 	defer timeoutCancel()
 
 	spinner := ui.StartPtermSpinner(ui.Msg("starting_services"))
-	if err := executor.Up(timeoutCtx); err != nil {
+	err = executor.Up(timeoutCtx)
+	if err != nil {
 		spinner.Fail(ui.Msg("start_failed"))
 
 		suggestion := "Check Docker logs for details"

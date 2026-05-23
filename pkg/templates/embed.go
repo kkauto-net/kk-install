@@ -84,7 +84,8 @@ func RenderTemplate(name string, cfg Config, outputPath string) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
 		return err
 	}
 
@@ -92,9 +93,12 @@ func RenderTemplate(name string, cfg Config, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	return tmpl.Execute(file, cfg)
+	executeErr := tmpl.Execute(file, cfg)
+	closeErr := file.Close()
+	if executeErr != nil {
+		return executeErr
+	}
+	return closeErr
 }
 
 // RenderAll renders all templates to the target directory

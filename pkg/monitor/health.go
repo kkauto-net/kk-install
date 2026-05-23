@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -27,7 +27,7 @@ type HealthStatus struct {
 
 // DockerClient interface for testing
 type DockerClient interface {
-	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
+	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	Close() error
 }
 
@@ -45,7 +45,9 @@ func NewHealthMonitor() (*HealthMonitor, error) {
 }
 
 func (m *HealthMonitor) Close() {
-	m.client.Close()
+	if err := m.client.Close(); err != nil {
+		return
+	}
 }
 
 // WaitForHealthy waits for container to become healthy with retry

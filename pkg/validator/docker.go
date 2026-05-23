@@ -165,7 +165,9 @@ func (v *DockerValidator) InstallDocker() error {
 
 	// Add current user to docker group
 	userCmd := v.CommandContext(ctx, "sh", "-c", "sudo usermod -aG docker $USER")
-	_ = userCmd.Run() // Best effort, don't fail if this fails
+	if err := userCmd.Run(); err != nil {
+		fmt.Printf("  [!] Warning: failed to add user to docker group: %v\n", err)
+	}
 
 	return nil
 }

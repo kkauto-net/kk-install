@@ -58,7 +58,10 @@ func CheckPort(port int) PortStatus {
 		status.UsedByKKEngine = isPortUsedByKKEngine(port)
 		return status
 	}
-	listener.Close()
+	if closeErr := listener.Close(); closeErr != nil {
+		status.InUse = true
+		status.Process = closeErr.Error()
+	}
 	return status
 }
 
@@ -167,7 +170,7 @@ func findFromProcNet(port int) (int, string) {
 	if err != nil {
 		return 0, ""
 	}
-	defer file.Close()
+	defer closeFile(file)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {

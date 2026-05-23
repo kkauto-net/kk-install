@@ -60,7 +60,8 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	defer timeoutCancel()
 
 	spinner := ui.StartPtermSpinner(ui.Msg("restarting"))
-	if err := executor.Restart(timeoutCtx); err != nil {
+	err = executor.Restart(timeoutCtx)
+	if err != nil {
 		spinner.Fail(ui.Msg("restart_failed"))
 
 		suggestion := "Check if services are running"
@@ -88,8 +89,8 @@ func runRestart(cmd *cobra.Command, args []string) error {
 			definedServices = append(definedServices, name)
 		}
 
-		healthMonitor, err := monitor.NewHealthMonitor()
-		if err == nil {
+		healthMonitor, monitorErr := monitor.NewHealthMonitor()
+		if monitorErr == nil {
 			defer healthMonitor.Close()
 
 			fmt.Println("\n" + ui.Msg("health_checking"))

@@ -200,7 +200,11 @@ func TestResolveInitLicenseFileErrors(t *testing.T) {
 	if err := os.Chmod(unreadablePath, 0000); err != nil {
 		t.Fatalf("chmod unreadable fixture: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Chmod(unreadablePath, 0600) })
+	t.Cleanup(func() {
+		if err := os.Chmod(unreadablePath, 0600); err != nil {
+			t.Logf("restore unreadable fixture permissions: %v", err)
+		}
+	})
 	_, err := resolveInitLicenseSource(initOptions{NonInteractive: true, LicenseFile: unreadablePath}, strings.NewReader(""))
 	if err == nil {
 		t.Skip("current user can read chmod 0000 files; skipping unreadable-file assertion")
@@ -431,10 +435,14 @@ func TestRunInitUnattendedExitCodeContracts(t *testing.T) {
 				t.Fatalf("Getwd() error = %v", err)
 			}
 			tmp := t.TempDir()
-			if err := os.Chdir(tmp); err != nil {
-				t.Fatalf("Chdir() error = %v", err)
+			if chdirErr := os.Chdir(tmp); chdirErr != nil {
+				t.Fatalf("Chdir() error = %v", chdirErr)
 			}
-			t.Cleanup(func() { _ = os.Chdir(cwd) })
+			t.Cleanup(func() {
+				if chdirErr := os.Chdir(cwd); chdirErr != nil {
+					t.Logf("restore working directory: %v", chdirErr)
+				}
+			})
 			t.Setenv("HOME", t.TempDir())
 
 			err = runInit(&cobra.Command{}, nil)

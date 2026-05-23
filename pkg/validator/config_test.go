@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -28,7 +27,7 @@ services:
     image: mariadb:10.6
     ports:
       - "3306:3306"`
-		os.WriteFile(filepath.Join(tmpDir, "docker-compose.yml"), []byte(content), 0644)
+		writeTestFile(t, filepath.Join(tmpDir, "docker-compose.yml"), []byte(content), 0644)
 
 		err := ValidateDockerCompose(tmpDir)
 		if err != nil {
@@ -41,7 +40,7 @@ services:
 		content := `version: '3.8'
 networks:
   mynetwork:`
-		os.WriteFile(filepath.Join(tmpDir, "docker-compose.yml"), []byte(content), 0644)
+		writeTestFile(t, filepath.Join(tmpDir, "docker-compose.yml"), []byte(content), 0644)
 
 		err := ValidateDockerCompose(tmpDir)
 		if err == nil {
@@ -69,7 +68,7 @@ func TestValidateCaddyfile(t *testing.T) {
 		content := `example.com {
 	reverse_proxy localhost:8019
 }`
-		os.WriteFile(filepath.Join(tmpDir, "Caddyfile"), []byte(content), 0644)
+		writeTestFile(t, filepath.Join(tmpDir, "Caddyfile"), []byte(content), 0644)
 
 		err := ValidateCaddyfile(tmpDir)
 		if err != nil {
@@ -79,7 +78,7 @@ func TestValidateCaddyfile(t *testing.T) {
 
 	t.Run("Empty Caddyfile", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.WriteFile(filepath.Join(tmpDir, "Caddyfile"), []byte(""), 0644)
+		writeTestFile(t, filepath.Join(tmpDir, "Caddyfile"), []byte(""), 0644)
 
 		err := ValidateCaddyfile(tmpDir)
 		if err == nil {

@@ -133,7 +133,6 @@ func TestAllTemplatesParseable(t *testing.T) {
 func RenderTemplateToString(name string, cfg Config) (string, error) {
 	tempDir := os.TempDir()
 	tempFile := filepath.Join(tempDir, name+"_test")
-	defer os.Remove(tempFile)
 
 	err := RenderTemplate(name, cfg, tempFile)
 	if err != nil {
@@ -142,6 +141,9 @@ func RenderTemplateToString(name string, cfg Config) (string, error) {
 
 	content, err := os.ReadFile(tempFile)
 	if err != nil {
+		return "", err
+	}
+	if err := os.Remove(tempFile); err != nil {
 		return "", err
 	}
 	return string(content), nil

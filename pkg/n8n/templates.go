@@ -28,10 +28,13 @@ func RenderTemplate(name string, cfg N8nConfig, outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("create file %s: %w", outputPath, err)
 	}
-	defer file.Close()
-
-	if err := tmpl.Execute(file, cfg); err != nil {
-		return fmt.Errorf("execute template %s: %w", name, err)
+	executeErr := tmpl.Execute(file, cfg)
+	closeErr := file.Close()
+	if executeErr != nil {
+		return fmt.Errorf("execute template %s: %w", name, executeErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close file %s: %w", outputPath, closeErr)
 	}
 	return nil
 }

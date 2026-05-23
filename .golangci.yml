@@ -1,26 +1,28 @@
+version: "2"
+
 linters:
   enable:
-    - gofmt
     - govet
     - errcheck
     - staticcheck
-    - gosimple
     - ineffassign
     - unused
+  settings:
+    govet:
+      enable:
+        - shadow
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
 
-linters-settings:
-  govet:
-    check-shadowing: true
-
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
+formatters:
+  enable:
+    - gofmt
 
 run:
   timeout: 5m
   tests: true
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0

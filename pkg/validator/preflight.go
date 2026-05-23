@@ -161,9 +161,11 @@ func PrintPreflightResults(results []PreflightResult) {
 		tableData = append(tableData, []string{r.CheckName, status})
 	}
 
-	pterm.DefaultTable.
+	if err := pterm.DefaultTable.
 		WithHasHeader(true).
 		WithBoxed(true).
 		WithData(tableData).
-		Render()
+		Render(); err != nil {
+		fmt.Printf("  [!] Failed to render preflight table: %v\n", err)
+	}
 }

@@ -71,7 +71,11 @@ func (s *SimpleSpinner) UpdateMessage(msg string) {
 // StartPtermSpinner creates and starts a pterm spinner with the given message.
 // Returns a SpinnerPrinter that can be controlled with Success(), Fail(), etc.
 func StartPtermSpinner(msg string) *pterm.SpinnerPrinter {
-	spinner, _ := pterm.DefaultSpinner.Start(msg)
+	spinner, err := pterm.DefaultSpinner.Start(msg)
+	if err != nil {
+		pterm.Warning.Printfln("failed to start spinner: %v", err)
+		return pterm.DefaultSpinner.WithText(msg)
+	}
 	return spinner
 }
 
@@ -112,11 +116,10 @@ func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdF
 		configData = append(configData, []string{Msg("domain"), domain})
 	}
 
-	pterm.DefaultTable.
+	renderTable(pterm.DefaultTable.
 		WithHasHeader(true).
 		WithBoxed(true).
-		WithData(configData).
-		Render()
+		WithData(configData))
 
 	// 2. Created Files
 	fmt.Println()
@@ -127,32 +130,29 @@ func PrintInitSummary(enableSeaweedFS, enableCaddy bool, domain string, createdF
 		fileData = append(fileData, []string{pterm.Green("✓ " + f)})
 	}
 
-	pterm.DefaultTable.
+	renderTable(pterm.DefaultTable.
 		WithHasHeader(true).
 		WithBoxed(true).
-		WithData(fileData).
-		Render()
+		WithData(fileData))
 
 	// 3. Installation Location
 	fmt.Println()
 	pterm.DefaultSection.Println(Msg("install_location"))
-	pterm.DefaultTable.
+	renderTable(pterm.DefaultTable.
 		WithBoxed(true).
 		WithData(pterm.TableData{
 			{IconFolder + " " + installDir},
-		}).
-		Render()
+		}))
 
 	// 4. Data Directories
 	fmt.Println()
 	pterm.DefaultSection.Println(Msg("data_directories"))
-	pterm.DefaultTable.
+	renderTable(pterm.DefaultTable.
 		WithBoxed(true).
 		WithData(pterm.TableData{
 			{IconStorage + " SYSTEM_DATABASE", "./data_database"},
 			{IconStorage + " SYSTEM_FILESTORE", "./data_storage"},
-		}).
-		Render()
+		}))
 }
 
 // boolToStatus returns colored enabled/disabled status

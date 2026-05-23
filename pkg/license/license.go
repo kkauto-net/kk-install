@@ -19,6 +19,12 @@ const (
 
 var licenseFormatRegex = regexp.MustCompile(`^LICENSE-[A-F0-9]{16}$`)
 
+func closeBody(body io.Closer) {
+	if err := body.Close(); err != nil {
+		return
+	}
+}
+
 // LicenseResponse represents API response from license server
 type LicenseResponse struct {
 	Status    string `json:"status"`
@@ -71,7 +77,7 @@ func (c *LicenseClient) Validate(licenseKey string) (*LicenseResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to call license API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("license API returned status %d", resp.StatusCode)

@@ -87,12 +87,12 @@ func ShowBoxedErrors(title string, errors []ErrorSuggestion) {
 
 	var content strings.Builder
 	for i, err := range errors {
-		content.WriteString(fmt.Sprintf("%d. %s\n", i+1, err.Message))
+		fmt.Fprintf(&content, "%d. %s\n", i+1, err.Message)
 		if err.Suggestion != "" {
-			content.WriteString(fmt.Sprintf("   → %s\n", err.Suggestion))
+			fmt.Fprintf(&content, "   → %s\n", err.Suggestion)
 		}
 		if err.Command != "" {
-			content.WriteString(fmt.Sprintf("   → %s: %s\n", Msg("then_run"), err.Command))
+			fmt.Fprintf(&content, "   → %s: %s\n", Msg("then_run"), err.Command)
 		}
 		if i < len(errors)-1 {
 			content.WriteString("\n")

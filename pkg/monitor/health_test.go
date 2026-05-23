@@ -7,22 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 )
 
 // MockDockerClient implements DockerClient interface
 type MockDockerClient struct {
-	mockContainerInspect func(ctx context.Context, containerID string) (types.ContainerJSON, error)
+	mockContainerInspect func(ctx context.Context, containerID string) (container.InspectResponse, error)
 	mockClose            func() error
 }
 
-func (m *MockDockerClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {
+func (m *MockDockerClient) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
 	if m.mockContainerInspect != nil {
 		return m.mockContainerInspect(ctx, containerID)
 	}
-	return types.ContainerJSON{}, errors.New("ContainerInspect not mocked")
+	return container.InspectResponse{}, errors.New("ContainerInspect not mocked")
 }
 
 func (m *MockDockerClient) Close() error {
@@ -54,10 +53,10 @@ func TestHealthMonitor_WaitForHealthy_NoHealthCheck(t *testing.T) {
 	ctx := context.Background()
 
 	// Running container
-	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-		return types.ContainerJSON{
-			ContainerJSONBase: &types.ContainerJSONBase{
-				State: &types.ContainerState{Running: true, Status: "running"},
+	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+		return container.InspectResponse{
+			ContainerJSONBase: &container.ContainerJSONBase{
+				State: &container.State{Running: true, Status: "running"},
 			},
 		}, nil
 	}
@@ -67,10 +66,10 @@ func TestHealthMonitor_WaitForHealthy_NoHealthCheck(t *testing.T) {
 	assert.Equal(t, "web", status.ServiceName)
 
 	// Stopped container
-	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-		return types.ContainerJSON{
-			ContainerJSONBase: &types.ContainerJSONBase{
-				State: &types.ContainerState{Running: false, Status: "exited", ExitCode: 0},
+	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+		return container.InspectResponse{
+			ContainerJSONBase: &container.ContainerJSONBase{
+				State: &container.State{Running: false, Status: "exited", ExitCode: 0},
 			},
 		}, nil
 	}
@@ -80,8 +79,8 @@ func TestHealthMonitor_WaitForHealthy_NoHealthCheck(t *testing.T) {
 	assert.Contains(t, status.Message, "Exit code: 0")
 
 	// Error inspecting container
-	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-		return types.ContainerJSON{}, errors.New("container inspect error")
+	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+		return container.InspectResponse{}, errors.New("container inspect error")
 	}
 	status = monitor.WaitForHealthy(ctx, "kkengine_error_no_health", false)
 	assert.False(t, status.Healthy)
@@ -96,21 +95,21 @@ func TestHealthMonitor_WaitForHealthy_WithHealthCheck(t *testing.T) {
 
 	t.Run("becomes healthy eventually", func(t *testing.T) {
 		callCount := 0
-		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
+		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
 			callCount++
 			if callCount < 2 { // First call is 'starting'
-				return types.ContainerJSON{
-					ContainerJSONBase: &types.ContainerJSONBase{
-						State: &types.ContainerState{
+				return container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{
+						State: &container.State{
 							Health: &container.Health{Status: "starting"},
 						},
 					},
 				}, nil
 			}
 			// Second call onwards is 'healthy'
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{
 						Health: &container.Health{Status: "healthy"},
 					},
 				},
@@ -124,13 +123,13 @@ func TestHealthMonitor_WaitForHealthy_WithHealthCheck(t *testing.T) {
 	})
 
 	t.Run("remains unhealthy", func(t *testing.T) {
-		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{
+		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{
 						Health: &container.Health{
 							Status: "unhealthy",
-							Log:    []*types.HealthcheckResult{{Output: "ping failed"}},
+							Log:    []*container.HealthcheckResult{{Output: "ping failed"}},
 						},
 					},
 				},
@@ -143,20 +142,20 @@ func TestHealthMonitor_WaitForHealthy_WithHealthCheck(t *testing.T) {
 	})
 
 	t.Run("context timeout", func(t *testing.T) {
-		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{
+		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{
 						Health: &container.Health{Status: "starting"},
 					},
 				},
 			}, nil
 		}
 		// Set a short timeout to ensure it triggers
-		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
 
-		status := monitor.WaitForHealthy(ctx, "kkengine_timeout", true)
+		status := monitor.WaitForHealthy(timeoutCtx, "kkengine_timeout", true)
 		assert.False(t, status.Healthy)
 		assert.Equal(t, "timeout", status.Status)
 		assert.Contains(t, status.Message, "Da het thoi gian cho")
@@ -164,16 +163,16 @@ func TestHealthMonitor_WaitForHealthy_WithHealthCheck(t *testing.T) {
 
 	t.Run("inspect error during retry", func(t *testing.T) {
 		callCount := 0
-		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
+		mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
 			callCount++
 			if callCount == 1 {
-				return types.ContainerJSON{
-					ContainerJSONBase: &types.ContainerJSONBase{
-						State: &types.ContainerState{Health: &container.Health{Status: "starting"}},
+				return container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{
+						State: &container.State{Health: &container.Health{Status: "starting"}},
 					},
 				}, nil
 			}
-			return types.ContainerJSON{}, errors.New("temporary inspect error")
+			return container.InspectResponse{}, errors.New("temporary inspect error")
 		}
 		status := monitor.WaitForHealthy(ctx, "kkengine_inspect_error", true)
 		assert.False(t, status.Healthy)
@@ -203,35 +202,36 @@ func TestHealthMonitor_MonitorAll(t *testing.T) {
 	}
 
 	callCountWeb := 0
-	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-		if containerID == "kkengine_web" {
+	mockClient.mockContainerInspect = func(ctx context.Context, containerID string) (container.InspectResponse, error) {
+		switch containerID {
+		case "kkengine_web":
 			callCountWeb++
 			if callCountWeb < 2 { // First call is 'starting'
-				return types.ContainerJSON{
-					ContainerJSONBase: &types.ContainerJSONBase{
-						State: &types.ContainerState{Health: &container.Health{Status: "starting"}},
+				return container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{
+						State: &container.State{Health: &container.Health{Status: "starting"}},
 					},
 				}, nil
 			}
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{Health: &container.Health{Status: "healthy"}},
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{Health: &container.Health{Status: "healthy"}},
 				},
 			}, nil
-		} else if containerID == "kkengine_db" {
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{Running: true, Status: "running"},
+		case "kkengine_db":
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{Running: true, Status: "running"},
 				},
 			}, nil
-		} else if containerID == "kkengine_unhealthy_svc" {
-			return types.ContainerJSON{
-				ContainerJSONBase: &types.ContainerJSONBase{
-					State: &types.ContainerState{Health: &container.Health{Status: "unhealthy", Log: []*types.HealthcheckResult{{Output: "failed check"}}}},
+		case "kkengine_unhealthy_svc":
+			return container.InspectResponse{
+				ContainerJSONBase: &container.ContainerJSONBase{
+					State: &container.State{Health: &container.Health{Status: "unhealthy", Log: []*container.HealthcheckResult{{Output: "failed check"}}}},
 				},
 			}, nil
 		}
-		return types.ContainerJSON{}, errors.New("unexpected container ID in MonitorAll mock")
+		return container.InspectResponse{}, errors.New("unexpected container ID in MonitorAll mock")
 	}
 
 	results := monitor.MonitorAll(ctx, containers, onProgress)
