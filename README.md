@@ -78,6 +78,7 @@ Notes:
 - Generated `.env` is written with owner-only permissions.
 - Existing config files are overwritten after a timestamped backup when `--yes` is used.
 - Do not commit generated `.env` or share license/private secrets.
+- Generated Compose mounts `/etc/machine-id` read-only for license hardware identity. It is a stable identifier input, not a secret; backend heartbeat and offline-token expiry enforce runtime access.
 
 Unattended mode exits with deterministic codes:
 

@@ -19,6 +19,7 @@ This roadmap tracks known product, reliability, security, and documentation work
 | Template workflow Go version aligned | `validate-templates.yml` uses `go-version-file: go.mod`. |
 | Docker-free binary smoke gate | `make test-smoke` and CI verify core command wiring without Docker. |
 | Nightly/manual Compose e2e | `.github/workflows/e2e-compose.yml` runs full lifecycle with cleanup and redacted diagnostics. |
+| License host identity template | Generated kkengine Compose mounts `/etc/machine-id` read-only for v2 license hardware identity. |
 
 ## Near-Term Priorities
 

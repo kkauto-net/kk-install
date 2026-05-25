@@ -72,6 +72,8 @@ Repomix packed 120 files and reported no suspicious files. This summary was then
 
 `pkg/templates.RenderAll` and `pkg/n8n.RenderAll` chmod generated `.env` files to `0600`.
 
+Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the host runtime can derive v2 license hardware identity. The template intentionally does not generate `LICENSE_STATE_DIR`, a dedicated license-state bind mount, `/sys/class/dmi/id`, or offline-token key env vars by default.
+
 ## Security Snapshot
 
 | Area | Current behavior |
@@ -83,6 +85,7 @@ Repomix packed 120 files and reported no suspicious files. This summary was then
 | Config file | `~/.kk/config.yaml` is written `0644` and currently stores non-secret project/language data. |
 | Installer checksum | `scripts/install.sh` verifies `checksums.txt` when available. |
 | Self-update risk | `pkg/selfupdate` downloads release tarballs and replaces the binary; no visible checksum/signature verification in that package. |
+| License host identity | Generated Compose mounts `/etc/machine-id` read-only. This is stable identity input, not a secret; backend heartbeat/offline-token policy enforces runtime access. |
 
 ## CI and Release Snapshot
 

@@ -11,6 +11,7 @@ services:
     volumes:
       - ./kkphp.conf:/config/kkphp.conf
       - ${SYSTEM_WRITEDATA:-./data_writable}:/var/www/html/writable
+      - /etc/machine-id:/etc/machine-id:ro
     networks:
       - kkengine_net
     depends_on:
@@ -135,4 +136,3 @@ volumes:
   caddy_config:
 {{end}}
     # data_writable:
-

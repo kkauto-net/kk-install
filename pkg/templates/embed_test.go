@@ -336,6 +336,60 @@ func TestRenderedEnvDefaultDBPortMatchesMariaDBPublish(t *testing.T) {
 	}
 }
 
+func TestRenderedComposeLicenseHostIdentityMounts(t *testing.T) {
+	rendered, err := RenderTemplateToString("docker-compose.yml", Config{Domain: "test.com"})
+	if err != nil {
+		t.Fatalf("Failed to render docker-compose.yml: %v", err)
+	}
+
+	var compose struct {
+		Services map[string]struct {
+			Volumes []string `yaml:"volumes"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(rendered), &compose); err != nil {
+		t.Fatalf("docker-compose.yml has invalid YAML syntax: %v", err)
+	}
+
+	volumes := compose.Services["kkengine"].Volumes
+	if !stringSliceContains(volumes, "/etc/machine-id:/etc/machine-id:ro") {
+		t.Fatalf("kkengine volumes missing /etc/machine-id read-only mount: %v", volumes)
+	}
+	for _, volume := range volumes {
+		if strings.Contains(volume, "/sys/class/dmi/id") {
+			t.Fatalf("kkengine volumes must not include DMI mount by default: %v", volumes)
+		}
+		if strings.Contains(volume, "data_writable/license") {
+			t.Fatalf("kkengine volumes must not include a dedicated license-state mount by default: %v", volumes)
+		}
+	}
+}
+
+func TestRenderedEnvDoesNotSetLicenseStateOrOfflineTokenKeys(t *testing.T) {
+	rendered, err := RenderTemplateToString("env", Config{
+		Domain:         "test.com",
+		JWTSecret:      "test_jwt_secret_32chars_long!!!!",
+		LicenseKey:     "LICENSE-TESTKEY12345678",
+		DBPassword:     "test_db_pass",
+		DBRootPassword: "test_db_root_pass",
+		RedisPassword:  "test_redis_pass",
+	})
+	if err != nil {
+		t.Fatalf("Failed to render env: %v", err)
+	}
+
+	for _, forbidden := range []string{
+		"LICENSE_STATE_DIR=",
+		"LICENSE_OFFLINE_TOKEN_PRIVATE_KEY=",
+		"LICENSE_OFFLINE_TOKEN_PUBLIC_KEY=",
+		"KKENGINE_ID=",
+	} {
+		if strings.Contains(rendered, forbidden) {
+			t.Fatalf("rendered env must not include %s", forbidden)
+		}
+	}
+}
+
 func hasPublishedHostPort(ports []string, want int) bool {
 	for _, mapping := range ports {
 		parts := strings.Split(mapping, ":")
@@ -344,6 +398,15 @@ func hasPublishedHostPort(ports []string, want int) bool {
 		}
 		hostPort, err := strconv.Atoi(parts[len(parts)-2])
 		if err == nil && hostPort == want {
+			return true
+		}
+	}
+	return false
+}
+
+func stringSliceContains(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
 			return true
 		}
 	}
