@@ -41,6 +41,7 @@ services:
 		webService, ok := composeFile.Services["web"]
 		assert.True(t, ok)
 		assert.Equal(t, "nginx:latest", webService.Image)
+		assert.Equal(t, "", webService.ContainerName)
 		assert.Contains(t, webService.Ports, "80:80")
 		assert.NotNil(t, webService.HealthCheck)
 		assert.Contains(t, webService.HealthCheck.Test, "CMD")
@@ -87,9 +88,34 @@ func TestComposeFile_GetServiceNames(t *testing.T) {
 	}
 	names := composeFile.GetServiceNames()
 	assert.Len(t, names, 3)
-	assert.Contains(t, names, "web")
-	assert.Contains(t, names, "db")
-	assert.Contains(t, names, "app")
+	assert.Equal(t, []string{"app", "db", "web"}, names)
+}
+
+func TestComposeFile_GetServiceImages(t *testing.T) {
+	composeFile := &ComposeFile{
+		Services: map[string]Service{
+			"app":    {Image: "kkauto/kkengine:latest"},
+			"caddy":  {},
+			"db":     {Image: "mariadb:10.6"},
+			"worker": {Image: "kkauto/kkengine:latest"},
+		},
+	}
+
+	images := composeFile.GetServiceImages()
+	assert.Equal(t, []string{"kkauto/kkengine:latest", "mariadb:10.6"}, images)
+}
+
+func TestComposeFile_GetServiceContainerName(t *testing.T) {
+	composeFile := &ComposeFile{
+		Services: map[string]Service{
+			"app": {ContainerName: "custom_app"},
+			"db":  {},
+		},
+	}
+
+	assert.Equal(t, "custom_app", composeFile.GetServiceContainerName("app"))
+	assert.Equal(t, "kkengine_db", composeFile.GetServiceContainerName("db"))
+	assert.Equal(t, "kkengine_missing", composeFile.GetServiceContainerName("missing"))
 }
 
 func TestComposeFile_HasHealthCheck(t *testing.T) {

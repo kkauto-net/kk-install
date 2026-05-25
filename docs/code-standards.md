@@ -18,7 +18,7 @@ These standards describe the current Go CLI codebase. They are documentation-onl
 | `pkg/selfupdate/` | GitHub release check, archive download, binary replacement. |
 | `pkg/templates/` | kkengine embedded templates and render validation. |
 | `pkg/ui/` | i18n, terminal UI, tables, progress, passwords. |
-| `pkg/updater/` | Docker pull output parsing. |
+| `pkg/updater/` | Docker image identity snapshot/diff logic, running-container comparison, and legacy pull output parsing. |
 | `pkg/validator/` | Docker, Compose, ports, env, config, disk, preflight checks. |
 | `scripts/` | Installer and operational scripts. |
 | `docs/` | Evergreen project documentation. |

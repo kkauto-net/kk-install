@@ -1,8 +1,10 @@
 package compose
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,10 +14,11 @@ type ComposeFile struct {
 }
 
 type Service struct {
-	Image       string       `yaml:"image"`
-	Ports       []string     `yaml:"ports"`
-	HealthCheck *HealthCheck `yaml:"healthcheck"`
-	DependsOn   interface{}  `yaml:"depends_on"`
+	Image         string       `yaml:"image"`
+	ContainerName string       `yaml:"container_name"`
+	Ports         []string     `yaml:"ports"`
+	HealthCheck   *HealthCheck `yaml:"healthcheck"`
+	DependsOn     interface{}  `yaml:"depends_on"`
 }
 
 type HealthCheck struct {
@@ -47,7 +50,33 @@ func (c *ComposeFile) GetServiceNames() []string {
 	for name := range c.Services {
 		names = append(names, name)
 	}
+	sort.Strings(names)
 	return names
+}
+
+// GetServiceImages returns unique non-empty service images in deterministic service-name order.
+func (c *ComposeFile) GetServiceImages() []string {
+	seen := make(map[string]bool)
+	var images []string
+
+	for _, name := range c.GetServiceNames() {
+		image := c.Services[name].Image
+		if image == "" || seen[image] {
+			continue
+		}
+		seen[image] = true
+		images = append(images, image)
+	}
+
+	return images
+}
+
+// GetServiceContainerName returns configured container_name, or the generated kkengine default.
+func (c *ComposeFile) GetServiceContainerName(serviceName string) string {
+	if svc, ok := c.Services[serviceName]; ok && svc.ContainerName != "" {
+		return svc.ContainerName
+	}
+	return fmt.Sprintf("kkengine_%s", serviceName)
 }
 
 // HasHealthCheck returns true if service has healthcheck defined

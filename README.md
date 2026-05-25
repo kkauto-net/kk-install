@@ -100,7 +100,7 @@ Unattended mode exits with deterministic codes:
 | `kk remove` | Remove all containers, networks (use `-v` to also remove volumes) |
 | `kk restart` | Restart all running services |
 | `kk status` | Display status of all containers |
-| `kk update -f` | Pull images and recreate containers; `-f` skips confirmation |
+| `kk update -f` | Pull images, show changed image identities, and recreate containers; `-f` skips confirmation |
 | `kk selfupdate --check` | Check or install latest CLI release; use `-f` to skip confirmation |
 | `kk config show` | Show language, project directory, and config path |
 | `kk completion bash\|zsh\|fish` | Generate shell completion script |

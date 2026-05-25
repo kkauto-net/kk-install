@@ -1,12 +1,12 @@
 # Codebase Summary
 
-Generated from `./repomix-output.xml` on 2026-05-22 with:
+Generated from `./repomix-output.xml` on 2026-05-26 with:
 
 ```bash
 repomix --style xml -o repomix-output.xml
 ```
 
-Repomix packed 120 files and reported no suspicious files. This summary was then checked against current source files.
+Repomix packed 135 files and reported no suspicious files. This summary was then checked against current source files.
 
 ## Overview
 
@@ -37,7 +37,7 @@ Repomix packed 120 files and reported no suspicious files. This summary was then
 | `pkg/validator/` | Docker, Compose, ports, env, config, disk, and preflight validation. |
 | `pkg/monitor/` | Container status and Docker health monitoring. |
 | `pkg/ui/` | i18n messages, banners, progress, tables, errors, password generation. |
-| `pkg/updater/` | Docker pull output parsing. |
+| `pkg/updater/` | Docker image identity snapshot/diff logic, running-container comparison, and legacy pull output parsing. |
 | `pkg/selfupdate/` | GitHub release lookup, archive download, binary replacement. |
 | `pkg/n8n/` | n8n directories, config validation, and templates. |
 | `scripts/` | Installer script. |
@@ -53,7 +53,7 @@ Repomix packed 120 files and reported no suspicious files. This summary was then
 | `kk restart` | Restarts configured kkengine stack. |
 | `kk remove` | `--volumes/-v` also removes data volumes. |
 | `kk status` | Shows container status. |
-| `kk update` | `--force/-f` skips confirmation. |
+| `kk update` | Pulls images, compares image identities, optionally force-recreates containers; `--force/-f` skips confirmation. |
 | `kk selfupdate` | `--check/-c`, `--force/-f` |
 | `kk config show` | Shows language, project dir, config path. |
 | `kk completion` | `bash`, `zsh`, `fish` |

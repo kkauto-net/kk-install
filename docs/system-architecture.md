@@ -24,7 +24,7 @@ main.go
 | `pkg/validator` | Docker/Compose/preflight/ports/env/config/disk validation. |
 | `pkg/monitor` | Docker health and service status. |
 | `pkg/ui` | i18n, progress, tables, banners, suggestions, password generation. |
-| `pkg/updater` | Parse Docker pull output into image update information. |
+| `pkg/updater` | Parse legacy Docker pull output and compare Docker image identities for update detection. |
 | `pkg/selfupdate` | GitHub release check, tarball download/extract, binary replacement. |
 | `pkg/n8n` | n8n stack paths, config validation, template rendering. |
 
@@ -99,12 +99,18 @@ kk start
 ```text
 kk update [-f]
   -> config.EnsureProjectDir()
+  -> compose.ParseComposeFile()
+  -> updater.SnapshotImages() before pull
   -> compose.Executor.Pull()
-  -> updater.ParsePullOutput()
+  -> updater.SnapshotImages() after pull
+  -> updater.CompareSnapshots()
+  -> updater.CompareRunningContainers()
   -> optional confirmation
   -> compose.Executor.ForceRecreate()
   -> monitor health/status
 ```
+
+Image update detection uses repo digest when Docker exposes it, otherwise image ID. It also compares running container image IDs with the desired local image IDs so a prior pull-without-recreate is still detected as pending work. Pulling an image only updates the local image cache; `ForceRecreate` is the apply step that recreates containers so the running services actually use the pulled image.
 
 ### Self-update
 

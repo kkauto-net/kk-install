@@ -14,13 +14,12 @@ import (
 	"github.com/kkauto-net/kk-install/pkg/config"
 	"github.com/kkauto-net/kk-install/pkg/monitor"
 	"github.com/kkauto-net/kk-install/pkg/ui"
-	"github.com/kkauto-net/kk-install/pkg/updater"
 )
 
 var updateCmd = &cobra.Command{
 	Use:         "update",
 	Short:       "Pull latest images and recreate containers",
-	Long:        `Check and download new images from Docker Hub, then restart services.`,
+	Long:        `Check and download new images from Docker Hub, then recreate services.`,
 	Annotations: map[string]string{"group": "management"},
 	RunE:        runUpdate,
 }
@@ -57,6 +56,11 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}()
 
 	executor := compose.NewExecutor(cwd)
+	imageState, err := prepareUpdateImageState(ctx, cwd)
+	if err != nil {
+		showUpdatePreparationError(err)
+		return err
+	}
 
 	// Step 1: Pull new images
 	ui.ShowStepHeader(1, 4, ui.Msg("step_pull_images"))
@@ -65,7 +69,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	pullCtx, pullCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer pullCancel()
 
-	output, err := executor.Pull(pullCtx)
+	_, err = executor.Pull(pullCtx)
 	if err != nil {
 		spinner.Fail(ui.Msg("pull_failed"))
 
@@ -85,8 +89,15 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 	spinner.Success(ui.Msg("pulling_images"))
 
-	// Step 2: Parse pull output
-	updates := updater.ParsePullOutput(output)
+	updates, err := detectUpdatesAfterPull(ctx, imageState)
+	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("pull_failed"),
+			Message:    err.Error(),
+			Suggestion: "Check Docker pull output and image availability",
+		})
+		return err
+	}
 
 	if len(updates) == 0 {
 		fmt.Println("\n[OK] " + ui.Msg("images_up_to_date"))
@@ -106,13 +117,13 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	ui.PrintUpdatesTable(uiUpdates)
 	fmt.Println()
 
-	// Confirm restart
+	// Confirm recreate
 	if !forceUpdate {
 		var confirm bool
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
-					Title(ui.Msg("confirm_restart")).
+					Title(ui.Msg("confirm_update_recreate")).
 					Value(&confirm),
 			),
 		)
@@ -123,7 +134,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 
 		if !confirm {
-			fmt.Println(ui.Msg("update_cancelled"))
+			fmt.Println(ui.Msg("update_recreate_cancelled"))
 			return nil
 		}
 	}
@@ -139,32 +150,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
 	}
 
-	// Monitor health
-	composeFile, err := compose.ParseComposeFile(cwd)
-	var definedServices []string
-	if err == nil {
-		for name := range composeFile.Services {
-			definedServices = append(definedServices, name)
-		}
-
-		healthMonitor, monitorErr := monitor.NewHealthMonitor()
-		if monitorErr == nil {
-			defer healthMonitor.Close()
-
-			var containers []monitor.ContainerInfo
-			for name := range composeFile.Services {
-				containers = append(containers, monitor.ContainerInfo{
-					ServiceName:    name,
-					ContainerName:  fmt.Sprintf("kkengine_%s", name),
-					HasHealthCheck: composeFile.HasHealthCheck(name),
-				})
-			}
-
-			healthMonitor.MonitorAll(recreateCtx, containers, func(status monitor.HealthStatus) {
-				ui.ShowServiceProgress(status.ServiceName, status.Status)
-			})
-		}
-	}
+	definedServices := imageState.composeFile.GetServiceNames()
+	monitorUpdateHealth(recreateCtx, imageState.composeFile)
 
 	// Step 4: Show status
 	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
