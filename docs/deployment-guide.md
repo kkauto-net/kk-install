@@ -128,7 +128,7 @@ kk n8n logs -f -n 100
 |---|---|
 | CI | `go test -v ./...`, Docker-free binary smoke, `CGO_ENABLED=0 go build`, golangci-lint on push and PR, race/shuffle outside PRs. |
 | Installer shell tests | CI runs `bash scripts/install_test.sh` for 7 offline installer checksum, no-checksum-tool, and piped-execution tests. |
-| Scheduled security scan | `govulncheck` runs on scheduled CI only as a staged scan, not a PR-required gate. |
+| Scheduled security scan | Pinned `govulncheck` runs on scheduled CI only as a staged scan, reports findings as warnings, and is not a PR-required gate. |
 | Reviewdog | golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks templates, and validates golden YAML. |
 | E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, redacted `compose ps`/log diagnostics, fail-closed diagnostic deletion on redaction failure, and cleanup. |

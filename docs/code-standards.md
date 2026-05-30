@@ -105,7 +105,7 @@ go test -race ./cmd ./pkg/license ./pkg/templates ./pkg/compose ./pkg/validator
 
 Nightly/manual Docker Compose validation lives in `.github/workflows/e2e-compose.yml`. It is intentionally not a PR requirement because it depends on Docker runtime, image pulls, network, and `KKAUTO_E2E_LICENSE`.
 
-Scheduled CI runs `govulncheck` as a staged security scan. Keep it out of required PR gates until advisory noise is understood.
+Scheduled CI runs pinned `govulncheck` as a staged security scan. Keep it out of required PR gates until advisory noise is understood, report vulnerability findings as job-summary warnings, and do not use `@latest` because scanner toolchain requirements can change independently of `go.mod`.
 
 Add focused tests for command option validation, exit-code mapping, render permissions, secret masking, port/template contracts, and parser behavior.
 

@@ -96,7 +96,7 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | `make build` | `CGO_ENABLED=0 go build` to `build/kk` |
 | CI | Tests `./...`, builds `kk`, runs binary smoke, runs golangci-lint on push and PR, and runs race/shuffle outside PRs. |
 | Installer shell tests | `scripts/install_test.sh` runs 7 offline tests for checksum branches, no-checksum-tool failure, and piped-installer guard behavior in CI. |
-| Scheduled security scan | `govulncheck` runs only on scheduled CI as a staged vulnerability check. |
+| Scheduled security scan | Pinned `govulncheck` runs only on scheduled CI as a staged vulnerability check and reports findings as warnings. |
 | Reviewdog | Runs golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks template content, runs template tests, validates golden YAML. |
 | Release | GoReleaser publishes Linux `amd64`/`arm64` tarballs and checksums. |

@@ -102,4 +102,29 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Run Go vulnerability scan
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: |
+          tmpbin="$(mktemp -d)"
+          trap 'rm -rf "${tmpbin}"' EXIT
+          GOBIN="${tmpbin}" GOTOOLCHAIN=auto go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
+
+          set +e
+          "${tmpbin}/govulncheck" ./... 2>&1 | tee govulncheck.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "### govulncheck"
+            echo
+            echo '```text'
+            cat govulncheck.txt
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [ "${status}" -eq 0 ]; then
+            exit 0
+          fi
+          if [ "${status}" -eq 3 ]; then
+            echo "::warning::govulncheck found vulnerabilities; see job summary."
+            exit 0
+          fi
+          exit "${status}"

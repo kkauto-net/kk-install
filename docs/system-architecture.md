@@ -135,7 +135,7 @@ Security note: installer and self-update paths require successful SHA256 verific
 | PR and main CI | `go test -v ./...`, static lint, build, and Docker-free binary smoke. |
 | Installer shell tests | Source `scripts/install.sh` safely and run 7 offline tests for checksum success/failure, missing checksum tooling, and piped execution. |
 | Main and scheduled CI | Shuffled tests plus selected race tests for command, license, template, compose, and validator packages. |
-| Scheduled security scan | `govulncheck` runs outside PR gates as a low-noise vulnerability scan trial. |
+| Scheduled security scan | Pinned `govulncheck` runs outside PR gates as a low-noise vulnerability scan trial and reports findings as warnings. |
 | Release and draft release | Full repository tests before release build steps. |
 | Template validation | Uses Go from `go.mod` and validates template tests/golden YAML. |
 | Nightly/manual e2e | Builds `kk`, runs unattended init, validates Compose config, runs start/status/stop/remove, collects redacted `compose ps`/log diagnostics, deletes compose diagnostics if redaction fails, and cleans up resources. |
