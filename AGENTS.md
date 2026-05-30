@@ -50,7 +50,7 @@
 - `validate-templates.yml` uses `go-version-file: go.mod`.
 - Real Docker Compose e2e lives in `.github/workflows/e2e-compose.yml` and is nightly/manual only; it requires `KKAUTO_E2E_LICENSE`.
 - GoReleaser publishes Linux `amd64`/`arm64` tarballs only; do not promise macOS artifacts without changing `.goreleaser.yml` and installer behavior.
-- `scripts/install.sh` verifies `checksums.txt` when available; `pkg/selfupdate` has no visible checksum/signature verification yet.
+- `scripts/install.sh` and `pkg/selfupdate` require `checksums.txt` SHA256 verification before installing or replacing the `kk` binary; no release signature verification is implemented yet.
 
 ## Docs
 

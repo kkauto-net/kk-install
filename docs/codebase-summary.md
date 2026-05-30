@@ -83,8 +83,8 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | License input | `--license-file` and `--license-stdin` avoid argv exposure; input cap is 4096 bytes. |
 | Secrets | Generated with `crypto/rand` in `cmd/init.go` and `pkg/ui/passwords.go`. |
 | Config file | `~/.kk/config.yaml` is written `0644` and currently stores non-secret project/language data. |
-| Installer checksum | `scripts/install.sh` verifies `checksums.txt` when available. |
-| Self-update risk | `pkg/selfupdate` downloads release tarballs and replaces the binary; no visible checksum/signature verification in that package. |
+| Installer checksum | `scripts/install.sh` requires `checksums.txt` SHA256 verification before installing the binary. |
+| Self-update integrity | `pkg/selfupdate` requires matching release `checksums.txt` SHA256 verification before extracting and replacing the binary. |
 | License host identity | Generated Compose mounts `/etc/machine-id` read-only. This is stable identity input, not a secret; backend heartbeat/offline-token policy enforces runtime access. |
 
 ## CI and Release Snapshot
@@ -103,7 +103,7 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 ## Known Inconsistencies to Track
 
 - Draft-release references `steps.changelog.outputs.previous_tag`, but that output is not set in the visible workflow.
-- `pkg/selfupdate` lacks visible checksum/signature verification.
+- Draft-release and release integrity docs should stay synced with checksum asset naming if GoReleaser config changes.
 
 ## Related Docs
 

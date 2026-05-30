@@ -40,6 +40,7 @@ type UpdateResult struct {
 	LatestVersion  string
 	UpdateNeeded   bool
 	DownloadURL    string
+	ChecksumURL    string
 	AssetName      string
 }
 
@@ -61,18 +62,23 @@ func CheckForUpdate(ctx context.Context, currentVersion string) (*UpdateResult, 
 
 	result.UpdateNeeded = latest != current
 
-	// Find the right asset for this platform
+	// Find the right assets for this platform
 	assetName := getAssetName(release.TagName)
 	for _, asset := range release.Assets {
 		if asset.Name == assetName {
 			result.DownloadURL = asset.BrowserDownloadURL
 			result.AssetName = asset.Name
-			break
+		}
+		if asset.Name == checksumAssetName {
+			result.ChecksumURL = asset.BrowserDownloadURL
 		}
 	}
 
 	if result.UpdateNeeded && result.DownloadURL == "" {
 		return nil, fmt.Errorf("no compatible binary found for %s/%s", runtime.GOOS, runtime.GOARCH)
+	}
+	if result.UpdateNeeded && result.ChecksumURL == "" {
+		return nil, fmt.Errorf("checksum asset %s not found in release %s", checksumAssetName, release.TagName)
 	}
 
 	return result, nil
@@ -105,6 +111,14 @@ func Update(ctx context.Context, result *UpdateResult) error {
 	archivePath := filepath.Join(tmpDir, result.AssetName)
 	if err := downloadFile(ctx, result.DownloadURL, archivePath); err != nil {
 		return fmt.Errorf("failed to download: %w", err)
+	}
+
+	checksumPath := filepath.Join(tmpDir, checksumAssetName)
+	if err := downloadFile(ctx, result.ChecksumURL, checksumPath); err != nil {
+		return fmt.Errorf("failed to download checksum: %w", err)
+	}
+	if err := verifyChecksum(archivePath, checksumPath, result.AssetName); err != nil {
+		return fmt.Errorf("failed to verify checksum: %w", err)
 	}
 
 	// Extract the binary

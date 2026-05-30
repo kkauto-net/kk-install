@@ -13,7 +13,8 @@ This roadmap tracks known product, reliability, security, and documentation work
 | Deterministic init exit codes | `cmd/exit_error.go` and `cmd/root.go`. |
 | kkengine lifecycle commands | `start`, `stop`, `restart`, `remove`, `status`, `update`. |
 | n8n command group | `cmd/n8n*.go` and `pkg/n8n/*`. |
-| Installer checksum support | `scripts/install.sh` downloads and verifies `checksums.txt` when available. |
+| Installer fail-closed checksum support | `scripts/install.sh` requires matching `checksums.txt` SHA256 verification before install. |
+| Self-update fail-closed checksum support | `pkg/selfupdate` requires matching release `checksums.txt` SHA256 verification before binary replacement. |
 | MariaDB port contract aligned | `pkg/validator/ports.go`, `pkg/ui/table.go`, and generated templates use `3306`; template contract tests cover drift. |
 | Release workflow test scope aligned | `release.yml` and `draft-release.yml` run `go test -v ./...`. |
 | Template workflow Go version aligned | `validate-templates.yml` uses `go-version-file: go.mod`. |
@@ -26,7 +27,6 @@ This roadmap tracks known product, reliability, security, and documentation work
 | Priority | Item | Reason |
 |---:|---|---|
 | P0 | Fix draft-release previous tag output. | Workflow references `steps.changelog.outputs.previous_tag` without setting it. |
-| P1 | Add checksum/signature verification to `pkg/selfupdate`. | Self-update downloads and replaces binary without visible artifact verification. |
 | P1 | Decide published platform matrix. | GoReleaser currently publishes Linux `amd64`/`arm64` only. |
 
 ## Product Enhancements

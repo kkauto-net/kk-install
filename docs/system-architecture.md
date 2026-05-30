@@ -118,12 +118,15 @@ Image update detection uses repo digest when Docker exposes it, otherwise image 
 kk selfupdate [--check] [--force]
   -> GitHub latest release API
   -> pick asset kkcli_<version>_<goos>_<goarch>.tar.gz
+  -> pick checksums.txt from the same release
   -> download archive
+  -> download checksums.txt
+  -> verify archive SHA256 by exact artifact filename
   -> extract kk binary
   -> replace current executable, with sudo when needed
 ```
 
-Security note: installer script verifies checksums when available, but `pkg/selfupdate` has no visible checksum/signature verification.
+Security note: installer and self-update paths require successful SHA256 verification before installing or replacing the `kk` binary.
 
 ## Test And CI Architecture
 
@@ -163,7 +166,7 @@ Real Docker Compose lifecycle tests are kept out of PR gates to avoid network, i
 ## Known Architecture Risks
 
 - Release artifacts are Linux-only while source may build elsewhere.
-- Self-update lacks visible checksum/signature verification.
+- Release artifact integrity depends on GitHub release `checksums.txt`; missing or invalid checksum metadata fails closed.
 
 ## References
 

@@ -21,7 +21,7 @@ curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/i
 kk --version
 ```
 
-The installer detects OS/architecture, downloads `kkcli_<version>_<os>_<arch>.tar.gz`, verifies `checksums.txt` when available, and installs `kk` to `/usr/local/bin` with `sudo` if needed.
+The installer detects OS/architecture, downloads `kkcli_<version>_<os>_<arch>.tar.gz`, requires SHA256 verification from `checksums.txt`, and installs `kk` to `/usr/local/bin` with `sudo` if needed. Missing checksum metadata, missing local checksum tools, malformed checksums, or mismatches abort the install before extraction.
 
 ## Build from Source
 
@@ -134,10 +134,12 @@ kk n8n logs -f -n 100
 | Release | Tags `v*.*.*` trigger full tests and GoReleaser. |
 | Artifacts | Linux `amd64` and `arm64` tarballs plus `checksums.txt`. |
 
+`kk selfupdate` downloads the matching release tarball and `checksums.txt` from the same release, verifies the tarball SHA256 by exact artifact filename, then extracts and replaces the binary only after verification succeeds.
+
 ## Deployment Risks
 
 - GoReleaser publishes Linux only; do not promise macOS artifacts without config changes.
-- `pkg/selfupdate` does not visibly verify checksums/signatures before replacing the binary.
+- Release installs and self-updates fail closed when `checksums.txt` is missing or does not contain a valid matching artifact entry.
 - `/etc/machine-id` is visible to operators with host/container access. It improves identity stability but does not prevent deliberate cloning or spoofing by itself.
 
 ## References

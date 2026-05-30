@@ -93,9 +93,9 @@ get_latest_version() {
     print_step "Checking latest version..."
 
     if command -v jq &> /dev/null; then
-        LATEST=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.tag_name')
+        LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.tag_name')
     else
-        LATEST=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
 
     if [ -z "$LATEST" ]; then
@@ -126,14 +126,15 @@ download_binary() {
 
     # Download checksum file
     print_step "Downloading checksum..."
-    if ! curl -sL "$CHECKSUM_URL" -o "$TMP_DIR/checksums.txt"; then
-        print_warning "Could not download checksum file. Skipping verification."
+    if ! curl -fsSL "$CHECKSUM_URL" -o "$TMP_DIR/checksums.txt"; then
+        print_error "Could not download checksum file. Aborting install."
+        exit 1
     fi
 
     # Download binary
     print_step "Downloading binary..."
     print_info "URL: $DOWNLOAD_URL"
-    if ! curl -sL "$DOWNLOAD_URL" -o "$TMP_DIR/kkcli.tar.gz"; then
+    if ! curl -fsSL "$DOWNLOAD_URL" -o "$TMP_DIR/kkcli.tar.gz"; then
         print_error "Failed to download binary."
         exit 1
     fi
@@ -142,7 +143,8 @@ download_binary() {
 
 verify_checksum() {
     if [ ! -f "$TMP_DIR/checksums.txt" ]; then
-        return 0
+        print_error "Checksum file is missing. Aborting install."
+        exit 1
     fi
 
     print_step "Verifying checksum..."
@@ -150,12 +152,18 @@ verify_checksum() {
     CHECKSUM_FILE="kkcli_${LATEST#v}_${OS}_${ARCH}.tar.gz"
 
     # Get expected checksum
-    EXPECTED=$(grep "$CHECKSUM_FILE" checksums.txt | awk '{print $1}')
+    EXPECTED=$(awk -v file="$CHECKSUM_FILE" '$2 == file {print $1}' checksums.txt)
     if [ -z "$EXPECTED" ]; then
-        print_warning "Checksum not found for $CHECKSUM_FILE"
+        print_error "Checksum not found for $CHECKSUM_FILE. Aborting install."
         cd - > /dev/null
-        return 0
+        exit 1
     fi
+    if [[ ! "$EXPECTED" =~ ^[A-Fa-f0-9]{64}$ ]]; then
+        print_error "Invalid checksum format for $CHECKSUM_FILE. Aborting install."
+        cd - > /dev/null
+        exit 1
+    fi
+    EXPECTED=$(printf '%s' "$EXPECTED" | tr '[:upper:]' '[:lower:]')
 
     # Calculate actual checksum
     if command -v sha256sum &> /dev/null; then
@@ -163,9 +171,9 @@ verify_checksum() {
     elif command -v shasum &> /dev/null; then
         ACTUAL=$(shasum -a 256 kkcli.tar.gz | awk '{print $1}')
     else
-        print_warning "No checksum tool available. Skipping verification."
+        print_error "No checksum tool available. Install sha256sum or shasum. Aborting install."
         cd - > /dev/null
-        return 0
+        exit 1
     fi
 
     # Compare

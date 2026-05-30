@@ -75,8 +75,8 @@ Do not convert every legacy error to a typed error without a product requirement
 - Do not print generated values for `JWT_SECRET`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, or n8n encryption keys in logs/errors.
 - Generated kkengine and n8n `.env` files must remain `0600`.
 - `~/.kk/config.yaml` is currently `0644`; keep it non-secret unless permissions and migration are redesigned.
-- Installer checksum verification should remain enabled when release checksums are available.
-- Treat self-update checksum/signature verification as a roadmap security item.
+- Installer and self-update checksum verification must fail closed before installing or replacing the `kk` binary.
+- Match release checksums by exact artifact filename and reject missing, malformed, or mismatched SHA256 entries.
 
 ## Testing Standards
 
