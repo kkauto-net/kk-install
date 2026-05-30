@@ -25,6 +25,12 @@ jobs:
       - name: Run tests
         run: go test -v ./...
 
+      - name: Installer shell tests
+        run: |
+          bash -n scripts/install.sh
+          bash -n scripts/install_test.sh
+          bash scripts/install_test.sh
+
       - name: Build
         run: CGO_ENABLED=0 go build -o kk .
 
@@ -83,3 +89,17 @@ jobs:
 
       - name: Run selected race tests
         run: go test -race ./cmd ./pkg/license ./pkg/templates ./pkg/compose ./pkg/validator
+
+  govulncheck:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run Go vulnerability scan
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

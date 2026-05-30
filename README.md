@@ -142,6 +142,7 @@ make deps
 make fmt
 make lint
 make test
+bash scripts/install_test.sh
 make test-smoke
 make build
 ```

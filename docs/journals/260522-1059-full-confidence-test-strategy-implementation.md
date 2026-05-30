@@ -52,7 +52,7 @@ Implemented the full-confidence test strategy for the Go CLI. Goal: deterministi
 ## Follow-Up
 
 - Configure `KKAUTO_E2E_LICENSE` in repository secrets and run the first manual e2e workflow.
-- Fix draft-release `previous_tag` output.
-- Add checksum/signature verification to `pkg/selfupdate`.
+- Draft-release `previous_tag` output was fixed after this journal.
+- SHA256 checksum verification was added to `pkg/selfupdate`; release signature verification is not implemented.
 - Decide whether release artifact matrix should remain Linux-only or expand beyond Linux.
 - Investigate health monitor container-name derivation for `kkengine_app` vs `kkengine_kkengine` before making health checks strict.

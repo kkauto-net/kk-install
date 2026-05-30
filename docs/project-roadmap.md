@@ -15,6 +15,7 @@ This roadmap tracks known product, reliability, security, and documentation work
 | n8n command group | `cmd/n8n*.go` and `pkg/n8n/*`. |
 | Installer fail-closed checksum support | `scripts/install.sh` requires matching `checksums.txt` SHA256 verification before install. |
 | Self-update fail-closed checksum support | `pkg/selfupdate` requires matching release `checksums.txt` SHA256 verification before binary replacement. |
+| Draft-release changelog outputs | `.github/workflows/draft-release.yml` sets `previous_tag`, `compare_url`, and `changelog` outputs before creating the draft release. |
 | MariaDB port contract aligned | `pkg/validator/ports.go`, `pkg/ui/table.go`, and generated templates use `3306`; template contract tests cover drift. |
 | Release workflow test scope aligned | `release.yml` and `draft-release.yml` run `go test -v ./...`. |
 | Template workflow Go version aligned | `validate-templates.yml` uses `go-version-file: go.mod`. |
@@ -26,8 +27,8 @@ This roadmap tracks known product, reliability, security, and documentation work
 
 | Priority | Item | Reason |
 |---:|---|---|
-| P0 | Fix draft-release previous tag output. | Workflow references `steps.changelog.outputs.previous_tag` without setting it. |
 | P1 | Decide published platform matrix. | GoReleaser currently publishes Linux `amd64`/`arm64` only. |
+| P1 | Keep release integrity guidance explicit. | Current releases use SHA256 checksums only; no signature verification is implemented. |
 
 ## Product Enhancements
 

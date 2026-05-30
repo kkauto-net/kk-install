@@ -84,16 +84,28 @@ jobs:
             docker compose --env-file .env -f docker-compose.yml ps --all > "${E2E_ARTIFACT_DIR}/compose-ps.txt" 2>&1
             docker compose --env-file .env -f docker-compose.yml logs --no-color > "${E2E_ARTIFACT_DIR}/compose-logs.txt" 2>&1
             if [ -f .env ]; then
-              while IFS='=' read -r key value; do
-                case "${key}" in
-                  ''|'#'*) continue ;;
-                  *PASSWORD*|*SECRET*|*KEY*|*LICENSE*)
-                    if [ -n "${value}" ]; then
-                      SECRET_VALUE="${value}" perl -0pi -e 's/\Q$ENV{SECRET_VALUE}\E/[REDACTED]/g' "${E2E_ARTIFACT_DIR}/compose-logs.txt"
-                    fi
-                    ;;
-                esac
-              done < .env
+              redaction_failed=0
+              if ! command -v perl >/dev/null 2>&1; then
+                redaction_failed=1
+              fi
+              for diagnostic_file in "${E2E_ARTIFACT_DIR}/compose-ps.txt" "${E2E_ARTIFACT_DIR}/compose-logs.txt"; do
+                [ -f "${diagnostic_file}" ] || continue
+                while IFS='=' read -r key value; do
+                  case "${key}" in
+                    ''|'#'*) continue ;;
+                    *PASSWORD*|*SECRET*|*KEY*|*LICENSE*)
+                      if [ -n "${value}" ] && [ "${redaction_failed}" -eq 0 ]; then
+                        SECRET_VALUE="${value}" perl -0pi -e 's/\Q$ENV{SECRET_VALUE}\E/[REDACTED]/g' "${diagnostic_file}" || redaction_failed=1
+                      fi
+                      ;;
+                  esac
+                done < .env
+              done
+              if [ "${redaction_failed}" -ne 0 ]; then
+                rm -f "${E2E_ARTIFACT_DIR}/compose-ps.txt" "${E2E_ARTIFACT_DIR}/compose-logs.txt"
+                echo "Diagnostics redaction failed; removed compose diagnostics before upload." >&2
+                exit 1
+              fi
             fi
           fi
 

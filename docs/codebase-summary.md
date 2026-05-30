@@ -1,12 +1,12 @@
 # Codebase Summary
 
-Generated from `./repomix-output.xml` on 2026-05-26 with:
+Generated from `./repomix-output.xml` on 2026-05-31 with:
 
 ```bash
 repomix --style xml -o repomix-output.xml
 ```
 
-Repomix packed 135 files and reported no suspicious files. This summary was then checked against current source files.
+Repomix packed 140 files and reported no suspicious files. This summary was then checked against current source files.
 
 ## Overview
 
@@ -40,8 +40,8 @@ Repomix packed 135 files and reported no suspicious files. This summary was then
 | `pkg/updater/` | Docker image identity snapshot/diff logic, running-container comparison, and legacy pull output parsing. |
 | `pkg/selfupdate/` | GitHub release lookup, archive download, binary replacement. |
 | `pkg/n8n/` | n8n directories, config validation, and templates. |
-| `scripts/` | Installer script. |
-| `.github/workflows/` | CI, reviewdog, template validation, e2e compose, auto-version, release, draft-release. |
+| `scripts/` | Installer script and local installer checksum test harness. |
+| `.github/workflows/` | CI, reviewdog, template validation, e2e compose, auto-version, release, draft-release, cleanup-artifacts. |
 
 ## Verified Command Surface
 
@@ -95,15 +95,17 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | `make test-smoke` | Builds `kk` and verifies Docker-free command wiring. |
 | `make build` | `CGO_ENABLED=0 go build` to `build/kk` |
 | CI | Tests `./...`, builds `kk`, runs binary smoke, runs golangci-lint on push and PR, and runs race/shuffle outside PRs. |
-| Reviewdog | Runs golangci-lint and shellcheck. |
+| Installer shell tests | `scripts/install_test.sh` runs 7 offline tests for checksum branches, no-checksum-tool failure, and piped-installer guard behavior in CI. |
+| Scheduled security scan | `govulncheck` runs only on scheduled CI as a staged vulnerability check. |
+| Reviewdog | Runs golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks template content, runs template tests, validates golden YAML. |
 | Release | GoReleaser publishes Linux `amd64`/`arm64` tarballs and checksums. |
-| E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, cleanup, and redacted diagnostics. |
+| E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, cleanup, and fail-closed redacted diagnostics. |
 
 ## Known Inconsistencies to Track
 
-- Draft-release references `steps.changelog.outputs.previous_tag`, but that output is not set in the visible workflow.
 - Draft-release and release integrity docs should stay synced with checksum asset naming if GoReleaser config changes.
+- Release integrity currently uses SHA256 checksums only; no release signature verification is implemented.
 
 ## Related Docs
 

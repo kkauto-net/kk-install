@@ -57,7 +57,8 @@
 - Explain temporary license file cleanup with `trap` in examples.
 - Warn before volume deletion.
 - Keep generated `.env` file permission behavior visible in docs.
-- Highlight self-update verification as a roadmap risk until implemented.
+- Describe installer and self-update integrity as fail-closed SHA256 verification against `checksums.txt`.
+- Do not imply release signature verification; no GPG, cosign, or equivalent signature check is implemented.
 
 ## Documentation Design
 

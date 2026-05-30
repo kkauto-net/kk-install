@@ -2,7 +2,7 @@
 
 ---
 date: 2026-05-25
-status: approved
+status: implemented-historical
 scope: kk-update-only
 ---
 
@@ -11,6 +11,8 @@ scope: kk-update-only
 Improve `kk update` UX by showing current and new Docker image identity before asking user to recreate services. Use image digest/ID, not tag string, because tags like `latest` are mutable and not real versions.
 
 Decision: apply to `kk update` only. Do not change `kk n8n update` in this phase.
+
+Implementation note: this brainstorm is historical. The feature was implemented after planning; see [kk update image version implementation](./journals/260526-0023-kk-update-image-version-implementation.md). The shipped implementation also compares running-container image IDs against local post-pull image IDs so already-pulled but not-yet-recreated containers are detected as stale.
 
 ## Problem Statement
 
@@ -107,8 +109,8 @@ Identity preference:
 
 ## Next Steps
 
-- Create implementation plan if needed.
-- Then implement in a separate coding phase after plan approval.
+- Implemented; keep this file as design history.
+- For current behavior, see [kk update image version implementation](./journals/260526-0023-kk-update-image-version-implementation.md).
 
 ## Unresolved Questions
 

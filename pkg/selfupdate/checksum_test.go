@@ -46,6 +46,54 @@ func TestParseChecksumMalformedHash(t *testing.T) {
 	}
 }
 
+func TestParseChecksumRequiresExactFilename(t *testing.T) {
+	t.Parallel()
+
+	assetName := "kkcli_1.2.3_linux_amd64.tar.gz"
+	checksum := strings.Repeat("b", 64)
+	checksumsPath := writeTempFile(t, "checksums.txt", fmt.Sprintf("%s  %s.old\n", strings.Repeat("a", 64), assetName)+fmt.Sprintf("%s  %s\n", checksum, assetName))
+
+	got, err := parseChecksum(checksumsPath, assetName)
+	if err != nil {
+		t.Fatalf("parseChecksum returned error: %v", err)
+	}
+	if got != checksum {
+		t.Fatalf("parseChecksum = %q, want exact filename checksum %q", got, checksum)
+	}
+}
+
+func TestParseChecksumLowercasesUppercaseHash(t *testing.T) {
+	t.Parallel()
+
+	assetName := "kkcli_1.2.3_linux_amd64.tar.gz"
+	checksum := strings.Repeat("A", 64)
+	checksumsPath := writeTempFile(t, "checksums.txt", fmt.Sprintf("%s  %s\n", checksum, assetName))
+
+	got, err := parseChecksum(checksumsPath, assetName)
+	if err != nil {
+		t.Fatalf("parseChecksum returned error: %v", err)
+	}
+	if got != strings.ToLower(checksum) {
+		t.Fatalf("parseChecksum = %q, want lowercase checksum", got)
+	}
+}
+
+func TestParseChecksumIgnoresExtraFieldsAfterFilename(t *testing.T) {
+	t.Parallel()
+
+	assetName := "kkcli_1.2.3_linux_amd64.tar.gz"
+	checksum := strings.Repeat("c", 64)
+	checksumsPath := writeTempFile(t, "checksums.txt", fmt.Sprintf("%s  %s  ignored-extra-field\n", checksum, assetName))
+
+	got, err := parseChecksum(checksumsPath, assetName)
+	if err != nil {
+		t.Fatalf("parseChecksum returned error: %v", err)
+	}
+	if got != checksum {
+		t.Fatalf("parseChecksum = %q, want %q", got, checksum)
+	}
+}
+
 func TestVerifyChecksumValidFile(t *testing.T) {
 	t.Parallel()
 

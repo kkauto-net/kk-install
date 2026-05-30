@@ -32,6 +32,7 @@ These standards describe the current Go CLI codebase. They are documentation-onl
 - Preserve existing command names and flags unless a migration requirement exists.
 - Keep validation ownership clear: license validation in `pkg/license`, template validation in `pkg/templates`, Docker/preflight validation in `pkg/validator`.
 - Prefer small helper functions for command option resolution, especially when automation behavior needs tests.
+- Keep `kk update` image comparison in `pkg/updater`, including local before/after image identity diffing and running-container image ID comparison for stale containers.
 
 ## CLI Standards
 
@@ -77,6 +78,8 @@ Do not convert every legacy error to a typed error without a product requirement
 - `~/.kk/config.yaml` is currently `0644`; keep it non-secret unless permissions and migration are redesigned.
 - Installer and self-update checksum verification must fail closed before installing or replacing the `kk` binary.
 - Match release checksums by exact artifact filename and reject missing, malformed, or mismatched SHA256 entries.
+- Do not document or imply release signature verification unless GPG, cosign, or equivalent verification is added.
+- E2E diagnostics must redact secret-like `.env` values before artifact upload; delete compose diagnostics if redaction cannot complete.
 
 ## Testing Standards
 
@@ -86,11 +89,12 @@ Run these local checks before release handoff:
 make fmt
 make lint
 make test
+bash scripts/install_test.sh
 make test-smoke
 make build
 ```
 
-`make test` runs `go test -v ./...`. `make test-smoke` builds the CLI and verifies root command wiring without a Docker daemon.
+`make test` runs `go test -v ./...`. `scripts/install_test.sh` runs 7 offline installer tests without network or root, including checksum branches, missing checksum tooling, and piped execution. `make test-smoke` builds the CLI and verifies root command wiring without a Docker daemon.
 
 Run race and shuffle checks before promoting them to required PR gates:
 
@@ -100,6 +104,8 @@ go test -race ./cmd ./pkg/license ./pkg/templates ./pkg/compose ./pkg/validator
 ```
 
 Nightly/manual Docker Compose validation lives in `.github/workflows/e2e-compose.yml`. It is intentionally not a PR requirement because it depends on Docker runtime, image pulls, network, and `KKAUTO_E2E_LICENSE`.
+
+Scheduled CI runs `govulncheck` as a staged security scan. Keep it out of required PR gates until advisory noise is understood.
 
 Add focused tests for command option validation, exit-code mapping, render permissions, secret masking, port/template contracts, and parser behavior.
 
