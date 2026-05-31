@@ -1,6 +1,8 @@
 # @kkauto/kkcli
 
-Linux-only npm distribution wrapper for `kkcli`. The installed command is `kk`.
+`kkcli` is the command-line installer for the kkauto automation social system from [kkauto.net](https://kkauto.net). It installs the `kk` command, which helps provision and operate kkengine Docker Compose stacks on Linux servers.
+
+Use this package when you want to install `kk` through npm instead of the shell installer. The package is a thin distribution wrapper: it downloads the official Linux release binary, verifies its SHA256 checksum, and exposes the `kk` command globally.
 
 ## Install
 
@@ -8,6 +10,15 @@ Linux-only npm distribution wrapper for `kkcli`. The installed command is `kk`.
 npm install -g @kkauto/kkcli
 kk --version
 ```
+
+## What kkcli Does
+
+- Installs and initializes the kkauto automation social stack.
+- Renders kkengine Docker Compose configuration for VPS/server deployments.
+- Starts, stops, restarts, updates, and checks status for the kkengine stack.
+- Supports unattended provisioning for automation scripts.
+
+For product information, visit [kkauto.net](https://kkauto.net). For source code and releases, visit [github.com/kkauto-net/kk-install](https://github.com/kkauto-net/kk-install).
 
 ## Platform Support
 

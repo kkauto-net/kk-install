@@ -75,7 +75,7 @@ kk init --yes --license-file /path/to/license --domain example.com --language en
 | File permissions | Generated kkengine and n8n `.env` files must be `0600`; config file is currently `0644` and should hold non-secret values only. |
 | Compatibility | Runtime requires Docker and Docker Compose v2-compatible commands. |
 | Release scope | Published GoReleaser artifacts currently target Linux `amd64` and `arm64`. |
-| npm scope | `@kkauto/kkcli` is a Linux-only wrapper for release binaries; npm publish requires scope ownership and registry auth/trusted publishing. |
+| npm scope | `@kkauto/kkcli` is a public Linux-only wrapper for release binaries; npm publish uses Trusted Publisher on `release.yml`. |
 | Maintainability | Commands should stay thin and delegate domain behavior to `pkg/*`. |
 | Testability | CI and local development should keep `go test ./...` green. |
 

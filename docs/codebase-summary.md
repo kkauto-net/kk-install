@@ -103,7 +103,7 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | Reviewdog | Runs golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks template content, runs template tests, validates golden YAML. |
 | Release | GoReleaser publishes Linux `amd64`/`arm64` tarballs and checksums. |
-| npm publish | `publish-npm.yml` publishes `@kkauto/kkcli` after matching release assets are available; release-triggered publish is guarded by `NPM_PUBLISH_ENABLED=true`. |
+| npm publish | `@kkauto/kkcli` is public on npm. `release.yml` uses npm Trusted Publisher and calls `publish-npm.yml` after matching release assets are available; release-triggered publish is enabled by `NPM_PUBLISH_ENABLED=true`. |
 | E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, cleanup, and fail-closed redacted diagnostics. |
 
 ## Known Inconsistencies to Track

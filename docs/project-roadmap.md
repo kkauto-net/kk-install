@@ -30,7 +30,7 @@ This roadmap tracks known product, reliability, security, and documentation work
 |---:|---|---|
 | P1 | Decide published platform matrix. | GoReleaser currently publishes Linux `amd64`/`arm64` only. |
 | P1 | Keep release integrity guidance explicit. | Current releases use SHA256 checksums only; no signature verification is implemented. |
-| P1 | Complete first npm publish setup. | Confirm `@kkauto` scope ownership and configure trusted publishing or `NPM_TOKEN`. |
+| P1 | Verify next automated npm publish. | First package publish and Trusted Publisher setup are complete; the next tag should prove unattended npm publish from `release.yml`. |
 
 ## Product Enhancements
 

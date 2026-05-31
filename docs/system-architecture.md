@@ -185,7 +185,7 @@ Real Docker Compose lifecycle tests are kept out of PR gates to avoid network, i
 
 - Release artifacts are Linux-only while source may build elsewhere.
 - Release artifact integrity depends on GitHub release `checksums.txt`; missing or invalid checksum metadata fails closed.
-- npm distribution depends on GitHub Release assets already existing and on npm scope publishing permissions.
+- npm distribution depends on GitHub Release assets already existing; npm publish permissions are handled by the Trusted Publisher relationship for `release.yml`.
 
 ## References
 
