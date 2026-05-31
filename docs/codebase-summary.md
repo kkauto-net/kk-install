@@ -6,7 +6,7 @@ Generated from `./repomix-output.xml` on 2026-05-31 with:
 repomix --style xml -o repomix-output.xml
 ```
 
-Repomix packed 140 files and reported no suspicious files. This summary was then checked against current source files.
+Repomix packed 151 files and reported no suspicious files. This summary was then checked against current source files.
 
 ## Overview
 
@@ -41,6 +41,7 @@ Repomix packed 140 files and reported no suspicious files. This summary was then
 | `pkg/selfupdate/` | GitHub release lookup, archive download, binary replacement. |
 | `pkg/n8n/` | n8n directories, config validation, and templates. |
 | `scripts/` | Installer script and local installer checksum test harness. |
+| `npm/kkcli/` | Linux-only npm wrapper that downloads verified GitHub Release artifacts and exposes `kk`. |
 | `.github/workflows/` | CI, reviewdog, template validation, e2e compose, auto-version, release, draft-release, cleanup-artifacts. |
 
 ## Verified Command Surface
@@ -85,6 +86,7 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | Config file | `~/.kk/config.yaml` is written `0644` and currently stores non-secret project/language data. |
 | Installer checksum | `scripts/install.sh` requires `checksums.txt` SHA256 verification before installing the binary. |
 | Self-update integrity | `pkg/selfupdate` requires matching release `checksums.txt` SHA256 verification before extracting and replacing the binary. |
+| npm wrapper integrity | `npm/kkcli` verifies the downloaded release archive SHA256 by exact filename before extraction. |
 | License host identity | Generated Compose mounts `/etc/machine-id` read-only. This is stable identity input, not a secret; backend heartbeat/offline-token policy enforces runtime access. |
 
 ## CI and Release Snapshot
@@ -96,10 +98,12 @@ Generated kkengine Compose includes `/etc/machine-id:/etc/machine-id:ro` so the 
 | `make build` | `CGO_ENABLED=0 go build` to `build/kk` |
 | CI | Tests `./...`, builds `kk`, runs binary smoke, runs golangci-lint on push and PR, and runs race/shuffle outside PRs. |
 | Installer shell tests | `scripts/install_test.sh` runs 7 offline tests for checksum branches, no-checksum-tool failure, and piped-installer guard behavior in CI. |
+| npm wrapper tests | `npm/kkcli` runs offline Node tests and `npm pack --dry-run` in CI. |
 | Scheduled security scan | Pinned `govulncheck` runs only on scheduled CI as a staged vulnerability check and reports findings as warnings. |
 | Reviewdog | Runs golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks template content, runs template tests, validates golden YAML. |
 | Release | GoReleaser publishes Linux `amd64`/`arm64` tarballs and checksums. |
+| npm publish | `publish-npm.yml` publishes `@kkauto/kkcli` after matching release assets are available; release-triggered publish is guarded by `NPM_PUBLISH_ENABLED=true`. |
 | E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, cleanup, and fail-closed redacted diagnostics. |
 
 ## Known Inconsistencies to Track

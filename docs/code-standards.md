@@ -20,6 +20,7 @@ These standards describe the current Go CLI codebase. They are documentation-onl
 | `pkg/ui/` | i18n, terminal UI, tables, progress, passwords. |
 | `pkg/updater/` | Docker image identity snapshot/diff logic, running-container comparison, and legacy pull output parsing. |
 | `pkg/validator/` | Docker, Compose, ports, env, config, disk, preflight checks. |
+| `npm/kkcli/` | npm wrapper that downloads verified Linux release artifacts and exposes the `kk` command. |
 | `scripts/` | Installer and operational scripts. |
 | `docs/` | Evergreen project documentation. |
 
@@ -77,9 +78,11 @@ Do not convert every legacy error to a typed error without a product requirement
 - Generated kkengine and n8n `.env` files must remain `0600`.
 - `~/.kk/config.yaml` is currently `0644`; keep it non-secret unless permissions and migration are redesigned.
 - Installer and self-update checksum verification must fail closed before installing or replacing the `kk` binary.
+- The npm wrapper must preserve the same fail-closed SHA256 verification before extracting the downloaded `kk` binary, cap download size/time, and reject unsafe archive paths, links, and special-file entries.
 - Match release checksums by exact artifact filename and reject missing, malformed, or mismatched SHA256 entries.
 - Do not document or imply release signature verification unless GPG, cosign, or equivalent verification is added.
 - E2E diagnostics must redact secret-like `.env` values before artifact upload; delete compose diagnostics if redaction cannot complete.
+- Keep npm tokens only in GitHub Actions secrets or npm trusted publishing configuration; never commit registry credentials.
 
 ## Testing Standards
 
@@ -90,11 +93,12 @@ make fmt
 make lint
 make test
 bash scripts/install_test.sh
+cd npm/kkcli && npm test && npm pack --dry-run
 make test-smoke
 make build
 ```
 
-`make test` runs `go test -v ./...`. `scripts/install_test.sh` runs 7 offline installer tests without network or root, including checksum branches, missing checksum tooling, and piped execution. `make test-smoke` builds the CLI and verifies root command wiring without a Docker daemon.
+`make test` runs `go test -v ./...`. `scripts/install_test.sh` runs 7 offline installer tests without network or root, including checksum branches, missing checksum tooling, and piped execution. `npm/kkcli` tests run offline with local fixtures for platform mapping, checksum parsing, wrapper errors, and archive extraction. `make test-smoke` builds the CLI and verifies root command wiring without a Docker daemon.
 
 Run race and shuffle checks before promoting them to required PR gates:
 

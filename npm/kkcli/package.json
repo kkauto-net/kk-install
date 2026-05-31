@@ -1,0 +1,43 @@
+{
+  "name": "@kkauto/kkcli",
+  "version": "0.3.3",
+  "description": "npm distribution wrapper for the kkcli Linux binary.",
+  "license": "MIT",
+  "homepage": "https://github.com/kkauto-net/kk-install#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkauto-net/kk-install.git",
+    "directory": "npm/kkcli"
+  },
+  "bugs": {
+    "url": "https://github.com/kkauto-net/kk-install/issues"
+  },
+  "bin": {
+    "kk": "bin/kk.js"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/kk.js",
+    "scripts/install.js",
+    "vendor/.gitkeep",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node --test scripts/*.test.js bin/*.test.js",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -83,6 +83,21 @@ The generated kkengine Compose template mounts `/etc/machine-id:/etc/machine-id:
 
 ## Operation Flows
 
+### npm distribution
+
+```text
+npm install -g @kkauto/kkcli
+  -> npm/kkcli postinstall detects linux x64/arm64
+  -> package version X.Y.Z maps to GitHub tag vX.Y.Z
+  -> download checksums.txt and kkcli_X.Y.Z_linux_<arch>.tar.gz
+  -> verify SHA256 by exact artifact filename
+  -> reject unsafe archive paths, links, and special files
+  -> extract kk into npm/kkcli/vendor/kk
+  -> npm bin shim exposes kk
+```
+
+The npm wrapper is a distribution channel only. It does not build Go source during install and does not replace the curl installer or `kk selfupdate`.
+
 ### Start
 
 ```text
@@ -134,6 +149,7 @@ Security note: installer and self-update paths require successful SHA256 verific
 |---|---|
 | PR and main CI | `go test -v ./...`, static lint, build, and Docker-free binary smoke. |
 | Installer shell tests | Source `scripts/install.sh` safely and run 7 offline tests for checksum success/failure, missing checksum tooling, and piped execution. |
+| npm wrapper tests | Run Node fixture tests plus `npm pack --dry-run` for the Linux wrapper package. |
 | Main and scheduled CI | Shuffled tests plus selected race tests for command, license, template, compose, and validator packages. |
 | Scheduled security scan | Pinned `govulncheck` runs outside PR gates as a low-noise vulnerability scan trial and reports findings as warnings. |
 | Release and draft release | Full repository tests before release build steps. |
@@ -169,6 +185,7 @@ Real Docker Compose lifecycle tests are kept out of PR gates to avoid network, i
 
 - Release artifacts are Linux-only while source may build elsewhere.
 - Release artifact integrity depends on GitHub release `checksums.txt`; missing or invalid checksum metadata fails closed.
+- npm distribution depends on GitHub Release assets already existing and on npm scope publishing permissions.
 
 ## References
 

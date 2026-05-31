@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
   packages: write
 
 jobs:
@@ -42,3 +43,11 @@ jobs:
           name: dist
           path: dist/
           retention-days: 1
+
+  publish-npm:
+    if: vars.NPM_PUBLISH_ENABLED == 'true'
+    needs: goreleaser
+    uses: ./.github/workflows/publish-npm.yml
+    with:
+      version: ${{ github.ref_name }}
+    secrets: inherit

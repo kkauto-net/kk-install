@@ -15,6 +15,12 @@
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 ```
 
+Alternative npm install channel for Linux hosts:
+
+```bash
+npm install -g @kkauto/kkcli
+```
+
 Current GoReleaser artifacts are Linux `amd64` and `arm64`. Other platforms may build from source, but are not published by the current release config.
 
 Verify installation:
@@ -143,6 +149,7 @@ make fmt
 make lint
 make test
 bash scripts/install_test.sh
+cd npm/kkcli && npm test && npm pack --dry-run
 make test-smoke
 make build
 ```

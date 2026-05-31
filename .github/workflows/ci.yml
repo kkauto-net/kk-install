@@ -19,6 +19,11 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
       - name: Download dependencies
         run: go mod download
 
@@ -30,6 +35,12 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/install_test.sh
           bash scripts/install_test.sh
+
+      - name: npm wrapper tests
+        run: |
+          cd npm/kkcli
+          npm test
+          npm pack --dry-run
 
       - name: Build
         run: CGO_ENABLED=0 go build -o kk .

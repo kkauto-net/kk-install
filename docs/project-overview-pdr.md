@@ -37,6 +37,7 @@
 | PDR-008 | Manage n8n install/lifecycle/logs/update/remove commands. | Implemented | `cmd/n8n*.go`, `pkg/n8n/*` |
 | PDR-009 | Generate kkengine stack files: `docker-compose.yml`, `.env`, `kkphp.conf`, optional `Caddyfile`, optional `kkfiler.toml`. | Implemented | `pkg/templates/embed.go` |
 | PDR-010 | Generate n8n `docker-compose.yml` and `.env` under the configured n8n directory. | Implemented | `pkg/n8n/templates.go` |
+| PDR-011 | Provide npm install channel for Linux release binaries. | Implemented | `npm/kkcli` |
 
 ## Unattended Init Contract
 
@@ -74,6 +75,7 @@ kk init --yes --license-file /path/to/license --domain example.com --language en
 | File permissions | Generated kkengine and n8n `.env` files must be `0600`; config file is currently `0644` and should hold non-secret values only. |
 | Compatibility | Runtime requires Docker and Docker Compose v2-compatible commands. |
 | Release scope | Published GoReleaser artifacts currently target Linux `amd64` and `arm64`. |
+| npm scope | `@kkauto/kkcli` is a Linux-only wrapper for release binaries; npm publish requires scope ownership and registry auth/trusted publishing. |
 | Maintainability | Commands should stay thin and delegate domain behavior to `pkg/*`. |
 | Testability | CI and local development should keep `go test ./...` green. |
 
@@ -84,6 +86,7 @@ kk init --yes --license-file /path/to/license --domain example.com --language en
 | Secret-safe unattended license input | `--license-file` and `--license-stdin` avoid argv exposure. |
 | Deterministic unattended init exits | Typed `ExitError` codes are mapped in `cmd/root.go`. |
 | n8n command group | `install`, lifecycle, logs, update, remove, and status commands exist. |
+| npm distribution wrapper | `npm/kkcli` exposes `kk` and verifies GitHub Release SHA256 before extraction. |
 
 ## Success Metrics
 

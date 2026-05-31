@@ -23,6 +23,15 @@ kk --version
 
 The installer detects OS/architecture, downloads `kkcli_<version>_<os>_<arch>.tar.gz`, requires SHA256 verification from `checksums.txt`, and installs `kk` to `/usr/local/bin` with `sudo` if needed. Missing checksum metadata, missing local checksum tools, malformed checksums, or mismatches abort the install before extraction. No release signature verification is implemented.
 
+## Install with npm
+
+```bash
+npm install -g @kkauto/kkcli
+kk --version
+```
+
+The npm package is a Linux-only wrapper for the same GoReleaser artifacts. Package version `X.Y.Z` maps to GitHub Release tag `vX.Y.Z`, downloads `checksums.txt` plus `kkcli_X.Y.Z_linux_<arch>.tar.gz`, verifies SHA256 by exact filename, and extracts `kk` into the package vendor directory. Initial npm support is Linux `x64` and `arm64` only.
+
 ## Build from Source
 
 ```bash
@@ -128,12 +137,14 @@ kk n8n logs -f -n 100
 |---|---|
 | CI | `go test -v ./...`, Docker-free binary smoke, `CGO_ENABLED=0 go build`, golangci-lint on push and PR, race/shuffle outside PRs. |
 | Installer shell tests | CI runs `bash scripts/install_test.sh` for 7 offline installer checksum, no-checksum-tool, and piped-execution tests. |
+| npm wrapper tests | CI runs `npm test` and `npm pack --dry-run` in `npm/kkcli`; tests stay offline and fixture-based. |
 | Scheduled security scan | Pinned `govulncheck` runs on scheduled CI only as a staged scan, reports findings as warnings, and is not a PR-required gate. |
 | Reviewdog | golangci-lint and shellcheck on PRs to `main`. |
 | Template validation | Uses Go from `go.mod`, checks templates, and validates golden YAML. |
 | E2E Compose | Nightly/manual workflow runs unattended init, Compose config, full lifecycle, redacted `compose ps`/log diagnostics, fail-closed diagnostic deletion on redaction failure, and cleanup. |
 | Versioning | Auto-version workflow uses PR title tags. |
 | Release | Tags `v*.*.*` trigger full tests and GoReleaser. |
+| npm publish | `release.yml` calls `publish-npm.yml` after GoReleaser when `NPM_PUBLISH_ENABLED=true`; manual dispatch is also available. The publish workflow syncs package version from the tag, skips already-published versions, waits for matching release assets, then publishes `@kkauto/kkcli`. |
 | Artifacts | Linux `amd64` and `arm64` tarballs plus `checksums.txt`. |
 
 `kk selfupdate` downloads the matching release tarball and `checksums.txt` from the same release, verifies the tarball SHA256 by exact artifact filename, then extracts and replaces the binary only after verification succeeds. It does not verify release signatures.
@@ -141,7 +152,9 @@ kk n8n logs -f -n 100
 ## Deployment Risks
 
 - GoReleaser publishes Linux only; do not promise macOS artifacts without config changes.
+- npm distribution is also Linux-only until GoReleaser publishes macOS/Windows artifacts.
 - Release installs and self-updates fail closed when `checksums.txt` is missing or does not contain a valid matching artifact entry.
+- npm publish requires ownership of the `@kkauto` npm scope and either trusted publishing setup or `NPM_TOKEN` in repository secrets.
 - Release integrity is SHA256 checksum based; add signature guidance only after signature verification is implemented.
 - `/etc/machine-id` is visible to operators with host/container access. It improves identity stability but does not prevent deliberate cloning or spoofing by itself.
 

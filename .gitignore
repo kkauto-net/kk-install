@@ -41,6 +41,13 @@ data_file/
 data_writable/
 kk
 kkcli
+!npm/kkcli/
+!npm/kkcli/**
+!npm/kkcli/vendor/
+npm/kkcli/node_modules/
+npm/kkcli/*.tgz
+npm/kkcli/vendor/*
+!npm/kkcli/vendor/.gitkeep
 test/
 
 

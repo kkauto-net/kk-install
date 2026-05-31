@@ -22,6 +22,7 @@ This roadmap tracks known product, reliability, security, and documentation work
 | Docker-free binary smoke gate | `make test-smoke` and CI verify core command wiring without Docker. |
 | Nightly/manual Compose e2e | `.github/workflows/e2e-compose.yml` runs full lifecycle with cleanup and redacted diagnostics. |
 | License host identity template | Generated kkengine Compose mounts `/etc/machine-id` read-only for v2 license hardware identity. |
+| npm distribution wrapper | `npm/kkcli` provides a Linux-only npm install channel for verified release binaries. |
 
 ## Near-Term Priorities
 
@@ -29,6 +30,7 @@ This roadmap tracks known product, reliability, security, and documentation work
 |---:|---|---|
 | P1 | Decide published platform matrix. | GoReleaser currently publishes Linux `amd64`/`arm64` only. |
 | P1 | Keep release integrity guidance explicit. | Current releases use SHA256 checksums only; no signature verification is implemented. |
+| P1 | Complete first npm publish setup. | Confirm `@kkauto` scope ownership and configure trusted publishing or `NPM_TOKEN`. |
 
 ## Product Enhancements
 

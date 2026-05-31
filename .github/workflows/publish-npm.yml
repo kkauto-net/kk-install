@@ -1,0 +1,129 @@
+name: Publish npm
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to publish, with or without v prefix"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, with or without v prefix"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "release" ]; then
+            raw_version="${RELEASE_TAG}"
+          else
+            raw_version="${INPUT_VERSION}"
+          fi
+          tag="${raw_version#v}"
+          if ! printf '%s' "${tag}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid semver version: ${raw_version}" >&2
+            exit 1
+          fi
+          echo "version=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Sync package version
+        working-directory: npm/kkcli
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: npm version --no-git-tag-version --allow-same-version "${RELEASE_VERSION}"
+
+      - name: Validate package version
+        working-directory: npm/kkcli
+        run: |
+          set -euo pipefail
+          package_version="$(node -p "require('./package.json').version")"
+          if [ "${package_version}" != "${{ steps.version.outputs.version }}" ]; then
+            echo "npm package version ${package_version} does not match ${{ steps.version.outputs.tag }}" >&2
+            exit 1
+          fi
+
+      - name: Skip if npm version already exists
+        working-directory: npm/kkcli
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "@kkauto/kkcli@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            echo "@kkauto/kkcli@${RELEASE_VERSION} is already published; skipping."
+            echo "already_published=true" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Verify release assets
+        if: env.already_published != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          required_assets="checksums.txt kkcli_${RELEASE_VERSION}_linux_amd64.tar.gz kkcli_${RELEASE_VERSION}_linux_arm64.tar.gz"
+          for attempt in $(seq 1 30); do
+            gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' > release-assets.txt
+            missing=0
+            for asset in ${required_assets}; do
+              if ! grep -Fx "${asset}" release-assets.txt >/dev/null; then
+                missing=1
+              fi
+            done
+            if [ "${missing}" -eq 0 ]; then
+              exit 0
+            fi
+            echo "Release assets not ready yet (attempt ${attempt}/30). Waiting..."
+            sleep 10
+          done
+          echo "Missing required release assets for ${RELEASE_TAG}:" >&2
+          printf '%s\n' ${required_assets} >&2
+          echo "Available assets:" >&2
+          cat release-assets.txt >&2
+          exit 1
+
+      - name: Test npm package
+        if: env.already_published != 'true'
+        working-directory: npm/kkcli
+        run: |
+          npm test
+          npm pack --dry-run
+
+      - name: Publish npm package
+        if: env.already_published != 'true'
+        working-directory: npm/kkcli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          fi
+          npm publish --access public --provenance --tag latest
