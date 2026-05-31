@@ -53,6 +53,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup npm trusted publishing support
+        run: npm install -g npm@11.16.0
+
       - name: Sync package version
         working-directory: npm/kkcli
         env:
