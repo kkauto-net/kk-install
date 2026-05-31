@@ -2,6 +2,12 @@
   "name": "@kkauto/kkcli",
   "version": "0.3.3",
   "description": "npm distribution wrapper for the kkcli Linux binary.",
+  "keywords": [
+    "kkauto",
+    "facebook",
+    "automation",
+    "socials"
+  ],
   "license": "MIT",
   "homepage": "https://github.com/kkauto-net/kk-install#readme",
   "repository": {
