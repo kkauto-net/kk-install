@@ -325,16 +325,19 @@ func TestBackupExistingConfigsSecuresEnvBackup(t *testing.T) {
 
 func TestCollectInitOptionsTrimsFlags(t *testing.T) {
 	oldYes, oldForce := yesInit, forceInit
+	oldInstallDocker := installDockerFlag
 	oldLicense, oldLicenseFile, oldLicenseStdin := initLicense, initLicenseFile, initLicenseStdin
 	oldDomain, oldLanguage := initDomain, initLanguage
 	t.Cleanup(func() {
 		yesInit, forceInit = oldYes, oldForce
+		installDockerFlag = oldInstallDocker
 		initLicense, initLicenseFile, initLicenseStdin = oldLicense, oldLicenseFile, oldLicenseStdin
 		initDomain, initLanguage = oldDomain, oldLanguage
 	})
 
 	yesInit = true
 	forceInit = true
+	installDockerFlag = true
 	initLicense = " LICENSE-ABCDEF0123456789 "
 	initLicenseFile = " /tmp/license.tmp "
 	initLicenseStdin = true
@@ -342,7 +345,7 @@ func TestCollectInitOptionsTrimsFlags(t *testing.T) {
 	initLanguage = " en "
 
 	opts := collectInitOptions()
-	if !opts.NonInteractive || !opts.Force {
+	if !opts.NonInteractive || !opts.Force || !opts.InstallDocker {
 		t.Fatalf("collectInitOptions() booleans = %+v", opts)
 	}
 	if opts.License != "LICENSE-ABCDEF0123456789" || opts.LicenseFile != "/tmp/license.tmp" || !opts.LicenseStdin || opts.Domain != "example.com" || opts.Language != "en" {
@@ -399,6 +402,7 @@ func TestRunInitUnattendedExitCodeContracts(t *testing.T) {
 		{
 			name: "docker validation failure",
 			configure: func(t *testing.T) {
+				installDockerFlag = false
 				DockerValidatorInstance = &validator.DockerValidator{
 					LookPath: func(string) (string, error) { return "", os.ErrNotExist },
 				}
@@ -459,8 +463,41 @@ func TestRunInitUnattendedExitCodeContracts(t *testing.T) {
 	}
 }
 
+func TestRunInitUnattendedInstallDockerBypassesMissingDocker(t *testing.T) {
+	resetInitTestGlobals(t)
+	yesInit = true
+	installDockerFlag = true
+	initLicense = "LICENSE-ABCDEF0123456789"
+	initDomain = "example.com"
+	initLanguage = "en"
+	newLicenseClient = successfulLicenseClient
+	DockerValidatorInstance = autoInstallDockerValidator(t)
+	renderTemplates = func(templates.Config, string) error { return nil }
+	startInitSpinner = func(string) initSpinner { return noopInitSpinner{} }
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd() error = %v", err)
+	}
+	tmp := t.TempDir()
+	if chdirErr := os.Chdir(tmp); chdirErr != nil {
+		t.Fatalf("Chdir() error = %v", chdirErr)
+	}
+	t.Cleanup(func() {
+		if chdirErr := os.Chdir(cwd); chdirErr != nil {
+			t.Logf("restore working directory: %v", chdirErr)
+		}
+	})
+	t.Setenv("HOME", t.TempDir())
+
+	if err := runInit(&cobra.Command{}, nil); err != nil {
+		t.Fatalf("runInit() error = %v", err)
+	}
+}
+
 func resetInitTestGlobals(t *testing.T) {
 	oldYes, oldForce := yesInit, forceInit
+	oldInstallDocker := installDockerFlag
 	oldLicense, oldLicenseFile, oldLicenseStdin := initLicense, initLicenseFile, initLicenseStdin
 	oldDomain, oldLanguage := initDomain, initLanguage
 	oldDockerValidator := DockerValidatorInstance
@@ -469,6 +506,7 @@ func resetInitTestGlobals(t *testing.T) {
 	oldStartInitSpinner := startInitSpinner
 	t.Cleanup(func() {
 		yesInit, forceInit = oldYes, oldForce
+		installDockerFlag = oldInstallDocker
 		initLicense, initLicenseFile, initLicenseStdin = oldLicense, oldLicenseFile, oldLicenseStdin
 		initDomain, initLanguage = oldDomain, oldLanguage
 		DockerValidatorInstance = oldDockerValidator
@@ -501,6 +539,39 @@ func successfulDockerValidator(t *testing.T) *validator.DockerValidator {
 	return &validator.DockerValidator{
 		LookPath: func(string) (string, error) { return "/usr/bin/docker", nil },
 		CommandContext: func(context.Context, string, ...string) *exec.Cmd {
+			return exec.Command("true")
+		},
+	}
+}
+
+func autoInstallDockerValidator(t *testing.T) *validator.DockerValidator {
+	t.Helper()
+	dockerAvailable := false
+	return &validator.DockerValidator{
+		LookPath: func(file string) (string, error) {
+			if file == "docker" {
+				if dockerAvailable {
+					return "/usr/bin/docker", nil
+				}
+				return "", os.ErrNotExist
+			}
+			if file == "curl" || file == "sudo" {
+				return "/usr/bin/" + file, nil
+			}
+			return "", os.ErrNotExist
+		},
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "get.docker.com") {
+				dockerAvailable = true
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "compose") && strings.Contains(joined, "version") {
+				return exec.Command("sh", "-c", "printf '2.30.0'")
+			}
+			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") {
+				return exec.Command("true")
+			}
 			return exec.Command("true")
 		},
 	}

@@ -220,16 +220,72 @@ verify_installation() {
         echo ""
         echo -e "${CYAN}────────────────────────────────────────────────────────────────${NC}"
         echo ""
+    else
+        print_error "Installation failed. Please try again."
+        exit 1
+    fi
+}
+
+run_bootstrap() {
+    if [[ "${KK_SKIP_BOOTSTRAP:-}" == "1" ]]; then
+        print_info "Bootstrap skipped (KK_SKIP_BOOTSTRAP=1)"
+        echo ""
         echo -e "${BOLD}Get started:${NC}"
         echo -e "  ${GREEN}\$${NC} kk init"
         echo ""
         echo -e "${BOLD}Documentation:${NC}"
         echo -e "  https://docs.kkauto.net"
         echo ""
-    else
-        print_error "Installation failed. Please try again."
-        exit 1
+        return 0
     fi
+
+    if [[ -t 0 ]]; then
+        print_step "Starting interactive setup..."
+        if ! $BINARY init; then
+            print_error "kk init failed"
+            exit 1
+        fi
+        if ! $BINARY start; then
+            print_error "kk start failed"
+            exit 1
+        fi
+        return 0
+    fi
+
+    if [[ -n "${KKAUTO_LICENSE:-}" && -n "${KK_DOMAIN:-}" && -n "${KK_LANGUAGE:-}" ]]; then
+        print_step "Starting unattended setup..."
+        license_dir="$(mktemp -d)"
+        license_file="${license_dir}/license"
+        cleanup_license_file() {
+            rm -rf "${license_dir}"
+        }
+        trap cleanup_license_file RETURN
+
+        printf '%s\n' "${KKAUTO_LICENSE}" > "${license_file}"
+        chmod 600 "${license_file}"
+
+        if ! $BINARY init \
+            --yes \
+            --install-docker \
+            --license-file "${license_file}" \
+            --domain "${KK_DOMAIN}" \
+            --language "${KK_LANGUAGE}"; then
+            print_error "kk init failed"
+            exit 1
+        fi
+        if ! $BINARY start; then
+            print_error "kk start failed"
+            exit 1
+        fi
+        return 0
+    fi
+
+    print_warning "Non-interactive shell: set KKAUTO_LICENSE, KK_DOMAIN, and KK_LANGUAGE for auto setup"
+    print_info "Or run manually: kk init && kk start"
+    echo ""
+    echo -e "${BOLD}Documentation:${NC}"
+    echo -e "  https://docs.kkauto.net"
+    echo ""
 }
 
 # ----------------------------------------------------------------------------
@@ -244,6 +300,7 @@ main() {
     verify_checksum
     install_binary
     verify_installation
+    run_bootstrap
 }
 
 if [[ "${BASH_SOURCE[0]:-}" == "$0" || -z "${BASH_SOURCE[0]:-}" ]]; then

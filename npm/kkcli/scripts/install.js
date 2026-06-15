@@ -17,6 +17,7 @@ const VENDOR_DIR = path.join(PACKAGE_ROOT, "vendor");
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_CHECKSUM_BYTES = 1024 * 1024;
 const MAX_ARCHIVE_BYTES = 128 * 1024 * 1024;
+const { bootstrap } = require("./bootstrap");
 
 function packageVersion(packageJSONPath = path.join(PACKAGE_ROOT, "package.json")) {
   const pkg = JSON.parse(fs.readFileSync(packageJSONPath, "utf8"));
@@ -266,6 +267,15 @@ async function install(options = {}) {
     verifyChecksum(fs.readFileSync(checksumsPath, "utf8"), asset, archivePath);
     await extractBinary(archivePath, options.destinationDir || VENDOR_DIR);
     console.log("kkcli binary installed.");
+
+    const kkPath = path.join(options.destinationDir || VENDOR_DIR, "kk");
+    const bootstrapResult = bootstrap(kkPath, options.bootstrap || {});
+    if (!bootstrapResult.ok) {
+      console.warn(
+        `kk bootstrap failed during ${bootstrapResult.step || "setup"} (exit ${bootstrapResult.status}).`,
+      );
+      console.warn("Binary is installed. Run manually: kk init && kk start");
+    }
   } finally {
     fs.rmSync(workDirectory, { recursive: true, force: true });
   }
@@ -284,6 +294,7 @@ if (require.main === module) {
 
 module.exports = {
   artifactName,
+  bootstrap,
   extractBinary,
   install,
   listArchiveMetadata,

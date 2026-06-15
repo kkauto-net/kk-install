@@ -11,15 +11,19 @@
 
 ## Quick Install
 
+On an interactive SSH terminal, one command installs `kk`, prompts for Docker/license/domain setup, and starts the stack:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 ```
 
-Alternative npm install channel for Linux hosts:
+Alternative npm install channel for Linux hosts (bootstrap runs in the directory where you execute `npm install`, via `INIT_CWD`):
 
 ```bash
 npm install -g @kkauto/kkcli
 ```
+
+To install only the binary without running `kk init` / `kk start`, set `KK_SKIP_BOOTSTRAP=1`.
 
 Current GoReleaser artifacts are Linux `amd64` and `arm64`. Other platforms may build from source, but are not published by the current release config.
 
@@ -40,6 +44,8 @@ kk --version
 
 ## Quick Start
 
+If you used the installer above on an interactive terminal, `kk init` and `kk start` already ran. Otherwise:
+
 ```bash
 # Initialize your stack
 kk init
@@ -55,6 +61,17 @@ kk status
 
 Use this mode for backend provisioning scripts where no interactive prompts are available.
 
+One-command bootstrap (installer handles Docker install, `kk init --yes --install-docker`, and `kk start`):
+
+```bash
+KKAUTO_LICENSE=LICENSE-ABCDEF0123456789 \
+KK_DOMAIN=example.com \
+KK_LANGUAGE=en \
+  curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
+```
+
+Manual two-step flow after binary install:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
 
@@ -68,6 +85,7 @@ chmod 600 "$license_file"
 
 kk init \
   --yes \
+  --install-docker \
   --license-file "$license_file" \
   --domain example.com \
   --language en
@@ -100,7 +118,7 @@ Unattended mode exits with deterministic codes:
 
 | Command | Description |
 |---------|-------------|
-| `kk init` | Initialize Docker Compose stack with interactive prompts or unattended flags |
+| `kk init` | Initialize Docker Compose stack with interactive prompts or unattended flags (`--yes`, `--install-docker`) |
 | `kk start` | Run preflight checks and start all services |
 | `kk stop` | Stop all running services |
 | `kk remove` | Remove all containers, networks (use `-v` to also remove volumes) |

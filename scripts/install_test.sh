@@ -130,6 +130,33 @@ test_piped_installer_runs_main() {
     [[ "${output}" == "piped-main-ran" ]]
 }
 
+test_bootstrap_skipped_when_opted_out() {
+    local dir kk_path output
+    dir="$(mktemp -d "${TMP_ROOT}/bootstrap.XXXXXX")"
+    kk_path="${dir}/kk"
+    printf '#!/bin/sh\necho should-not-run >&2\nexit 9\n' > "${kk_path}"
+    chmod 755 "${kk_path}"
+    PATH="${dir}:${PATH}"
+    BINARY="kk"
+    KK_SKIP_BOOTSTRAP=1
+    output="$(run_bootstrap 2>&1)"
+    unset KK_SKIP_BOOTSTRAP
+    [[ "${output}" == *"Bootstrap skipped"* ]]
+}
+
+test_bootstrap_non_tty_warns_without_env() {
+    local dir kk_path output
+    dir="$(mktemp -d "${TMP_ROOT}/bootstrap.XXXXXX")"
+    kk_path="${dir}/kk"
+    printf '#!/bin/sh\nexit 0\n' > "${kk_path}"
+    chmod 755 "${kk_path}"
+    PATH="${dir}:${PATH}"
+    BINARY="kk"
+    unset KKAUTO_LICENSE KK_DOMAIN KK_LANGUAGE KK_SKIP_BOOTSTRAP
+    output="$(run_bootstrap </dev/null 2>&1)"
+    [[ "${output}" == *"Non-interactive shell"* ]]
+}
+
 assert_success "matching checksum succeeds" test_matching_checksum_succeeds
 assert_failure "missing checksums.txt fails" test_missing_checksums_fails
 assert_failure "missing artifact entry fails" test_missing_artifact_entry_fails
@@ -137,5 +164,7 @@ assert_failure "malformed hash fails" test_malformed_hash_fails
 assert_failure "checksum mismatch fails" test_checksum_mismatch_fails
 assert_failure_contains "no checksum tool fails" "No checksum tool available" test_no_checksum_tool_fails
 assert_success "piped installer runs main" test_piped_installer_runs_main
+assert_success "bootstrap skipped when opted out" test_bootstrap_skipped_when_opted_out
+assert_success "bootstrap non-tty warns without env" test_bootstrap_non_tty_warns_without_env
 
 echo "PASS: ${TESTS_RUN} installer checksum tests"

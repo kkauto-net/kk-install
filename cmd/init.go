@@ -34,6 +34,7 @@ var initCmd = &cobra.Command{
 var (
 	forceInit               bool
 	yesInit                 bool
+	installDockerFlag       bool
 	initLicense             string
 	initLicenseFile         string
 	initLicenseStdin        bool
@@ -62,6 +63,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Bỏ qua tất cả các lời nhắc tương tác và sử dụng các giá trị mặc định")
 	initCmd.Flags().BoolVar(&yesInit, "yes", false, "Run init without interactive prompts")
+	initCmd.Flags().BoolVar(&installDockerFlag, "install-docker", false, "Auto-install/start Docker during unattended init")
 	initCmd.Flags().StringVar(&initLicense, "license", "", "License key for unattended init (discouraged for automation; prefer --license-file)")
 	initCmd.Flags().StringVar(&initLicenseFile, "license-file", "", "Read license key from file for unattended init")
 	initCmd.Flags().BoolVar(&initLicenseStdin, "license-stdin", false, "Read license key from stdin for unattended init")
@@ -166,146 +168,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowStepHeader(1, 7, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 
-	// Check Docker installation
-	dockerInstalled := true
-	err = DockerValidatorInstance.CheckDockerInstalled()
-	if err != nil {
-		if opts.Force {
-			ui.ShowWarning(ui.Msg("docker_not_installed_force_init"))
-			// In force mode, assume Docker will be handled externally or allow to proceed with potential issues
-			dockerInstalled = true
-		} else if opts.NonInteractive {
-			ui.ShowBoxedError(ui.ErrorSuggestion{
-				Title:      ui.Msg("docker_not_found"),
-				Message:    ui.Msg("docker_required"),
-				Suggestion: "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
-			})
-			return NewExitError(exitCodeDockerValidation, err)
-		} else {
-			ui.ShowWarning(ui.Msg("docker_not_installed"))
-
-			// Ask user if they want to install Docker
-			var installDocker bool
-			installForm := huh.NewForm(
-				huh.NewGroup(
-					huh.NewConfirm().
-						Title(ui.IconDocker + " " + ui.Msg("ask_install_docker")).
-						Description(ui.Msg("ask_install_docker_desc")).
-						Affirmative(ui.Msg("yes_install")).
-						Negative(ui.Msg("no_manual")).
-						Value(&installDocker),
-				),
-			)
-			if formErr := installForm.Run(); formErr != nil {
-				return formErr
-			}
-
-			if installDocker {
-				// Install Docker with spinner
-				installSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
-				err = DockerValidatorInstance.InstallDocker()
-				if err != nil {
-					installSpinner.Fail(ui.Msg("docker_install_failed"))
-					ui.ShowBoxedError(ui.ErrorSuggestion{
-						Title:      ui.Msg("docker_install_failed"),
-						Message:    err.Error(),
-						Suggestion: "Install manually: https://docs.docker.com/get-docker/",
-					})
-					return err
-				}
-				installSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
-				dockerInstalled = true
-			} else {
-				ui.ShowBoxedError(ui.ErrorSuggestion{
-					Title:      ui.Msg("docker_not_found"),
-					Message:    ui.Msg("docker_required"),
-					Suggestion: "Install Docker from https://docs.docker.com/get-docker/",
-				})
-				return errors.New(ui.Msg("docker_required"))
-			}
-		}
-	}
-
-	// Check Docker daemon if Docker is installed
-	if dockerInstalled {
-		err = DockerValidatorInstance.CheckDockerDaemon()
-		if err != nil {
-			if opts.Force {
-				ui.ShowWarning(ui.Msg("docker_daemon_not_running_force_init"))
-				// In force mode, assume daemon will be started externally or allow to proceed
-			} else if opts.NonInteractive {
-				ui.ShowBoxedError(ui.ErrorSuggestion{
-					Title:      ui.Msg("docker_daemon_stopped"),
-					Message:    ui.Msg("docker_required"),
-					Suggestion: ui.Msg("docker_start_suggestion"),
-					Command:    "sudo systemctl start docker && kk init --yes ...",
-				})
-				return NewExitError(exitCodeDockerValidation, err)
-			} else {
-				ui.ShowWarning(ui.Msg("docker_not_running"))
-
-				// Ask to start Docker daemon
-				var startDocker bool
-				startForm := huh.NewForm(
-					huh.NewGroup(
-						huh.NewConfirm().
-							Title(ui.IconDocker + " " + ui.Msg("ask_start_docker")).
-							Affirmative(ui.Msg("yes")).
-							Negative(ui.Msg("no")).
-							Value(&startDocker),
-					),
-				)
-				if formErr := startForm.Run(); formErr != nil {
-					return formErr
-				}
-
-				if startDocker {
-					startSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
-					err = DockerValidatorInstance.StartDockerDaemon()
-					if err != nil {
-						startSpinner.Fail(ui.Msg("docker_start_failed"))
-						ui.ShowBoxedError(ui.ErrorSuggestion{
-							Title:      ui.Msg("docker_daemon_stopped"),
-							Message:    err.Error(),
-							Suggestion: ui.Msg("docker_start_suggestion"),
-							Command:    "sudo systemctl start docker && kk init",
-						})
-						return err
-					}
-					startSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
-				} else {
-					ui.ShowBoxedError(ui.ErrorSuggestion{
-						Title:      ui.Msg("docker_daemon_stopped"),
-						Message:    ui.Msg("docker_required"),
-						Suggestion: ui.Msg("docker_start_suggestion"),
-						Command:    "sudo systemctl start docker && kk init",
-					})
-					return errors.New(ui.Msg("docker_required"))
-				}
-			}
-		}
-
-		// Check Docker Compose version
-		err = DockerValidatorInstance.CheckComposeVersion()
-		if err != nil {
-			if opts.Force {
-				ui.ShowWarning(ui.Msg("docker_compose_issue_force_init"))
-			} else if opts.NonInteractive {
-				ui.ShowBoxedError(ui.ErrorSuggestion{
-					Title:      ui.Msg("docker_compose_issue"),
-					Message:    err.Error(),
-					Suggestion: "Update Docker to latest version or rerun with --force to bypass preflight checks.",
-				})
-				return NewExitError(exitCodeDockerValidation, err)
-			} else {
-				ui.ShowBoxedError(ui.ErrorSuggestion{
-					Title:      ui.Msg("docker_compose_issue"),
-					Message:    err.Error(),
-					Suggestion: "Update Docker to latest version",
-				})
-				return err
-			}
-		}
+	if err = ensureInitDocker(opts); err != nil {
+		return err
 	}
 
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
@@ -751,6 +615,146 @@ func generateS3AccessKeyWithRetry(length int) (string, error) {
 		lastErr = err
 	}
 	return "", lastErr
+}
+
+func ensureInitDocker(opts initOptions) error {
+	if opts.Force {
+		if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
+			ui.ShowWarning(ui.Msg("docker_not_installed_force_init"))
+		} else if err := DockerValidatorInstance.CheckDockerDaemon(); err != nil {
+			ui.ShowWarning(ui.Msg("docker_daemon_not_running_force_init"))
+		} else if err := DockerValidatorInstance.CheckComposeVersion(); err != nil {
+			ui.ShowWarning(ui.Msg("docker_compose_issue_force_init"))
+		}
+		return nil
+	}
+
+	ensureOpts := validator.EnsureDockerOptions{
+		AutoFix:    opts.NonInteractive && opts.InstallDocker,
+		MaxRetries: 1,
+	}
+
+	if !opts.NonInteractive {
+		ensureOpts.ConfirmInstall = func() (bool, error) {
+			ui.ShowWarning(ui.Msg("docker_not_installed"))
+			var installDocker bool
+			installForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewConfirm().
+						Title(ui.IconDocker + " " + ui.Msg("ask_install_docker")).
+						Description(ui.Msg("ask_install_docker_desc")).
+						Affirmative(ui.Msg("yes_install")).
+						Negative(ui.Msg("no_manual")).
+						Value(&installDocker),
+				),
+			)
+			if formErr := installForm.Run(); formErr != nil {
+				return false, formErr
+			}
+			return installDocker, nil
+		}
+		ensureOpts.ConfirmStart = func() (bool, error) {
+			ui.ShowWarning(ui.Msg("docker_not_running"))
+			var startDocker bool
+			startForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewConfirm().
+						Title(ui.IconDocker + " " + ui.Msg("ask_start_docker")).
+						Affirmative(ui.Msg("yes")).
+						Negative(ui.Msg("no")).
+						Value(&startDocker),
+				),
+			)
+			if formErr := startForm.Run(); formErr != nil {
+				return false, formErr
+			}
+			return startDocker, nil
+		}
+		ensureOpts.Install = func() error {
+			installSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
+			err := DockerValidatorInstance.InstallDocker()
+			if err != nil {
+				installSpinner.Fail(ui.Msg("docker_install_failed"))
+				return err
+			}
+			installSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			return nil
+		}
+		ensureOpts.Start = func() error {
+			startSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
+			err := DockerValidatorInstance.StartDockerDaemon()
+			if err != nil {
+				startSpinner.Fail(ui.Msg("docker_start_failed"))
+				return err
+			}
+			startSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
+			return nil
+		}
+	}
+
+	err := DockerValidatorInstance.EnsureDockerReady(ensureOpts)
+	if err == nil {
+		return nil
+	}
+
+	return formatInitDockerError(opts, err)
+}
+
+func formatInitDockerError(opts initOptions, err error) error {
+	key := validator.UserErrorKey(err)
+	switch key {
+	case "docker_not_installed":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_not_found"),
+			Message:    ui.Msg("docker_required"),
+			Suggestion: "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
+		})
+		if opts.NonInteractive {
+			return NewExitError(exitCodeDockerValidation, err)
+		}
+		return errors.New(ui.Msg("docker_required"))
+	case "docker_not_running", "docker_permission_denied":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_daemon_stopped"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("docker_start_suggestion"),
+			Command:    "sudo systemctl start docker && kk init --yes --install-docker ...",
+		})
+		if opts.NonInteractive {
+			return NewExitError(exitCodeDockerValidation, err)
+		}
+		return err
+	case "docker_install_failed":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_install_failed"),
+			Message:    err.Error(),
+			Suggestion: "Install manually: https://docs.docker.com/get-docker/",
+		})
+		return err
+	case "docker_start_failed":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_daemon_stopped"),
+			Message:    err.Error(),
+			Suggestion: ui.Msg("docker_start_suggestion"),
+			Command:    "sudo systemctl start docker && kk init",
+		})
+		return err
+	case "compose_not_found", "compose_version_old":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_compose_issue"),
+			Message:    err.Error(),
+			Suggestion: "Update Docker to latest version or rerun with --force to bypass preflight checks.",
+		})
+		if opts.NonInteractive {
+			return NewExitError(exitCodeDockerValidation, err)
+		}
+		return err
+	default:
+		if opts.NonInteractive {
+			return NewExitError(exitCodeDockerValidation, err)
+		}
+		return err
+	}
 }
 
 // validateDomain validates domain format (RFC 1123 hostname or localhost)

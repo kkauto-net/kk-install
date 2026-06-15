@@ -23,6 +23,26 @@ kk --version
 
 The installer detects OS/architecture, downloads `kkcli_<version>_<os>_<arch>.tar.gz`, requires SHA256 verification from `checksums.txt`, and installs `kk` to `/usr/local/bin` with `sudo` if needed. Missing checksum metadata, missing local checksum tools, malformed checksums, or mismatches abort the install before extraction. No release signature verification is implemented.
 
+On an interactive terminal, the installer then runs `kk init` and `kk start`. Set `KK_SKIP_BOOTSTRAP=1` to install only the binary.
+
+## One-Command Bootstrap
+
+| Channel | Interactive terminal | Non-interactive pipe/script |
+|---|---|---|
+| curl installer | `curl .../install.sh \| bash` runs `kk init` then `kk start` | Set `KKAUTO_LICENSE`, `KK_DOMAIN`, `KK_LANGUAGE`; installer runs unattended `kk init --yes --install-docker` then `kk start` |
+| npm `@kkauto/kkcli` | `npm install -g @kkauto/kkcli` runs the same bootstrap in `INIT_CWD` | Same env vars; postinstall uses `INIT_CWD` as project directory |
+
+Bootstrap environment variables:
+
+| Variable | Purpose |
+|---|---|
+| `KKAUTO_LICENSE` | License key for unattended bootstrap |
+| `KK_DOMAIN` | Domain passed to `kk init --domain` |
+| `KK_LANGUAGE` | `en` or `vi` |
+| `KK_SKIP_BOOTSTRAP=1` | Install binary only; skip `kk init` / `kk start` |
+
+Unattended bootstrap uses `kk init --install-docker` so Docker is installed or started automatically when missing. Interactive bootstrap keeps the existing `kk init` Docker prompts.
+
 ## Install with npm
 
 ```bash
@@ -30,7 +50,7 @@ npm install -g @kkauto/kkcli
 kk --version
 ```
 
-The public npm package `@kkauto/kkcli` is a Linux-only wrapper for the same GoReleaser artifacts. Package version `X.Y.Z` maps to GitHub Release tag `vX.Y.Z`, downloads `checksums.txt` plus `kkcli_X.Y.Z_linux_<arch>.tar.gz`, verifies SHA256 by exact filename, and extracts `kk` into the package vendor directory. Initial npm support is Linux `x64` and `arm64` only.
+The public npm package `@kkauto/kkcli` is a Linux-only wrapper for the same GoReleaser artifacts. Package version `X.Y.Z` maps to GitHub Release tag `vX.Y.Z`, downloads `checksums.txt` plus `kkcli_X.Y.Z_linux_<arch>.tar.gz`, verifies SHA256 by exact filename, and extracts `kk` into the package vendor directory. Initial npm support is Linux `x64` and `arm64` only. After install, the npm postinstall hook runs the same bootstrap flow as `scripts/install.sh`, using `INIT_CWD` as the project directory.
 
 ## Build from Source
 
@@ -76,6 +96,17 @@ Advanced deployments may manually add `/sys/class/dmi/id:/sys/class/dmi/id:ro` i
 
 Use `--license-file` for automation so license content does not appear in argv.
 
+One-command installer bootstrap:
+
+```bash
+KKAUTO_LICENSE=LICENSE-ABCDEF0123456789 \
+KK_DOMAIN=example.com \
+KK_LANGUAGE=en \
+  curl -sSL https://raw.githubusercontent.com/kkauto-net/kk-install/main/scripts/install.sh | bash
+```
+
+Manual init after binary install:
+
 ```bash
 install -d -m 700 /root/.kk
 license_file="$(mktemp /root/.kk/license.XXXXXX)"
@@ -87,6 +118,7 @@ chmod 600 "$license_file"
 
 kk init \
   --yes \
+  --install-docker \
   --license-file "$license_file" \
   --domain example.com \
   --language en
@@ -136,7 +168,7 @@ kk n8n logs -f -n 100
 | Step | Current implementation |
 |---|---|
 | CI | `go test -v ./...`, Docker-free binary smoke, `CGO_ENABLED=0 go build`, golangci-lint on push and PR, race/shuffle outside PRs. |
-| Installer shell tests | CI runs `bash scripts/install_test.sh` for 7 offline installer checksum, no-checksum-tool, and piped-execution tests. |
+| Installer shell tests | CI runs `bash scripts/install_test.sh` for offline installer checksum, bootstrap, and piped-execution tests. |
 | npm wrapper tests | CI runs `npm test` and `npm pack --dry-run` in `npm/kkcli`; tests stay offline and fixture-based. |
 | Scheduled security scan | Pinned `govulncheck` runs on scheduled CI only as a staged scan, reports findings as warnings, and is not a PR-required gate. |
 | Reviewdog | golangci-lint and shellcheck on PRs to `main`. |

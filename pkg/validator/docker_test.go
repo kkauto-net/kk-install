@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -11,6 +12,9 @@ import (
 func mockLookPath(file string) (string, error) {
 	if file == "docker" {
 		return "/usr/bin/docker", nil
+	}
+	if file == "curl" || file == "sudo" {
+		return "/usr/bin/" + file, nil
 	}
 	return "", os.ErrNotExist
 }
@@ -95,5 +99,161 @@ func TestUserError_Error(t *testing.T) {
 	expected2 := "Another test message"
 	if err2.Error() != expected2 {
 		t.Errorf("UserError.Error() mismatch. Got: %q, Want: %q", err2.Error(), expected2)
+	}
+}
+
+func TestClassifyDockerInstallFailure(t *testing.T) {
+	tests := []struct {
+		name    string
+		output  string
+		wantKey string
+	}{
+		{name: "sudo password", output: "sudo: a password is required", wantKey: "docker_install_failed"},
+		{name: "network", output: "curl: (6) Could not resolve host get.docker.com", wantKey: "docker_install_failed"},
+		{name: "apt lock", output: "E: Could not get lock /var/lib/dpkg/lock", wantKey: "docker_install_failed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := classifyDockerInstallFailure(tt.output)
+			if err.Key != tt.wantKey {
+				t.Fatalf("classifyDockerInstallFailure() key = %q, want %q", err.Key, tt.wantKey)
+			}
+		})
+	}
+}
+
+func TestInstallDockerMissingPrerequisites(t *testing.T) {
+	v := &DockerValidator{
+		LookPath: func(file string) (string, error) {
+			if file == "docker" {
+				return "/usr/bin/docker", nil
+			}
+			return "", os.ErrNotExist
+		},
+		CommandContext: mockCommandContextSuccess,
+	}
+
+	err := v.InstallDocker()
+	if err == nil {
+		t.Fatal("InstallDocker() expected prerequisite error")
+	}
+	if UserErrorKey(err) != "docker_install_failed" {
+		t.Fatalf("UserErrorKey() = %q, want docker_install_failed", UserErrorKey(err))
+	}
+	if !strings.Contains(err.Error(), "curl") {
+		t.Fatalf("InstallDocker() error = %q, want curl prerequisite message", err.Error())
+	}
+}
+
+func TestEnsureDockerReadyAutoFixInstallsWhenMissing(t *testing.T) {
+	installCalls := 0
+	v := &DockerValidator{
+		LookPath: func(file string) (string, error) {
+			switch file {
+			case "docker":
+				if installCalls > 0 {
+					return "/usr/bin/docker", nil
+				}
+				return "", os.ErrNotExist
+			case "curl", "sudo":
+				return "/usr/bin/" + file, nil
+			default:
+				return "", os.ErrNotExist
+			}
+		},
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "get.docker.com") {
+				installCalls++
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") {
+				return exec.Command("true")
+			}
+			return exec.Command("true")
+		},
+	}
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{AutoFix: true, MaxRetries: 0})
+	if err != nil {
+		t.Fatalf("EnsureDockerReady() error = %v", err)
+	}
+	if installCalls != 1 {
+		t.Fatalf("installCalls = %d, want 1", installCalls)
+	}
+}
+
+func TestEnsureDockerReadyWithoutAutoFixReturnsMissingDocker(t *testing.T) {
+	v := &DockerValidator{
+		LookPath:       mockLookPathNotFound,
+		CommandContext: mockCommandContextFailure,
+	}
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{})
+	if err == nil {
+		t.Fatal("EnsureDockerReady() expected error")
+	}
+	if UserErrorKey(err) != "docker_not_installed" {
+		t.Fatalf("UserErrorKey() = %q, want docker_not_installed", UserErrorKey(err))
+	}
+}
+
+func TestEnsureDockerReadyConfirmInstallDeclined(t *testing.T) {
+	v := &DockerValidator{
+		LookPath:       mockLookPathNotFound,
+		CommandContext: mockCommandContextFailure,
+	}
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{
+		ConfirmInstall: func() (bool, error) { return false, nil },
+	})
+	if err == nil {
+		t.Fatal("EnsureDockerReady() expected error")
+	}
+	if UserErrorKey(err) != "docker_not_installed" {
+		t.Fatalf("UserErrorKey() = %q, want docker_not_installed", UserErrorKey(err))
+	}
+}
+
+func TestEnsureDockerReadyAutoFixStartsDaemon(t *testing.T) {
+	startCalls := 0
+	v := &DockerValidator{
+		LookPath: mockLookPath,
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "docker info") {
+				if startCalls > 0 {
+					return exec.Command("true")
+				}
+				return exec.Command("sh", "-c", "echo cannot connect >&2; exit 1")
+			}
+			if strings.Contains(joined, "systemctl start docker") || strings.Contains(joined, "service docker start") {
+				startCalls++
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "compose") && strings.Contains(joined, "version") {
+				return exec.Command("sh", "-c", "printf '2.30.0'")
+			}
+			return exec.Command("true")
+		},
+	}
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{AutoFix: true, MaxRetries: 0})
+	if err != nil {
+		t.Fatalf("EnsureDockerReady() error = %v", err)
+	}
+	if startCalls < 1 {
+		t.Fatalf("startCalls = %d, want >= 1", startCalls)
+	}
+}
+
+func TestUserErrorKey(t *testing.T) {
+	if got := UserErrorKey(nil); got != "" {
+		t.Fatalf("UserErrorKey(nil) = %q, want empty", got)
+	}
+	err := &UserError{Key: "docker_not_running"}
+	if got := UserErrorKey(err); got != "docker_not_running" {
+		t.Fatalf("UserErrorKey() = %q, want docker_not_running", got)
 	}
 }

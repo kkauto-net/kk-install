@@ -15,6 +15,7 @@ const maxInitLicenseSourceBytes = 4096
 type initOptions struct {
 	NonInteractive bool
 	Force          bool
+	InstallDocker  bool
 	License        string
 	LicenseFile    string
 	LicenseStdin   bool
@@ -26,6 +27,7 @@ func collectInitOptions() initOptions {
 	return initOptions{
 		NonInteractive: yesInit,
 		Force:          forceInit,
+		InstallDocker:  installDockerFlag,
 		License:        strings.TrimSpace(initLicense),
 		LicenseFile:    strings.TrimSpace(initLicenseFile),
 		LicenseStdin:   initLicenseStdin,
