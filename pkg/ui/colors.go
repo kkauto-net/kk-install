@@ -1,7 +1,11 @@
 // Package ui provides color definitions following ClaudeKit CLI design guidelines.
 package ui
 
-import "github.com/pterm/pterm"
+import (
+	"os"
+
+	"github.com/pterm/pterm"
+)
 
 // Color palette hex codes (reference only - pterm uses terminal colors)
 const (
@@ -71,4 +75,11 @@ func Logo() string {
 // LogoCompact returns a smaller single-line logo
 func LogoCompact() string {
 	return StyleBrand.Sprint("KKauto.net")
+}
+
+// InitTerminalColors disables pterm colors when NO_COLOR is set.
+func InitTerminalColors() {
+	if os.Getenv("NO_COLOR") != "" {
+		pterm.DisableColor()
+	}
 }

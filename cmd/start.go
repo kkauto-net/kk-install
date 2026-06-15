@@ -33,14 +33,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
 
-	// Setup graceful shutdown
+	ui.ShowCommandBanner(ui.Msg("cmd_start_title"), ui.Msg("start_desc"))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -52,7 +53,6 @@ func runStart(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Step 1: Detect if Caddy is enabled
 	composeFile, err := compose.ParseComposeFile(cwd)
 	includeCaddy := false
 	var definedServices []string
@@ -63,7 +63,6 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 1: Run preflight checks
 	ui.ShowStepHeader(1, 4, ui.Msg("step_preflight"))
 	results, err := validator.RunPreflight(cwd, includeCaddy)
 	validator.PrintPreflightResults(results)
@@ -72,12 +71,11 @@ func runStart(cmd *cobra.Command, args []string) error {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("preflight_failed"),
 			Message:    ui.Msg("preflight_checks_failed"),
-			Suggestion: "Fix the issues above and try again",
+			Suggestion: ui.Msg("err_fix_issues"),
 		})
 		return err
 	}
 
-	// Step 2: Start docker-compose
 	ui.ShowStepHeader(2, 4, ui.Msg("step_start_services"))
 	executor := compose.NewExecutor(cwd)
 
@@ -89,10 +87,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		spinner.Fail(ui.Msg("start_failed"))
 
-		suggestion := "Check Docker logs for details"
-		command := "docker compose logs"
+		suggestion := ui.Msg("err_check_docker_logs")
+		command := ui.Msg("docker_compose_logs_command")
 
-		// Check for specific error types and provide better suggestions
 		if ui.IsDockerPermissionError(err) {
 			suggestion, command = ui.DockerPermissionSuggestion()
 		} else if ui.IsContainerConflictError(err) {
@@ -101,7 +98,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("start_failed"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: suggestion,
 			Command:    command,
 		})
@@ -109,17 +106,14 @@ func runStart(cmd *cobra.Command, args []string) error {
 	}
 	spinner.Success(ui.Msg("services_started"))
 
-	// Step 3: Monitor health
 	ui.ShowStepHeader(3, 4, ui.Msg("step_health_check"))
 
 	healthMonitor, err := monitor.NewHealthMonitor()
 	if err != nil {
-		// Can't monitor, but services may still be running
-		fmt.Printf("  [!] %s: %v\n", ui.Msg("health_failed"), err)
+		ui.ShowWarningf(ui.Msg("health_failed_detail"), ui.Msg("health_failed"), err)
 	} else {
 		defer healthMonitor.Close()
 
-		// Build container list
 		var containers []monitor.ContainerInfo
 		for name := range composeFile.Services {
 			containers = append(containers, monitor.ContainerInfo{
@@ -129,12 +123,10 @@ func runStart(cmd *cobra.Command, args []string) error {
 			})
 		}
 
-		// Monitor with progress callback
 		healthResults := healthMonitor.MonitorAll(timeoutCtx, containers, func(status monitor.HealthStatus) {
 			ui.ShowServiceProgress(status.ServiceName, status.Status)
 		})
 
-		// Check if all healthy
 		allHealthy := true
 		for _, r := range healthResults {
 			if !r.Healthy {
@@ -144,16 +136,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 
 		if !allHealthy {
-			fmt.Println("\n[!] " + ui.Msg("some_not_ready"))
+			ui.ShowWarning(ui.Msg("some_not_ready"))
 		}
 	}
 
-	// Step 4: Show status
 	ui.ShowStepHeader(4, 4, ui.Msg("step_status"))
 
 	statuses, err := monitor.GetStatusWithServices(timeoutCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintCommandResult(statuses, "kk start", "start_summary_success", "start_summary_partial")
+		ui.PrintCommandResult(statuses, ui.Msg("cmd_start_title"), "start_summary_success", "start_summary_partial")
 		domain := config.ReadEnvValue(cwd, "SYSTEM_DOMAIN")
 		ui.PrintAccessInfo(statuses, domain)
 	}

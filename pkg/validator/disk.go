@@ -3,6 +3,8 @@ package validator
 import (
 	"fmt"
 	"syscall"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 const MinDiskSpaceGB = 5
@@ -31,7 +33,6 @@ func WarnIfLowDiskSpace(path string) {
 	}
 
 	if availableGB < MinDiskSpaceGB {
-		fmt.Printf("  [!] Canh bao: Disk space thap (%.1fGB). Recommend it nhat %dGB.\n",
-			availableGB, MinDiskSpaceGB)
+		ui.ShowWarningf(ui.Msg("warn_disk_low"), availableGB, MinDiskSpaceGB)
 	}
 }

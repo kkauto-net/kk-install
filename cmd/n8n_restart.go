@@ -25,9 +25,9 @@ func init() {
 func runN8nRestart(cmd *cobra.Command, args []string) error {
 	if !n8n.IsInstalled() {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "n8n Not Installed",
+			Title:      ui.Msg("err_title_n8n_not_installed"),
 			Message:    ui.Msg("n8n_not_installed"),
-			Suggestion: "Install n8n first",
+			Suggestion: ui.Msg("err_install_n8n_first"),
 			Command:    "kk n8n install",
 		})
 		return fmt.Errorf("n8n not installed")
@@ -43,6 +43,12 @@ func runN8nRestart(cmd *cobra.Command, args []string) error {
 
 	if err := executor.Restart(ctx); err != nil {
 		spinner.Fail(ui.Msg("restart_failed"))
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("restart_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_logs"),
+			Command:    ui.Msg("docker_compose_logs_command"),
+		})
 		return err
 	}
 	spinner.Success(ui.Msg("restart_complete"))

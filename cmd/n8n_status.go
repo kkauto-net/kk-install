@@ -26,9 +26,13 @@ func init() {
 
 func runN8nStatus(cmd *cobra.Command, args []string) error {
 	if !n8n.IsInstalled() {
-		fmt.Println(ui.Msg("n8n_not_installed"))
-		fmt.Println("Run 'kk n8n install' to set up n8n.")
-		return nil
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("err_title_n8n_not_installed"),
+			Message:    ui.Msg("n8n_not_installed"),
+			Suggestion: ui.Msg("n8n_run_install_hint"),
+			Command:    "kk n8n install",
+		})
+		return fmt.Errorf("n8n not installed")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -36,24 +40,26 @@ func runN8nStatus(cmd *cobra.Command, args []string) error {
 
 	executor := compose.NewExecutor(n8n.N8nDir())
 
-	// Get status for n8n services
 	definedServices := []string{"n8n", "n8n-postgres"}
+	spinner := ui.StartPtermSpinner(ui.Msg("get_status_failed"))
 	statuses, err := monitor.GetStatusWithServices(ctx, executor, definedServices)
 	if err != nil {
+		spinner.Fail(ui.Msg("get_status_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:   ui.Msg("get_status_failed"),
-			Message: err.Error(),
+			Title:      ui.Msg("get_status_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_running"),
+			Command:    ui.Msg("docker_start_command"),
 		})
 		return err
 	}
+	spinner.Success(ui.Msg("status_desc"))
 
 	ui.PrintStatusTable(statuses)
 
-	// Show access info if n8n is running
 	for _, s := range statuses {
 		if s.Name == "n8n" && s.Running {
-			fmt.Println()
-			fmt.Println("  Access n8n at: http://localhost:5678")
+			ui.ShowNote(ui.MsgF("n8n_access_url", n8n.AccessURL()))
 			break
 		}
 	}

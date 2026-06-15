@@ -1,6 +1,10 @@
 package validator
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
+)
 
 // ErrorKey constants for translation
 const (
@@ -14,50 +18,43 @@ const (
 	ErrDiskLow            = "disk_low"
 )
 
-// ErrorMessages maps error keys to Vietnamese messages
-var ErrorMessages = map[string]struct {
-	Message    string
-	Suggestion string
-}{
-	ErrDockerNotInstalled: {
-		Message:    "Docker chua cai dat",
-		Suggestion: "Cai Docker tai: https://docs.docker.com/get-docker/",
-	},
-	ErrDockerNotRunning: {
-		Message:    "Docker daemon khong chay",
-		Suggestion: "Khoi dong Docker: sudo systemctl start docker",
-	},
-	ErrPortConflict: {
-		Message:    "Co port dang bi su dung",
-		Suggestion: "Xem chi tiet ben duoi",
-	},
-	ErrEnvMissing: {
-		Message:    "File .env khong ton tai",
-		Suggestion: "Chay: kk init",
-	},
-	ErrEnvMissingVars: {
-		Message:    "Thieu bien moi truong bat buoc",
-		Suggestion: "Xem chi tiet ben duoi",
-	},
-	ErrComposeMissing: {
-		Message:    "File docker-compose.yml khong ton tai",
-		Suggestion: "Chay: kk init",
-	},
-	ErrComposeSyntax: {
-		Message:    "Loi cu phap trong docker-compose.yml",
-		Suggestion: "Kiem tra YAML: indentation, colons, quotes",
-	},
-	ErrDiskLow: {
-		Message:    "Disk space thap",
-		Suggestion: "Don dep disk hoac mo rong storage",
-	},
+var errorSuggestionKeys = map[string]string{
+	ErrDockerNotInstalled: "docker_install_suggestion",
+	ErrDockerNotRunning:   "docker_start_suggestion",
+	ErrPortConflict:       "port_conflict_suggestion",
+	ErrEnvMissing:         "env_missing_suggestion",
+	ErrEnvMissingVars:     "env_missing_vars_suggestion",
+	ErrComposeMissing:     "env_missing_suggestion",
+	ErrComposeSyntax:      "compose_syntax_error_suggestion",
+	ErrDiskLow:            "preflight_fix_stop_conflicting",
 }
 
-// TranslateError converts technical error to user-friendly
+// TranslateError converts technical error to user-friendly localized text.
 func TranslateError(err error) string {
 	if ue, ok := err.(*UserError); ok {
-		return fmt.Sprintf("%s\n  → %s", ue.Message, ue.Suggestion)
+		msg := ue.Message
+		if msg == "" && ue.Key != "" {
+			msg = ui.Msg(ue.Key)
+		}
+		suggestion := ue.Suggestion
+		if suggestion == "" && ue.Key != "" {
+			if suggestionKey, ok := errorSuggestionKeys[ue.Key]; ok {
+				if ue.Key == ErrEnvMissingVars && len(ue.Args) > 0 {
+					suggestion = ui.MsgF(suggestionKey, ue.Args[0])
+				} else if ue.Key == "compose_version_old" && len(ue.Args) > 0 {
+					suggestion = ui.Msg("compose_version_old_suggestion")
+					msg = ui.MsgF(ue.Key, ue.Args[0])
+				} else {
+					suggestion = ui.Msg(suggestionKey)
+				}
+			} else if suggestionKey := ue.Key + "_suggestion"; ui.Msg(suggestionKey) != suggestionKey {
+				suggestion = ui.Msg(suggestionKey)
+			}
+		}
+		if suggestion != "" {
+			return fmt.Sprintf("%s\n  → %s", msg, suggestion)
+		}
+		return msg
 	}
-	// Fallback for unknown errors
-	return fmt.Sprintf("Loi: %v", err)
+	return ui.MsgF("err_unknown", err)
 }

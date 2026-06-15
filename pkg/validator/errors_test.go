@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 func TestTranslateError(t *testing.T) {
@@ -26,9 +28,6 @@ func TestTranslateError(t *testing.T) {
 	t.Run("Generic error translation", func(t *testing.T) {
 		err := errors.New("generic error")
 		result := TranslateError(err)
-		if !strings.Contains(result, "Loi:") {
-			t.Errorf("Expected 'Loi:' prefix, got %q", result)
-		}
 		if !strings.Contains(result, "generic error") {
 			t.Errorf("Expected error message in result, got %q", result)
 		}
@@ -62,7 +61,7 @@ func TestUserError(t *testing.T) {
 	})
 }
 
-func TestErrorMessages(t *testing.T) {
+func TestErrorSuggestionKeys(t *testing.T) {
 	expectedKeys := []string{
 		ErrDockerNotInstalled,
 		ErrDockerNotRunning,
@@ -75,15 +74,13 @@ func TestErrorMessages(t *testing.T) {
 	}
 
 	for _, key := range expectedKeys {
-		if msg, ok := ErrorMessages[key]; !ok {
-			t.Errorf("Error message not defined for key %q", key)
-		} else {
-			if msg.Message == "" {
-				t.Errorf("Empty message for key %q", key)
-			}
-			if msg.Suggestion == "" {
-				t.Errorf("Empty suggestion for key %q", key)
-			}
+		suggestionKey, ok := errorSuggestionKeys[key]
+		if !ok {
+			t.Errorf("Suggestion key not defined for %q", key)
+			continue
+		}
+		if ui.Msg(suggestionKey) == suggestionKey {
+			t.Errorf("Missing i18n suggestion for key %q", suggestionKey)
 		}
 	}
 }

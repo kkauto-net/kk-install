@@ -156,6 +156,31 @@ func TestEnsureDirectories(t *testing.T) {
 	}
 }
 
+func TestAccessURL(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	if got := AccessURL(); got != "http://localhost:5678" {
+		t.Errorf("AccessURL() without install = %q, want default localhost URL", got)
+	}
+
+	cfg := N8nConfig{
+		Domain:        "n8n.example.com",
+		N8nHost:       "n8n.example.com",
+		DBUser:        "n8n",
+		DBPassword:    "testpassword12345678",
+		EncryptionKey: "test-encryption-key-12345678901234",
+		Timezone:      "Asia/Ho_Chi_Minh",
+	}
+	if err := RenderAll(cfg); err != nil {
+		t.Fatalf("RenderAll() error = %v", err)
+	}
+
+	if got := AccessURL(); got != "https://n8n.example.com" {
+		t.Errorf("AccessURL() = %q, want https://n8n.example.com", got)
+	}
+}
+
 func TestRenderAll(t *testing.T) {
 	// Create temp directory for testing
 	tmpDir := t.TempDir()

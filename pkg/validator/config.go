@@ -13,39 +13,26 @@ func ValidateDockerCompose(dir string) error {
 	composePath := filepath.Join(dir, "docker-compose.yml")
 
 	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		return &UserError{
-			Key:        "compose_missing",
-			Message:    "File docker-compose.yml khong ton tai",
-			Suggestion: "Chay: kk init",
-		}
+		return &UserError{Key: ErrComposeMissing}
 	}
 
 	content, err := os.ReadFile(composePath)
 	if err != nil {
-		return &UserError{
-			Key:        "compose_read_error",
-			Message:    fmt.Sprintf("Khong doc duoc docker-compose.yml: %v", err),
-			Suggestion: "Kiem tra quyen truy cap file",
-		}
+		return &UserError{Key: "compose_read_error"}
 	}
 
 	// Parse YAML to validate syntax
 	var compose map[string]interface{}
 	if err := yaml.Unmarshal(content, &compose); err != nil {
 		return &UserError{
-			Key:        "compose_syntax_error",
-			Message:    fmt.Sprintf("Loi cu phap docker-compose.yml: %v", err),
-			Suggestion: "Kiem tra cu phap YAML (indentation, colons, quotes)",
+			Key:     ErrComposeSyntax,
+			Message: fmt.Sprintf("%s: %v", ErrComposeSyntax, err),
 		}
 	}
 
 	// Check required sections
 	if _, ok := compose["services"]; !ok {
-		return &UserError{
-			Key:        "compose_no_services",
-			Message:    "docker-compose.yml thieu section 'services'",
-			Suggestion: "Them section services vao file",
-		}
+		return &UserError{Key: "compose_no_services"}
 	}
 
 	return nil
@@ -62,20 +49,12 @@ func ValidateCaddyfile(dir string) error {
 
 	content, err := os.ReadFile(caddyPath)
 	if err != nil {
-		return &UserError{
-			Key:        "caddy_read_error",
-			Message:    fmt.Sprintf("Khong doc duoc Caddyfile: %v", err),
-			Suggestion: "Kiem tra quyen truy cap file",
-		}
+		return &UserError{Key: "caddy_read_error"}
 	}
 
 	// Basic check: file should not be empty if exists
 	if len(content) == 0 {
-		return &UserError{
-			Key:        "caddy_empty",
-			Message:    "Caddyfile trong",
-			Suggestion: "Them cau hinh domain vao Caddyfile",
-		}
+		return &UserError{Key: "caddy_empty"}
 	}
 
 	return nil

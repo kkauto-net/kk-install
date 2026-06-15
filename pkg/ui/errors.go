@@ -118,8 +118,22 @@ func IsDockerPermissionError(err error) bool {
 
 // DockerPermissionSuggestion returns suggestion for Docker permission error
 func DockerPermissionSuggestion() (suggestion, command string) {
-	return "Add user to docker group",
-		"sudo usermod -aG docker $USER && newgrp docker"
+	return Msg("err_docker_permission"),
+		Msg("err_docker_permission_command")
+}
+
+const maxSanitizedErrorLen = 240
+
+// SanitizeError shortens overly long technical error messages for display.
+func SanitizeError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	if len(msg) <= maxSanitizedErrorLen {
+		return msg
+	}
+	return msg[:maxSanitizedErrorLen-3] + "..."
 }
 
 // IsContainerConflictError checks if error is Docker container name conflict

@@ -35,7 +35,6 @@ func init() {
 }
 
 func runSelfupdate(cmd *cobra.Command, args []string) error {
-	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -47,7 +46,6 @@ func runSelfupdate(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Step 1: Check for updates
 	ui.ShowStepHeader(1, 2, ui.Msg("step_check_update"))
 	spinner := ui.StartPtermSpinner(ui.Msg("checking_cli_update"))
 
@@ -59,34 +57,28 @@ func runSelfupdate(cmd *cobra.Command, args []string) error {
 		spinner.Fail(ui.Msg("check_update_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("check_update_failed"),
-			Message:    err.Error(),
-			Suggestion: "Check internet connection or try again later",
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_internet"),
 		})
 		return err
 	}
 	spinner.Success(ui.Msg("checking_cli_update"))
 
-	// Show version info
-	fmt.Println()
-	fmt.Printf("  %s: %s\n", ui.Msg("current_version"), result.CurrentVersion)
-	fmt.Printf("  %s: %s\n", ui.Msg("latest_version"), result.LatestVersion)
-	fmt.Println()
+	ui.ShowNote(fmt.Sprintf("%s: %s", ui.Msg("current_version"), result.CurrentVersion))
+	ui.ShowNote(fmt.Sprintf("%s: %s", ui.Msg("latest_version"), result.LatestVersion))
 
 	if !result.UpdateNeeded {
 		ui.ShowSuccess(ui.Msg("cli_up_to_date"))
 		return nil
 	}
 
-	// Update available
 	ui.ShowInfo(ui.Msg("update_available"))
 
 	if checkOnly {
-		fmt.Println()
-		fmt.Printf("  %s: kk selfupdate\n", ui.Msg("to_update_run"))
+		ui.ShowNote(fmt.Sprintf("%s: kk selfupdate", ui.Msg("to_update_run")))
 		return nil
 	}
 
-	// Confirm update
 	if !forceSelfupdate {
 		var confirm bool
 		form := huh.NewForm(
@@ -102,12 +94,11 @@ func runSelfupdate(cmd *cobra.Command, args []string) error {
 		}
 
 		if !confirm {
-			fmt.Println(ui.Msg("selfupdate_cancelled"))
+			ui.ShowInfo(ui.Msg("selfupdate_cancelled"))
 			return nil
 		}
 	}
 
-	// Step 2: Download and install
 	ui.ShowStepHeader(2, 2, ui.Msg("step_install_update"))
 	spinner = ui.StartPtermSpinner(ui.Msg("downloading_update"))
 
@@ -118,15 +109,13 @@ func runSelfupdate(cmd *cobra.Command, args []string) error {
 		spinner.Fail(ui.Msg("update_install_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("update_install_failed"),
-			Message:    err.Error(),
-			Suggestion: "Try running with sudo or check permissions",
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_update_permissions"),
 		})
 		return err
 	}
 	spinner.Success(ui.Msg("downloading_update"))
 
-	// Success message
-	fmt.Println()
 	ui.ShowSuccess(fmt.Sprintf("%s %s → %s", ui.Msg("selfupdate_complete"), result.CurrentVersion, result.LatestVersion))
 
 	return nil

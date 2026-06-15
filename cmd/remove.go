@@ -36,14 +36,13 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
 
-	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -55,7 +54,6 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Step 1: Remove containers and networks
 	ui.ShowStepHeader(1, 1, ui.Msg("step_remove_services"))
 
 	executor := compose.NewExecutor(cwd)
@@ -75,15 +73,15 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	if execErr != nil {
 		spinner.Fail(ui.Msg("remove_failed"))
 
-		suggestion := "Check Docker logs for details"
-		command := "docker compose logs"
+		suggestion := ui.Msg("err_check_docker_logs")
+		command := ui.Msg("docker_compose_logs_command")
 		if ui.IsDockerPermissionError(execErr) {
 			suggestion, command = ui.DockerPermissionSuggestion()
 		}
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("remove_failed"),
-			Message:    execErr.Error(),
+			Message:    ui.SanitizeError(execErr),
 			Suggestion: suggestion,
 			Command:    command,
 		})

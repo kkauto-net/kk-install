@@ -36,12 +36,14 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
+
+	ui.ShowCommandBanner(ui.Msg("cmd_update_title"), ui.Msg("update_desc"))
 
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -73,7 +75,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		spinner.Fail(ui.Msg("pull_failed"))
 
-		suggestion := "Check internet connection or Docker Hub status"
+		suggestion := ui.Msg("err_pull_internet")
 		command := ""
 		if ui.IsDockerPermissionError(err) {
 			suggestion, command = ui.DockerPermissionSuggestion()
@@ -81,7 +83,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("pull_failed"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: suggestion,
 			Command:    command,
 		})
@@ -93,14 +95,14 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("pull_failed"),
-			Message:    err.Error(),
-			Suggestion: "Check Docker pull output and image availability",
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_pull"),
 		})
 		return err
 	}
 
 	if len(updates) == 0 {
-		fmt.Println("\n[OK] " + ui.Msg("images_up_to_date"))
+		ui.ShowOK(ui.Msg("images_up_to_date"))
 		return nil
 	}
 
@@ -147,6 +149,12 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	err = executor.ForceRecreate(recreateCtx)
 	if err != nil {
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("recreate_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_logs"),
+			Command:    ui.Msg("docker_compose_logs_command"),
+		})
 		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
 	}
 
@@ -162,7 +170,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	statuses, err := monitor.GetStatusWithServices(statusCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintCommandResult(statuses, "kk update", "update_summary_success", "update_summary_partial")
+		ui.PrintCommandResult(statuses, ui.Msg("cmd_update_title"), "update_summary_success", "update_summary_partial")
 	}
 
 	return nil

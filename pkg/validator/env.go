@@ -2,10 +2,11 @@ package validator
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 // RequiredEnvVars lists mandatory environment variables
@@ -33,33 +34,27 @@ func ValidateEnvFile(dir string) error {
 	info, err := os.Stat(envPath)
 	if os.IsNotExist(err) {
 		return &UserError{
-			Key:        "env_missing",
-			Message:    "File .env khong ton tai",
-			Suggestion: "Chay: kk init",
+			Key: ErrEnvMissing,
 		}
 	}
 	if err != nil {
 		return &UserError{
-			Key:        "env_stat_error",
-			Message:    fmt.Sprintf("Loi doc thong tin file .env: %v", err),
-			Suggestion: "Kiem tra quyen truy cap file",
+			Key: "env_stat_error",
 		}
 	}
 
 	// Check file permissions (warn if too permissive)
 	mode := info.Mode()
 	if mode.Perm()&0044 != 0 { // Readable by group or others
-		fmt.Printf("  [!] Canh bao: File .env co quyen truy cap qua rong (%o)\n", mode.Perm())
-		fmt.Printf("      Nen thiet lap: chmod 600 .env (chi user hien tai doc/ghi)\n")
+		ui.ShowWarningf(ui.Msg("warn_env_permissions"), mode.Perm())
+		ui.ShowNote(ui.Msg("warn_env_permissions_fix"))
 	}
 
 	// Parse .env file
 	envVars, err := parseEnvFile(envPath)
 	if err != nil {
 		return &UserError{
-			Key:        "env_parse_error",
-			Message:    fmt.Sprintf("Loi doc file .env: %v", err),
-			Suggestion: "Kiem tra cu phap file .env",
+			Key: "env_parse_error",
 		}
 	}
 
@@ -73,9 +68,8 @@ func ValidateEnvFile(dir string) error {
 
 	if len(missing) > 0 {
 		return &UserError{
-			Key:        "env_missing_vars",
-			Message:    "Thieu bien moi truong trong .env",
-			Suggestion: fmt.Sprintf("Them vao .env: %s", strings.Join(missing, ", ")),
+			Key:  ErrEnvMissingVars,
+			Args: []any{strings.Join(missing, ", ")},
 		}
 	}
 
@@ -89,9 +83,7 @@ func ValidateEnvFile(dir string) error {
 	}
 
 	if len(weakPasswords) > 0 {
-		// Warning only, don't block
-		fmt.Printf("  [!] Canh bao: Mat khau yeu cho: %s (nen >= 16 ky tu)\n",
-			strings.Join(weakPasswords, ", "))
+		ui.ShowWarningf(ui.Msg("warn_weak_password"), strings.Join(weakPasswords, ", "))
 	}
 
 	return nil
@@ -146,7 +138,7 @@ func CheckEnvPermissions(dir string) {
 	mode := info.Mode()
 	// Check if others have read permission (Unix)
 	if mode&0004 != 0 {
-		fmt.Printf("  [!] Canh bao: File .env co the doc boi nguoi khac.\n")
-		fmt.Printf("      Chay: chmod 600 %s\n", envPath)
+		ui.ShowWarning(ui.Msg("warn_env_world_readable"))
+		ui.ShowNote(ui.MsgF("warn_env_world_readable_fix", envPath))
 	}
 }

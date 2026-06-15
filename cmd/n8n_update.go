@@ -31,9 +31,9 @@ func init() {
 func runN8nUpdate(cmd *cobra.Command, args []string) error {
 	if !n8n.IsInstalled() {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "n8n Not Installed",
+			Title:      ui.Msg("err_title_n8n_not_installed"),
 			Message:    ui.Msg("n8n_not_installed"),
-			Suggestion: "Install n8n first",
+			Suggestion: ui.Msg("err_install_n8n_first"),
 			Command:    "kk n8n install",
 		})
 		return fmt.Errorf("n8n not installed")
@@ -44,7 +44,6 @@ func runN8nUpdate(cmd *cobra.Command, args []string) error {
 
 	executor := compose.NewExecutor(n8n.N8nDir())
 
-	// Step 1: Pull images
 	ui.ShowStepHeader(1, 3, ui.Msg("step_pull_images"))
 	spinner := ui.StartPtermSpinner(ui.Msg("pulling_images"))
 
@@ -52,23 +51,21 @@ func runN8nUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		spinner.Fail(ui.Msg("pull_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:   "Failed to pull images",
-			Message: err.Error(),
+			Title:      ui.Msg("pull_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_pull"),
 		})
 		return err
 	}
 	spinner.Success(ui.Msg("pulling_images"))
 
-	// Step 2: Parse updates
 	updates := updater.ParsePullOutput(output)
 
 	if len(updates) == 0 {
-		fmt.Println()
-		ui.ShowSuccess(ui.Msg("images_up_to_date"))
+		ui.ShowOK(ui.Msg("images_up_to_date"))
 		return nil
 	}
 
-	// Show updates
 	ui.ShowStepHeader(2, 3, ui.Msg("updates_available"))
 	uiUpdates := make([]ui.ImageUpdate, len(updates))
 	for i, u := range updates {
@@ -79,9 +76,7 @@ func runN8nUpdate(cmd *cobra.Command, args []string) error {
 		}
 	}
 	ui.PrintUpdatesTable(uiUpdates)
-	fmt.Println()
 
-	// Confirm
 	if !forceN8nUpdate {
 		var confirm bool
 		form := huh.NewForm(
@@ -95,24 +90,28 @@ func runN8nUpdate(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if !confirm {
-			fmt.Println(ui.Msg("update_cancelled"))
+			ui.ShowInfo(ui.Msg("update_cancelled"))
 			return nil
 		}
 	}
 
-	// Step 3: Recreate
 	ui.ShowStepHeader(3, 3, ui.Msg("step_recreate"))
 	spinner = ui.StartPtermSpinner(ui.Msg("recreating"))
 
 	if err := executor.ForceRecreate(ctx); err != nil {
 		spinner.Fail(ui.Msg("recreate_failed"))
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("recreate_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_logs"),
+			Command:    ui.Msg("docker_compose_logs_command"),
+		})
 		return err
 	}
 	spinner.Success(ui.Msg("update_complete"))
 
-	fmt.Println()
-	fmt.Println("  n8n updated successfully!")
-	fmt.Println("  Access at: http://localhost:5678")
+	ui.ShowSuccess(ui.Msg("n8n_update_success"))
+	ui.ShowNote(ui.MsgF("n8n_access_url", n8n.AccessURL()))
 
 	return nil
 }

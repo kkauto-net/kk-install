@@ -30,21 +30,20 @@ func init() {
 func runN8nRemove(cmd *cobra.Command, args []string) error {
 	if !n8n.IsInstalled() {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "n8n Not Installed",
+			Title:      ui.Msg("err_title_n8n_not_installed"),
 			Message:    ui.Msg("n8n_not_installed"),
-			Suggestion: "Nothing to remove",
+			Suggestion: ui.Msg("err_nothing_to_remove"),
 		})
 		return fmt.Errorf("n8n not installed")
 	}
 
-	// Warn about data deletion if volumes flag is set
 	if n8nRemoveVolumes {
 		var confirm bool
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
-					Title("WARNING: This will delete all n8n data!").
-					Description("Workflows, credentials, and database will be permanently lost.").
+					Title(ui.Msg("n8n_remove_volume_warning")).
+					Description(ui.Msg("n8n_remove_volume_warning_desc")).
 					Value(&confirm),
 			),
 		)
@@ -52,7 +51,7 @@ func runN8nRemove(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if !confirm {
-			fmt.Println("Cancelled.")
+			ui.ShowInfo(ui.Msg("err_cancelled"))
 			return nil
 		}
 	}
@@ -74,6 +73,12 @@ func runN8nRemove(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		spinner.Fail(ui.Msg("remove_failed"))
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("remove_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_logs"),
+			Command:    ui.Msg("docker_compose_logs_command"),
+		})
 		return err
 	}
 
@@ -81,7 +86,7 @@ func runN8nRemove(cmd *cobra.Command, args []string) error {
 		spinner.Success(ui.Msg("removed_with_volumes"))
 	} else {
 		spinner.Success(ui.Msg("removed_containers"))
-		fmt.Println("  Data preserved in", n8n.N8nDir())
+		ui.ShowNote(ui.MsgF("n8n_data_preserved", n8n.N8nDir()))
 	}
 
 	return nil

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/huh"
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/kkauto-net/kk-install/pkg/config"
@@ -45,12 +44,7 @@ var (
 	renderTemplates         = templates.RenderAll
 	domainRegex             = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z]{2,}$`)
 	startInitSpinner        = func(text string) initSpinner {
-		spinner, err := pterm.DefaultSpinner.Start(text)
-		if err != nil {
-			ui.ShowWarning(fmt.Sprintf("failed to start spinner: %v", err))
-			return pterm.DefaultSpinner.WithText(text)
-		}
-		return spinner
+		return ui.StartPtermSpinner(text)
 	}
 )
 
@@ -103,7 +97,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 0: License Verification
-	ui.ShowStepHeader(0, 7, ui.Msg("step_license"))
+	ui.ShowStepHeader(1, 7, ui.Msg("step_license"))
 
 	// Pre-fill license from existing env
 	licenseKey := existingEnv["LICENSE_KEY"]
@@ -139,7 +133,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Skip license validation in test environment
 	if os.Getenv("KK_TEST_SKIP_LICENSE_VALIDATION") == "true" {
-		ui.ShowWarning("Skipping license validation for test environment")
+		ui.ShowWarning(ui.Msg("warn_skipping_license"))
 		licenseData.Key = licenseKey
 		licenseData.PublicKey = "TEST-PUBLIC-KEY"
 	} else {
@@ -165,7 +159,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 1: Check Docker
-	ui.ShowStepHeader(1, 7, ui.Msg("step_docker_check"))
+	ui.ShowStepHeader(2, 7, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 
 	if err = ensureInitDocker(opts); err != nil {
@@ -175,7 +169,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowSuccess(ui.IconCheck + " " + ui.MsgDockerOK())
 
 	// Step 2: Language selection
-	ui.ShowStepHeader(2, 7, ui.Msg("step_language"))
+	ui.ShowStepHeader(3, 7, ui.Msg("step_language"))
 	var langChoice string
 	if opts.NonInteractive {
 		langChoice = opts.Language
@@ -206,7 +200,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Save language preference to config
 	cfg, err := config.Load()
 	if err != nil {
-		ui.ShowWarning(fmt.Sprintf("Cannot load config: %v", err))
+		ui.ShowWarningf(ui.Msg("warn_cannot_load_config"), err)
 		cfg = &config.Config{Language: langChoice}
 	} else {
 		cfg.Language = langChoice
@@ -248,7 +242,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 3: Service Selection (SeaweedFS, Caddy only)
-	ui.ShowStepHeader(3, 7, ui.Msg("step_options"))
+	ui.ShowStepHeader(4, 7, ui.Msg("step_options"))
 	enableSeaweedFS := true // Default: enabled (recommended)
 	enableCaddy := true     // Default: enabled (recommended)
 
@@ -277,7 +271,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 4: Domain Configuration
-	ui.ShowStepHeader(4, 7, ui.Msg("step_domain"))
+	ui.ShowStepHeader(5, 7, ui.Msg("step_domain"))
 	// Pre-fill domain from existing env or use localhost
 	domain := existingEnv["SYSTEM_DOMAIN"]
 	if opts.NonInteractive {
@@ -326,7 +320,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 5: Environment Configuration
-	ui.ShowStepHeader(5, 7, ui.Msg("step_credentials"))
+	ui.ShowStepHeader(6, 7, ui.Msg("step_credentials"))
 
 	// Load secrets from existing env or generate new ones
 	// Only use existing values if they meet minimum length requirements
@@ -451,7 +445,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 6: Generate Files + Complete
-	ui.ShowStepHeader(6, 7, ui.Msg("step_generate"))
+	ui.ShowStepHeader(7, 7, ui.Msg("step_generate"))
 
 	// Render templates with spinner
 	spinner = startInitSpinner(ui.IconWrite + " " + ui.Msg("generating_files"))
@@ -509,9 +503,9 @@ func showInitInputError(err error) {
 		return
 	}
 	ui.ShowBoxedError(ui.ErrorSuggestion{
-		Title:      "Invalid init input",
-		Message:    err.Error(),
-		Suggestion: "Use exactly one license source and provide valid --domain and --language flags.",
+		Title:      ui.Msg("err_invalid_init_input"),
+		Message:    ui.SanitizeError(err),
+		Suggestion: ui.Msg("err_invalid_init_input_suggestion"),
 	})
 }
 

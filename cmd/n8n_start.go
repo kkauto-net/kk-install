@@ -27,45 +27,40 @@ func runN8nStart(cmd *cobra.Command, args []string) error {
 	return runN8nStartInternal()
 }
 
-// runN8nStartInternal starts n8n services (called from install and start commands)
 func runN8nStartInternal() error {
-	// Check installation
 	if !n8n.IsInstalled() {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "n8n Not Installed",
+			Title:      ui.Msg("err_title_n8n_not_installed"),
 			Message:    ui.Msg("n8n_not_installed"),
-			Suggestion: "Install n8n first",
+			Suggestion: ui.Msg("err_install_n8n_first"),
 			Command:    "kk n8n install",
 		})
 		return fmt.Errorf("n8n not installed")
 	}
 
-	// Step 1: Preflight check
 	ui.ShowStepHeader(1, 3, ui.Msg("step_preflight"))
 	dv := validator.NewDockerValidator()
 	if err := dv.CheckDockerDaemon(); err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_not_running"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("docker_start_suggestion"),
-			Command:    "sudo systemctl start docker",
+			Command:    ui.Msg("docker_start_command"),
 		})
 		return err
 	}
 
-	// Check port 5678 availability
 	portStatus := validator.CheckPort(5678)
 	if portStatus.InUse && !portStatus.UsedByKKEngine {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "Port 5678 In Use",
-			Message:    fmt.Sprintf("Port 5678 is being used by %s (PID %d)", portStatus.Process, portStatus.PID),
-			Suggestion: "Stop the service using port 5678 or change n8n port",
+			Title:      ui.Msg("err_title_port_in_use"),
+			Message:    ui.MsgF("err_port_in_use_msg", portStatus.Process, portStatus.PID),
+			Suggestion: ui.Msg("err_port_in_use_suggestion"),
 		})
 		return fmt.Errorf("port 5678 in use")
 	}
 	ui.ShowSuccess(ui.Msg("docker_ok"))
 
-	// Step 2: Start services
 	ui.ShowStepHeader(2, 3, ui.Msg("step_start_services"))
 	ctx, cancel := context.WithTimeout(context.Background(), compose.DefaultTimeout)
 	defer cancel()
@@ -76,18 +71,19 @@ func runN8nStartInternal() error {
 	if err := executor.Up(ctx); err != nil {
 		spinner.Fail(ui.Msg("start_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:   "Failed to start n8n",
-			Message: err.Error(),
+			Title:      ui.Msg("err_title_n8n_start_failed"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_check_docker_logs"),
+			Command:    ui.Msg("docker_compose_logs_command"),
 		})
 		return err
 	}
 	spinner.Success(ui.Msg("n8n_started"))
 
-	// Step 3: Show status
 	ui.ShowStepHeader(3, 3, ui.Msg("step_status"))
-	fmt.Println()
-	fmt.Println("  n8n is running at: http://localhost:5678")
-	fmt.Println("  Run 'kk n8n status' for details")
+	accessURL := n8n.AccessURL()
+	ui.ShowNote(ui.MsgF("n8n_running_at", accessURL))
+	ui.ShowNote(ui.Msg("n8n_run_status_hint"))
 
 	return nil
 }

@@ -40,6 +40,20 @@
 | Errors | Include title, safe message, suggestion, and command when available. |
 | Secrets | Mask or omit; never print full licenses in errors. |
 
+### UI helpers (`pkg/ui`)
+
+Use shared helpers instead of raw `fmt.Printf` for user-facing messages:
+
+| Helper | Use for |
+|---|---|
+| `ShowSuccess` / `ShowOK` | Completed operations |
+| `ShowWarning` / `ShowWarningf` | Non-blocking issues |
+| `ShowInfo` / `ShowNote` | Context and follow-up hints |
+| `ShowBoxedError` | Failures with recovery guidance |
+| `Msg` / `MsgF` | All localized copy (EN/VI) |
+
+Set `NO_COLOR=1` to disable terminal colors (handled in `ui.InitTerminalColors()`).
+
 ## Language and Terminology
 
 | Term | Use |

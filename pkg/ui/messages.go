@@ -57,3 +57,23 @@ func ShowInfo(msg string) {
 func ShowWarning(msg string) {
 	pterm.Warning.Println(msg)
 }
+
+// ShowWarningf prints a formatted warning using pterm.
+func ShowWarningf(format string, args ...any) {
+	pterm.Warning.Printfln(format, args...)
+}
+
+// ShowSuccessMsg prints a localized success message.
+func ShowSuccessMsg(key string) {
+	ShowSuccess(Msg(key))
+}
+
+// ShowNote prints an indented informational note.
+func ShowNote(msg string) {
+	pterm.Println("  " + msg)
+}
+
+// ShowOK prints a success line with consistent formatting.
+func ShowOK(msg string) {
+	pterm.Success.Println(msg)
+}

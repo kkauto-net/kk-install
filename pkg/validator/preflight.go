@@ -27,10 +27,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 1. Docker installed
 	err := dockerValidator.CheckDockerInstalled()
 	results = append(results, PreflightResult{
-		CheckName:  "Docker cai dat",
+		CheckName:  ui.Msg("preflight_check_docker_installed"),
 		Passed:     err == nil,
 		Error:      err,
-		Fix:        "Install Docker",
+		Fix:        ui.Msg("preflight_fix_install_docker"),
 		FixCommand: "https://docs.docker.com/get-docker/",
 	})
 	if err != nil {
@@ -41,10 +41,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	if !hasBlockingError {
 		err = dockerValidator.CheckDockerDaemon()
 		results = append(results, PreflightResult{
-			CheckName:  "Docker daemon",
+			CheckName:  ui.Msg("preflight_check_docker_daemon"),
 			Passed:     err == nil,
 			Error:      err,
-			Fix:        "Start Docker daemon",
+			Fix:        ui.Msg("preflight_fix_start_docker"),
 			FixCommand: "systemctl start docker",
 		})
 		if err != nil {
@@ -55,10 +55,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 3. Port conflicts
 	_, err = CheckAllPorts(includeCaddy)
 	results = append(results, PreflightResult{
-		CheckName:  "Cong mang (ports)",
+		CheckName:  ui.Msg("preflight_check_ports"),
 		Passed:     err == nil,
 		Error:      err,
-		Fix:        "Stop conflicting services or change ports",
+		Fix:        ui.Msg("preflight_fix_stop_conflicting"),
 		FixCommand: "",
 	})
 	if err != nil {
@@ -68,10 +68,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 4. Environment file
 	err = ValidateEnvFile(dir)
 	results = append(results, PreflightResult{
-		CheckName:  "File .env",
+		CheckName:  ui.Msg("preflight_check_env"),
 		Passed:     err == nil,
 		Error:      err,
-		Fix:        "Create .env file",
+		Fix:        ui.Msg("preflight_fix_create_env"),
 		FixCommand: "kk init",
 	})
 	if err != nil {
@@ -81,10 +81,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	// 5. Docker compose syntax
 	err = ValidateDockerCompose(dir)
 	results = append(results, PreflightResult{
-		CheckName:  "docker-compose.yml",
+		CheckName:  ui.Msg("preflight_check_compose"),
 		Passed:     err == nil,
 		Error:      err,
-		Fix:        "Create or fix docker-compose.yml",
+		Fix:        ui.Msg("preflight_fix_create_compose"),
 		FixCommand: "kk init",
 	})
 	if err != nil {
@@ -95,10 +95,10 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	if includeCaddy {
 		err = ValidateCaddyfile(dir)
 		results = append(results, PreflightResult{
-			CheckName:  "Caddyfile",
+			CheckName:  ui.Msg("preflight_check_caddyfile"),
 			Passed:     err == nil,
 			Error:      err,
-			Fix:        "Create or fix Caddyfile",
+			Fix:        ui.Msg("preflight_fix_create_caddyfile"),
 			FixCommand: "kk init",
 		})
 		if err != nil {
@@ -110,13 +110,13 @@ func RunPreflight(dir string, includeCaddy bool) ([]PreflightResult, error) {
 	availableGB, err := CheckDiskSpace(dir)
 	if err == nil && availableGB < MinDiskSpaceGB {
 		results = append(results, PreflightResult{
-			CheckName: "Disk space",
+			CheckName: ui.Msg("preflight_check_disk"),
 			Passed:    true, // Warning only
-			Warning:   fmt.Sprintf("Chi con %.1fGB, recommend >= %dGB", availableGB, MinDiskSpaceGB),
+			Warning:   ui.MsgF("preflight_disk_warning", availableGB, MinDiskSpaceGB),
 		})
 	} else {
 		results = append(results, PreflightResult{
-			CheckName: "Disk space",
+			CheckName: ui.Msg("preflight_check_disk"),
 			Passed:    true,
 		})
 	}
@@ -141,13 +141,12 @@ func PrintPreflightResults(results []PreflightResult) {
 			if r.Warning != "" {
 				status = pterm.Yellow("⚠ " + r.Warning)
 			} else {
-				status = pterm.Green("✓ Pass")
+				status = pterm.Green("✓ " + ui.Msg("preflight_pass"))
 			}
 		} else {
 			if r.Error != nil {
 				errMsg := TranslateError(r.Error)
 				status = pterm.Red("✗ " + errMsg)
-				// Add fix suggestion on new line if available
 				if r.Fix != "" {
 					status += "\n  → " + r.Fix
 				}
@@ -155,7 +154,7 @@ func PrintPreflightResults(results []PreflightResult) {
 					status += ": " + r.FixCommand
 				}
 			} else {
-				status = pterm.Red("✗ Failed")
+				status = pterm.Red("✗ " + ui.Msg("preflight_result_failed"))
 			}
 		}
 		tableData = append(tableData, []string{r.CheckName, status})
@@ -166,6 +165,6 @@ func PrintPreflightResults(results []PreflightResult) {
 		WithBoxed(true).
 		WithData(tableData).
 		Render(); err != nil {
-		fmt.Printf("  [!] Failed to render preflight table: %v\n", err)
+		ui.ShowWarningf(ui.Msg("preflight_table_render_failed"), err)
 	}
 }

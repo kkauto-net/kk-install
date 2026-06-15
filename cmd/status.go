@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -31,23 +30,24 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
 
+	ui.ShowCommandBanner(ui.Msg("cmd_status_title"), ui.Msg("status_desc"))
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Parse compose file to get defined services
 	composeFile, err := compose.ParseComposeFile(cwd)
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("get_status_failed"),
-			Message:    err.Error(),
-			Suggestion: "Make sure docker-compose.yml exists",
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_compose_file_missing"),
 			Command:    "kk init",
 		})
 		return err
@@ -55,36 +55,36 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 	definedServices := composeFile.GetServiceNames()
 	if len(definedServices) == 0 {
-		fmt.Println(ui.Msg("no_services_defined"))
-		fmt.Println(ui.Msg("run_init"))
+		ui.ShowWarning(ui.Msg("no_services_defined"))
+		ui.ShowNote(ui.Msg("run_init"))
 		return nil
 	}
 
 	executor := compose.NewExecutor(cwd)
+	spinner := ui.StartPtermSpinner(ui.Msg("get_status_failed"))
 	statuses, err := monitor.GetStatusWithServices(ctx, executor, definedServices)
 	if err != nil {
-		errMsg := err.Error()
-		suggestion := "Check if Docker is running"
-		command := "sudo systemctl start docker"
+		spinner.Fail(ui.Msg("get_status_failed"))
 
-		// Check for permission denied error
-		if strings.Contains(strings.ToLower(errMsg), "permission denied") {
-			suggestion = "Add user to docker group"
-			command = "sudo usermod -aG docker $USER && newgrp docker"
+		suggestion := ui.Msg("err_check_docker_running")
+		command := ui.Msg("docker_start_command")
+
+		if ui.IsDockerPermissionError(err) {
+			suggestion, command = ui.DockerPermissionSuggestion()
 		}
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("get_status_failed"),
-			Message:    errMsg,
+			Message:    ui.SanitizeError(err),
 			Suggestion: suggestion,
 			Command:    command,
 		})
 		return err
 	}
+	spinner.Success(ui.Msg("status_desc"))
 
 	ui.PrintStatusTable(statuses)
 
-	// Check for unhealthy services and show hint
 	var unhealthyServices []string
 	for _, s := range statuses {
 		if s.Running && s.Health == "unhealthy" {
@@ -92,12 +92,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if len(unhealthyServices) > 0 {
-		fmt.Println()
-		fmt.Printf("  [!] %d service(s) unhealthy: %s\n", len(unhealthyServices), strings.Join(unhealthyServices, ", "))
-		fmt.Printf("      View logs: docker compose logs %s\n", unhealthyServices[0])
+		ui.ShowWarning(ui.MsgF("unhealthy_services_hint", len(unhealthyServices), strings.Join(unhealthyServices, ", ")))
+		ui.ShowNote(ui.MsgF("unhealthy_services_logs", unhealthyServices[0]))
 	}
 
-	// Show access info if any services running
 	for _, s := range statuses {
 		if s.Running {
 			domain := config.ReadEnvValue(cwd, "SYSTEM_DOMAIN")

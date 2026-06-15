@@ -87,12 +87,6 @@ func EnvPath() string {
 	return filepath.Join(N8nDir(), ".env")
 }
 
-// IsInstalled checks if n8n is already installed
-func IsInstalled() bool {
-	_, err := os.Stat(ComposePath())
-	return err == nil
-}
-
 // EnsureDirectories creates required directories for n8n installation
 func EnsureDirectories() error {
 	dirs := []string{N8nDir(), DataDir(), PostgresDir()}
@@ -102,4 +96,22 @@ func EnsureDirectories() error {
 		}
 	}
 	return nil
+}
+
+// IsInstalled checks if n8n is already installed
+func IsInstalled() bool {
+	_, err := os.Stat(ComposePath())
+	return err == nil
+}
+
+// AccessURL returns the user-facing URL for the n8n web UI.
+func AccessURL() string {
+	host := config.ReadEnvValue(N8nDir(), "N8N_HOST")
+	if host == "" || host == "localhost" {
+		return "http://localhost:5678"
+	}
+	if len(host) > 4 && host[:4] == "http" {
+		return host
+	}
+	return "https://" + host
 }

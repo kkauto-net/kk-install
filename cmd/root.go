@@ -32,6 +32,8 @@ func Execute() {
 func init() {
 	rootCmd.Version = Version
 
+	ui.InitTerminalColors()
+
 	// Load language preference from config
 	cfg, err := config.Load()
 	if err == nil && cfg != nil {

@@ -32,14 +32,15 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
 
-	// Setup graceful shutdown
+	ui.ShowCommandBanner(ui.Msg("cmd_restart_title"), ui.Msg("restart_desc"))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -51,7 +52,6 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Step 1: Restart services
 	ui.ShowStepHeader(1, 3, ui.Msg("step_start_services"))
 
 	executor := compose.NewExecutor(cwd)
@@ -64,7 +64,7 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		spinner.Fail(ui.Msg("restart_failed"))
 
-		suggestion := "Check if services are running"
+		suggestion := ui.Msg("err_check_services_running")
 		command := "kk status"
 		if ui.IsDockerPermissionError(err) {
 			suggestion, command = ui.DockerPermissionSuggestion()
@@ -72,7 +72,7 @@ func runRestart(cmd *cobra.Command, args []string) error {
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("restart_failed"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: suggestion,
 			Command:    command,
 		})
@@ -80,7 +80,6 @@ func runRestart(cmd *cobra.Command, args []string) error {
 	}
 	spinner.Success(ui.Msg("restart_complete"))
 
-	// Step 2: Monitor health
 	ui.ShowStepHeader(2, 3, ui.Msg("step_health_check"))
 	composeFile, err := compose.ParseComposeFile(cwd)
 	var definedServices []string
@@ -93,7 +92,7 @@ func runRestart(cmd *cobra.Command, args []string) error {
 		if monitorErr == nil {
 			defer healthMonitor.Close()
 
-			fmt.Println("\n" + ui.Msg("health_checking"))
+			healthSpinner := ui.StartPtermSpinner(ui.Msg("health_checking"))
 
 			var containers []monitor.ContainerInfo
 			for name := range composeFile.Services {
@@ -107,14 +106,16 @@ func runRestart(cmd *cobra.Command, args []string) error {
 			healthMonitor.MonitorAll(timeoutCtx, containers, func(status monitor.HealthStatus) {
 				ui.ShowServiceProgress(status.ServiceName, status.Status)
 			})
+			healthSpinner.Success(ui.Msg("health_checking"))
 		}
 	}
 
-	// Step 3: Show final status
 	ui.ShowStepHeader(3, 3, ui.Msg("step_status"))
 	statuses, err := monitor.GetStatusWithServices(timeoutCtx, executor, definedServices)
 	if err == nil {
-		ui.PrintCommandResult(statuses, "kk restart", "restart_summary_success", "restart_summary_partial")
+		ui.PrintCommandResult(statuses, ui.Msg("cmd_restart_title"), "restart_summary_success", "restart_summary_partial")
+		domain := config.ReadEnvValue(cwd, "SYSTEM_DOMAIN")
+		ui.PrintAccessInfo(statuses, domain)
 	}
 
 	return nil

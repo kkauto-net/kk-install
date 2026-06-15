@@ -31,14 +31,13 @@ func runStop(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("project_not_configured"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("run_init_to_configure"),
 			Command:    "kk init",
 		})
 		return err
 	}
 
-	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -50,7 +49,6 @@ func runStop(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Step 1: Stop services
 	ui.ShowStepHeader(1, 1, ui.Msg("step_stop_services"))
 
 	executor := compose.NewExecutor(cwd)
@@ -62,15 +60,15 @@ func runStop(cmd *cobra.Command, args []string) error {
 	if err := executor.Down(timeoutCtx); err != nil {
 		spinner.Fail(ui.Msg("stop_failed"))
 
-		suggestion := "Check Docker logs for details"
-		command := "docker compose logs"
+		suggestion := ui.Msg("err_check_docker_logs")
+		command := ui.Msg("docker_compose_logs_command")
 		if ui.IsDockerPermissionError(err) {
 			suggestion, command = ui.DockerPermissionSuggestion()
 		}
 
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("stop_failed"),
-			Message:    err.Error(),
+			Message:    ui.SanitizeError(err),
 			Suggestion: suggestion,
 			Command:    command,
 		})

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 // Define function types for mocking
@@ -43,11 +45,7 @@ func NewDockerValidator() *DockerValidator {
 func (v *DockerValidator) CheckDockerInstalled() error {
 	_, err := v.LookPath("docker")
 	if err != nil {
-		return &UserError{
-			Key:        "docker_not_installed",
-			Message:    "Docker chua cai dat",
-			Suggestion: "Cai tai: https://docs.docker.com/get-docker/",
-		}
+		return &UserError{Key: "docker_not_installed"}
 	}
 	return nil
 }
@@ -65,27 +63,15 @@ func (v *DockerValidator) CheckDockerDaemon() error {
 		if strings.Contains(outputStr, "permission denied") ||
 			strings.Contains(outputStr, "got permission denied") ||
 			strings.Contains(outputStr, "connect: permission denied") {
-			return &UserError{
-				Key:        "docker_permission_denied",
-				Message:    "Khong co quyen truy cap Docker",
-				Suggestion: "Them user vao docker group: sudo usermod -aG docker $USER && newgrp docker",
-			}
+			return &UserError{Key: "docker_permission_denied"}
 		}
 		// Check if daemon is not running
 		if strings.Contains(outputStr, "cannot connect") ||
 			strings.Contains(outputStr, "is the docker daemon running") {
-			return &UserError{
-				Key:        "docker_not_running",
-				Message:    "Docker daemon khong chay",
-				Suggestion: "Chay: sudo systemctl start docker",
-			}
+			return &UserError{Key: "docker_not_running"}
 		}
 		// Generic error
-		return &UserError{
-			Key:        "docker_not_running",
-			Message:    "Docker daemon khong chay hoac khong co quyen",
-			Suggestion: "Thu: sudo systemctl start docker HOAC sudo usermod -aG docker $USER && newgrp docker",
-		}
+		return &UserError{Key: "docker_not_running"}
 	}
 	return nil
 }
@@ -103,11 +89,7 @@ func (v *DockerValidator) CheckComposeVersion() error {
 		cmd = v.CommandContext(ctx, "docker-compose", "version", "--short")
 		output, err = cmd.Output()
 		if err != nil {
-			return &UserError{
-				Key:        "compose_not_found",
-				Message:    "Docker Compose khong tim thay",
-				Suggestion: "Cai dat Docker Compose: https://docs.docker.com/compose/install/",
-			}
+			return &UserError{Key: "compose_not_found"}
 		}
 	}
 
@@ -121,16 +103,15 @@ func (v *DockerValidator) CheckComposeVersion() error {
 	matches := versionRegex.FindStringSubmatch(version)
 	if len(matches) < 2 {
 		// Cannot parse version, warn but don't block
-		fmt.Printf("  [!] Canh bao: Khong doc duoc phien ban Docker Compose (%s)\n", version)
+		ui.ShowWarningf(ui.Msg("warn_compose_version_read"), version)
 		return nil
 	}
 
 	major, err := strconv.Atoi(matches[1])
 	if err != nil || major < 2 {
 		return &UserError{
-			Key:        "compose_version_old",
-			Message:    fmt.Sprintf("Docker Compose phien ban cu (%s), can >= v2.0", version),
-			Suggestion: "Cap nhat Docker Compose: https://docs.docker.com/compose/install/",
+			Key:  "compose_version_old",
+			Args: []any{version},
 		}
 	}
 
@@ -142,13 +123,26 @@ type UserError struct {
 	Key        string
 	Message    string
 	Suggestion string
+	Args       []any
 }
 
 func (e *UserError) Error() string {
-	if e.Suggestion != "" {
-		return e.Message + " - " + e.Suggestion
+	msg := e.Message
+	if msg == "" && e.Key != "" {
+		if len(e.Args) > 0 {
+			msg = ui.MsgF(e.Key, e.Args...)
+		} else {
+			msg = ui.Msg(e.Key)
+		}
 	}
-	return e.Message
+	if e.Suggestion != "" {
+		return msg + " - " + e.Suggestion
+	}
+	suggestionKey := e.Key + "_suggestion"
+	if e.Key != "" && ui.Msg(suggestionKey) != suggestionKey {
+		return msg + " - " + ui.Msg(suggestionKey)
+	}
+	return msg
 }
 
 // UserErrorKey returns the UserError key when err is a UserError.
@@ -223,7 +217,7 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 	key := UserErrorKey(err)
 	if key == "docker_permission_denied" && (opts.AutoFix || opts.ConfirmStart != nil) {
 		if fixErr := v.FixDockerPermissions(); fixErr != nil {
-			fmt.Printf("  [!] Warning: failed to fix Docker permissions: %v\n", fixErr)
+			ui.ShowWarningf(ui.Msg("warn_docker_permissions_fix_failed"), fixErr)
 		} else if recheckErr := v.CheckDockerDaemon(); recheckErr == nil {
 			return nil
 		}
@@ -367,7 +361,7 @@ func (v *DockerValidator) InstallDocker() error {
 	}
 
 	if err := v.FixDockerPermissions(); err != nil {
-		fmt.Printf("  [!] Warning: failed to add user to docker group: %v\n", err)
+		ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), err)
 	}
 
 	return nil

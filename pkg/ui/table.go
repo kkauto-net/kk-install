@@ -131,11 +131,11 @@ func formatHealth(health string) string {
 	case "":
 		return pterm.Gray("-")
 	case "healthy":
-		return pterm.Green(IconHealthy + " healthy")
+		return pterm.Green(IconHealthy + " " + Msg("health_healthy"))
 	case "unhealthy":
-		return pterm.Red(IconUnhealthy + " unhealthy")
+		return pterm.Red(IconUnhealthy + " " + Msg("health_unhealthy"))
 	case "starting":
-		return pterm.Blue(IconStarting + " starting")
+		return pterm.Blue(IconStarting + " " + Msg("health_starting"))
 	default:
 		return pterm.Yellow(IconWarning + " " + health)
 	}

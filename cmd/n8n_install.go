@@ -38,18 +38,19 @@ func runN8nInstall(cmd *cobra.Command, args []string) error {
 	dv := validator.NewDockerValidator()
 	if err := dv.CheckDockerInstalled(); err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "Docker Required",
-			Message:    err.Error(),
-			Suggestion: "Install Docker first",
+			Title:      ui.Msg("err_title_docker_required"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("err_install_docker_first"),
+			Command:    "https://docs.docker.com/get-docker/",
 		})
 		return err
 	}
 	if err := dv.CheckDockerDaemon(); err != nil {
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      "Docker Not Running",
-			Message:    err.Error(),
-			Suggestion: "Start Docker daemon",
-			Command:    "sudo systemctl start docker",
+			Title:      ui.Msg("docker_daemon_stopped"),
+			Message:    ui.SanitizeError(err),
+			Suggestion: ui.Msg("docker_start_suggestion"),
+			Command:    ui.Msg("docker_start_command"),
 		})
 		return err
 	}

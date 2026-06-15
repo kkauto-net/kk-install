@@ -87,8 +87,8 @@ func serviceContainerTargets(composeFile *compose.ComposeFile) []updater.Contain
 func showUpdatePreparationError(err error) {
 	ui.ShowBoxedError(ui.ErrorSuggestion{
 		Title:      ui.Msg("pull_failed"),
-		Message:    err.Error(),
-		Suggestion: "Make sure docker-compose.yml exists and Docker can inspect images",
+		Message:    ui.SanitizeError(err),
+		Suggestion: ui.Msg("err_update_prepare_suggestion"),
 		Command:    "kk init",
 	})
 }
