@@ -31,6 +31,7 @@
   "files": [
     "bin/kk.js",
     "scripts/install.js",
+    "scripts/bootstrap.js",
     "vendor/.gitkeep",
     "README.md",
     "package.json"

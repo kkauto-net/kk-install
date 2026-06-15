@@ -122,3 +122,8 @@ test(
     }
   },
 );
+
+test("package files includes bootstrap.js required by install.js", () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+  assert.ok(pkg.files.includes("scripts/bootstrap.js"));
+});
