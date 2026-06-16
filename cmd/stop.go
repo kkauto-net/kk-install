@@ -76,7 +76,5 @@ func runStop(cmd *cobra.Command, args []string) error {
 	}
 	spinner.Success(ui.Msg("stop_complete"))
 
-	ui.ShowSuccess(ui.Msg("all_stopped"))
-
 	return nil
 }

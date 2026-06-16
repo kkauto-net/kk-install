@@ -41,14 +41,16 @@ func TestExecutor_ForceRecreate(t *testing.T) {
 
 func TestExecutorCommandConstruction(t *testing.T) {
 	tests := []struct {
-		name string
-		run  func(context.Context, *Executor) error
-		want []string
+		name     string
+		psOutput string
+		run      func(context.Context, *Executor) error
+		want     []string
 	}{
 		{name: "up", run: func(ctx context.Context, e *Executor) error { return e.Up(ctx) }, want: []string{"docker compose -f COMPOSE up -d"}},
 		{name: "down", run: func(ctx context.Context, e *Executor) error { return e.Down(ctx) }, want: []string{"docker compose -f COMPOSE down"}},
 		{name: "down with volumes", run: func(ctx context.Context, e *Executor) error { return e.DownWithVolumes(ctx) }, want: []string{"docker compose -f COMPOSE down -v"}},
-		{name: "restart", run: func(ctx context.Context, e *Executor) error { return e.Restart(ctx) }, want: []string{"docker compose -f COMPOSE restart"}},
+		{name: "restart when running", psOutput: "abc123\n", run: func(ctx context.Context, e *Executor) error { return e.Restart(ctx) }, want: []string{"docker compose -f COMPOSE ps -q", "docker compose -f COMPOSE restart"}},
+		{name: "restart when stopped", psOutput: "", run: func(ctx context.Context, e *Executor) error { return e.Restart(ctx) }, want: []string{"docker compose -f COMPOSE ps -q", "docker compose -f COMPOSE up -d"}},
 		{name: "force recreate", run: func(ctx context.Context, e *Executor) error { return e.ForceRecreate(ctx) }, want: []string{"docker compose -f COMPOSE up -d --force-recreate"}},
 		{name: "pull", run: func(ctx context.Context, e *Executor) error { _, err := e.Pull(ctx); return err }, want: []string{"docker compose -f COMPOSE pull"}},
 		{name: "ps", run: func(ctx context.Context, e *Executor) error { _, err := e.Ps(ctx); return err }, want: []string{"docker compose -f COMPOSE ps --format json"}},
@@ -56,7 +58,7 @@ func TestExecutorCommandConstruction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			calls := withFakeComposeCommands(t, false, 0, "ok\n")
+			calls := withFakeComposeCommands(t, false, 0, tt.psOutput, "ok\n")
 			dir := t.TempDir()
 			executor := NewExecutor(dir)
 
@@ -73,7 +75,7 @@ func TestExecutorCommandConstruction(t *testing.T) {
 }
 
 func TestExecutorFallbackToDockerComposeV1(t *testing.T) {
-	calls := withFakeComposeCommands(t, true, 0, "ok\n")
+	calls := withFakeComposeCommands(t, true, 0, "", "ok\n")
 	dir := t.TempDir()
 	executor := NewExecutor(dir)
 
@@ -90,7 +92,7 @@ func TestExecutorFallbackToDockerComposeV1(t *testing.T) {
 
 func TestExecutorUsesSudoWhenEnvSet(t *testing.T) {
 	t.Setenv("KK_DOCKER_SUDO", "1")
-	calls := withFakeComposeCommands(t, false, 0, "ok\n")
+	calls := withFakeComposeCommands(t, false, 0, "", "ok\n")
 	dir := t.TempDir()
 	executor := NewExecutor(dir)
 
@@ -106,7 +108,7 @@ func TestExecutorUsesSudoWhenEnvSet(t *testing.T) {
 }
 
 func TestExecutorPropagatesCommandErrors(t *testing.T) {
-	withFakeComposeCommands(t, false, 7, "compose failed")
+	withFakeComposeCommands(t, false, 7, "", "compose failed")
 	executor := NewExecutor(t.TempDir())
 
 	err := executor.Up(context.Background())
@@ -118,7 +120,7 @@ func TestExecutorPropagatesCommandErrors(t *testing.T) {
 	}
 }
 
-func withFakeComposeCommands(t *testing.T, dockerV2Unavailable bool, exitCode int, output string) *[]string {
+func withFakeComposeCommands(t *testing.T, dockerV2Unavailable bool, exitCode int, psOutput string, defaultOutput string) *[]string {
 	t.Helper()
 	oldExecCommand := execCommand
 	oldExecLookPath := execLookPath
@@ -137,6 +139,10 @@ func withFakeComposeCommands(t *testing.T, dockerV2Unavailable bool, exitCode in
 			return fakeExecCommand(t, 0, "Docker Compose version v2.0.0")
 		}
 		calls = append(calls, strings.Join(append([]string{name}, args...), " "))
+		output := defaultOutput
+		if len(args) >= 3 && args[0] == "compose" && args[len(args)-2] == "ps" && args[len(args)-1] == "-q" {
+			output = psOutput
+		}
 		return fakeExecCommand(t, exitCode, output)
 	}
 	t.Cleanup(func() {
@@ -161,7 +167,11 @@ func TestFakeExecutorProcess(t *testing.T) {
 	if os.Getenv("KK_FAKE_EXEC") != "1" {
 		return
 	}
-	if _, err := os.Stderr.WriteString(os.Getenv("KK_FAKE_EXEC_OUTPUT")); err != nil {
+	output := os.Getenv("KK_FAKE_EXEC_OUTPUT")
+	if _, err := os.Stdout.WriteString(output); err != nil {
+		os.Exit(1)
+	}
+	if _, err := os.Stderr.WriteString(output); err != nil {
 		os.Exit(1)
 	}
 	if os.Getenv("KK_FAKE_EXEC_EXIT_CODE") != "0" {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -45,9 +46,24 @@ func (e *Executor) DownWithVolumes(ctx context.Context) error {
 	return e.run(ctx, "down", "-v")
 }
 
-// Restart runs docker-compose restart
+// Restart runs docker-compose restart, or up -d when the stack was stopped.
 func (e *Executor) Restart(ctx context.Context) error {
+	hasContainers, err := e.hasComposeContainers(ctx)
+	if err != nil {
+		return err
+	}
+	if !hasContainers {
+		return e.Up(ctx)
+	}
 	return e.run(ctx, "restart")
+}
+
+func (e *Executor) hasComposeContainers(ctx context.Context) (bool, error) {
+	out, err := e.runWithOutput(ctx, "ps", "-q")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) != "", nil
 }
 
 // Pull runs docker-compose pull
