@@ -401,6 +401,7 @@ Next steps:
 	"err_docker_manual_install_suggestion":        "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
 	"err_docker_compose_update_suggestion":        "Update Docker to the latest version or rerun with --force to bypass preflight checks.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",
+	"docker_sudo_password_hint":                   "You may be prompted for your sudo password below.",
 	"docker_permission_denied":                    "Docker permission denied",
 	"docker_permission_denied_suggestion":         "Add user to docker group or use sudo",
 	"compose_not_found":                           "Docker Compose not found",

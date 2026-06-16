@@ -667,23 +667,23 @@ func ensureInitDocker(opts initOptions) error {
 			return startDocker, nil
 		}
 		ensureOpts.Install = func() error {
-			installSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("installing_docker"))
+			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("installing_docker"))
 			err := DockerValidatorInstance.InstallDocker()
 			if err != nil {
-				installSpinner.Fail(ui.Msg("docker_install_failed"))
+				ui.ShowError(ui.Msg("docker_install_failed"))
 				return err
 			}
-			installSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_installed"))
 			return nil
 		}
 		ensureOpts.Start = func() error {
-			startSpinner := startInitSpinner(ui.IconDocker + " " + ui.Msg("starting_docker"))
+			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("starting_docker"))
 			err := DockerValidatorInstance.StartDockerDaemon()
 			if err != nil {
-				startSpinner.Fail(ui.Msg("docker_start_failed"))
+				ui.ShowError(ui.Msg("docker_start_failed"))
 				return err
 			}
-			startSpinner.Success(ui.IconCheck + " " + ui.Msg("docker_started"))
+			ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_started"))
 			return nil
 		}
 	}

@@ -401,6 +401,7 @@ Bước tiếp theo:
 	"err_docker_manual_install_suggestion":        "Cài Docker tại https://docs.docker.com/get-docker/ hoặc chạy lại với --force để bỏ qua preflight.",
 	"err_docker_compose_update_suggestion":        "Cập nhật Docker lên bản mới nhất hoặc chạy lại với --force để bỏ qua preflight.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",
+	"docker_sudo_password_hint":                   "Bạn có thể được yêu cầu nhập mật khẩu sudo bên dưới.",
 
 	// Validator UserError keys
 	"docker_permission_denied":            "Không có quyền truy cập Docker",

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/kkauto-net/kk-install/pkg/ui"
+	"golang.org/x/term"
 )
 
 // Define function types for mocking
@@ -309,6 +311,27 @@ func dockerInstallTimeout() time.Duration {
 	return 5 * time.Minute
 }
 
+func isInteractiveTTY() bool {
+	return term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
+}
+
+func attachCommandIO(cmd *exec.Cmd, capture *bytes.Buffer) {
+	if !isInteractiveTTY() {
+		if capture != nil {
+			cmd.Stderr = capture
+		}
+		return
+	}
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	if capture != nil {
+		cmd.Stderr = io.MultiWriter(os.Stderr, capture)
+	} else {
+		cmd.Stderr = os.Stderr
+	}
+}
+
 // InstallDocker attempts to install Docker using the official convenience script.
 func (v *DockerValidator) InstallDocker() error {
 	if err := v.checkInstallPrerequisites(); err != nil {
@@ -318,12 +341,15 @@ func (v *DockerValidator) InstallDocker() error {
 	ctx, cancel := context.WithTimeout(context.Background(), dockerInstallTimeout())
 	defer cancel()
 
-	fmt.Println()
+	if isInteractiveTTY() {
+		ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
+	} else {
+		fmt.Println()
+	}
 
 	cmd := v.CommandContext(ctx, "sh", "-c", "curl -fsSL https://get.docker.com | sudo sh")
 	var stderr bytes.Buffer
-	cmd.Stdout = nil
-	cmd.Stderr = &stderr
+	attachCommandIO(cmd, &stderr)
 
 	if err := cmd.Run(); err != nil {
 		output := stderr.String()
@@ -348,6 +374,8 @@ func (v *DockerValidator) FixDockerPermissions() error {
 	defer cancel()
 
 	userCmd := v.CommandContext(ctx, "sh", "-c", "sudo usermod -aG docker $USER")
+	var stderr bytes.Buffer
+	attachCommandIO(userCmd, &stderr)
 	if err := userCmd.Run(); err != nil {
 		return err
 	}
@@ -367,11 +395,19 @@ func (v *DockerValidator) StartDockerDaemon() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fmt.Println()
+	if isInteractiveTTY() {
+		ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
+	} else {
+		fmt.Println()
+	}
 
 	cmd := v.CommandContext(ctx, "sudo", "systemctl", "start", "docker")
+	var stderr bytes.Buffer
+	attachCommandIO(cmd, &stderr)
 	if err := cmd.Run(); err != nil {
 		cmd = v.CommandContext(ctx, "sudo", "service", "docker", "start")
+		stderr.Reset()
+		attachCommandIO(cmd, &stderr)
 		if err := cmd.Run(); err != nil {
 			return &UserError{Key: "docker_start_failed"}
 		}
