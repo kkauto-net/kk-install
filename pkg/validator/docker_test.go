@@ -210,11 +210,14 @@ func TestEnsureDockerReadyReturnsPermissionPendingWhenDaemonRunning(t *testing.T
 		LookPath: mockLookPath,
 		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
 			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "getent group docker") {
+				return exec.Command("sh", "-c", "printf 'docker:x:999:tieutinh'")
+			}
 			if name == "docker" && len(arg) > 0 && arg[0] == "info" {
 				return exec.Command("sh", "-c", "echo permission denied >&2; exit 1")
 			}
 			if strings.Contains(joined, "sudo") && strings.Contains(joined, "docker info") {
-				return exec.Command("true")
+				return exec.Command("false")
 			}
 			if strings.Contains(joined, "usermod") {
 				return exec.Command("true")
@@ -231,6 +234,8 @@ func TestEnsureDockerReadyReturnsPermissionPendingWhenDaemonRunning(t *testing.T
 			return exec.Command("true")
 		},
 	}
+	t.Setenv("USER", "tieutinh")
+	t.Setenv("KK_DOCKER_SUDO", "")
 
 	err := v.EnsureDockerReady(EnsureDockerOptions{AutoFix: true, MaxRetries: 0})
 	if UserErrorKey(err) != "docker_permission_not_effective" {
@@ -238,6 +243,57 @@ func TestEnsureDockerReadyReturnsPermissionPendingWhenDaemonRunning(t *testing.T
 	}
 	if startCalls != 0 {
 		t.Fatalf("startCalls = %d, want 0 when daemon is already running", startCalls)
+	}
+}
+
+func TestEnsureDockerReadyAutoFixStartsDaemonWithSudoFallback(t *testing.T) {
+	startCalls := 0
+	v := &DockerValidator{
+		LookPath: func(file string) (string, error) {
+			if file == "docker" || file == "sudo" || file == "getent" {
+				return "/usr/bin/" + file, nil
+			}
+			return "", os.ErrNotExist
+		},
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "getent group docker") {
+				return exec.Command("sh", "-c", "printf 'docker:x:999:tieutinh'")
+			}
+			if name == "docker" && len(arg) > 0 && arg[0] == "info" {
+				if startCalls > 0 {
+					return exec.Command("sh", "-c", "echo permission denied >&2; exit 1")
+				}
+				return exec.Command("sh", "-c", "echo cannot connect >&2; exit 1")
+			}
+			if strings.Contains(joined, "sudo") && strings.Contains(joined, "docker info") {
+				if startCalls > 0 {
+					return exec.Command("true")
+				}
+				return exec.Command("sh", "-c", "echo cannot connect >&2; exit 1")
+			}
+			if strings.Contains(joined, "systemctl start docker") || strings.Contains(joined, "service docker start") {
+				startCalls++
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "compose") && strings.Contains(joined, "version") {
+				return exec.Command("sh", "-c", "printf '2.30.0'")
+			}
+			return exec.Command("true")
+		},
+	}
+	t.Setenv("USER", "tieutinh")
+	t.Setenv("KK_DOCKER_SUDO", "")
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{AutoFix: true, MaxRetries: 0})
+	if err != nil {
+		t.Fatalf("EnsureDockerReady() error = %v", err)
+	}
+	if startCalls != 1 {
+		t.Fatalf("startCalls = %d, want 1", startCalls)
+	}
+	if os.Getenv("KK_DOCKER_SUDO") != "1" {
+		t.Fatal("expected KK_DOCKER_SUDO=1 after sudo fallback")
 	}
 }
 

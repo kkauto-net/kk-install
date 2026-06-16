@@ -255,6 +255,7 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 			}
 			return nil
 		}
+		return &UserError{Key: "docker_permission_not_effective"}
 	}
 
 	if key == "docker_not_running" && v.isDockerDaemonRunningPrivileged() {
@@ -276,7 +277,25 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 		return startErr
 	}
 
-	return v.waitForDockerDaemon(30 * time.Second)
+	return v.waitForDockerDaemon(opts, 30*time.Second)
+}
+
+func (v *DockerValidator) tryRecoverDockerAccessAfterPrivilegedDaemon(opts EnsureDockerOptions) (bool, error) {
+	if !v.isDockerDaemonRunningPrivileged() {
+		return false, nil
+	}
+	if !v.isUserInDockerGroup() && (opts.AutoFix || opts.ConfirmStart != nil) {
+		if addErr := v.addUserToDockerGroup(); addErr != nil {
+			ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), UserErrorMessage(addErr))
+		}
+	}
+	if pendingErr := v.handlePermissionPending(); pendingErr != nil {
+		return false, pendingErr
+	}
+	if err := v.CheckDockerDaemon(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (v *DockerValidator) installDockerWithRetry(maxRetries int, install func() error) error {
@@ -307,7 +326,7 @@ func (v *DockerValidator) startDockerDaemonWithRetry(maxRetries int, start func(
 	return lastErr
 }
 
-func (v *DockerValidator) waitForDockerDaemon(timeout time.Duration) error {
+func (v *DockerValidator) waitForDockerDaemon(opts EnsureDockerOptions, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	delay := 2 * time.Second
 
@@ -315,10 +334,28 @@ func (v *DockerValidator) waitForDockerDaemon(timeout time.Duration) error {
 		if err := v.CheckDockerDaemon(); err == nil {
 			return nil
 		}
+		recovered, recoverErr := v.tryRecoverDockerAccessAfterPrivilegedDaemon(opts)
+		if recoverErr != nil {
+			return recoverErr
+		}
+		if recovered {
+			return nil
+		}
 		time.Sleep(delay)
 		if delay < 8*time.Second {
 			delay += time.Second
 		}
+	}
+
+	if err := v.CheckDockerDaemon(); err == nil {
+		return nil
+	}
+	recovered, recoverErr := v.tryRecoverDockerAccessAfterPrivilegedDaemon(opts)
+	if recoverErr != nil {
+		return recoverErr
+	}
+	if recovered {
+		return nil
 	}
 
 	return &UserError{Key: "docker_daemon_wait_timeout"}

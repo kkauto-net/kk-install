@@ -770,11 +770,15 @@ func formatInitDockerError(opts initOptions, err error) error {
 		})
 		return err
 	case key == "docker_start_failed", key == "docker_daemon_wait_timeout":
+		command := "sudo systemctl start docker && kk init"
+		if !DockerValidatorInstance.HasDockerGroupRunner() {
+			command = "export KK_DOCKER_SUDO=1 && kk init"
+		}
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_daemon_stopped"),
 			Message:    validator.FormatUserErrorForBox(err),
 			Suggestion: validator.UserErrorSuggestion(err),
-			Command:    "sudo systemctl start docker && kk init",
+			Command:    command,
 		})
 		return err
 	case key == "compose_not_found", key == "compose_version_old":

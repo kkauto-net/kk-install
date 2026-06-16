@@ -74,18 +74,17 @@ func (v *DockerValidator) canAccessDockerWithSudoNoPassword() bool {
 
 // TryActivateDockerSudoFallback enables KK_DOCKER_SUDO when group runners are unavailable.
 func (v *DockerValidator) TryActivateDockerSudoFallback() bool {
-	if v.HasDockerGroupRunner() || !v.isUserInDockerGroup() {
+	if v.HasDockerGroupRunner() {
 		return false
 	}
 	if dockerUsesSudo() {
 		return v.canAccessDockerWithSudo()
 	}
+	if !v.isUserInDockerGroup() && !v.isDockerDaemonRunningPrivileged() {
+		return false
+	}
 	if v.canAccessDockerWithSudoNoPassword() {
-		if err := os.Setenv("KK_DOCKER_SUDO", "1"); err != nil {
-			return false
-		}
-		ui.ShowNote(ui.Msg("docker_sudo_fallback_note"))
-		return true
+		return v.activateDockerSudoEnv()
 	}
 	if !isInteractiveTTY() {
 		return false
@@ -99,6 +98,10 @@ func (v *DockerValidator) TryActivateDockerSudoFallback() bool {
 	if !v.canAccessDockerWithSudo() {
 		return false
 	}
+	return v.activateDockerSudoEnv()
+}
+
+func (v *DockerValidator) activateDockerSudoEnv() bool {
 	if err := os.Setenv("KK_DOCKER_SUDO", "1"); err != nil {
 		return false
 	}
