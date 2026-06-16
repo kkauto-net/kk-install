@@ -22,6 +22,8 @@ var messagesVI = map[string]string{
 	"docker_installed":                "Đã cài đặt Docker thành công",
 	"docker_installed_daemon_running": "Docker đã cài và daemon đang chạy",
 	"docker_group_activate_note":      "User đã được thêm vào nhóm docker. Chạy newgrp docker trong shell này, rồi chạy lại kk init.",
+	"docker_group_reexec_info":        "Đang kích hoạt quyền nhóm docker và tiếp tục kk init...",
+	"license_already_validated":       "License đã xác thực — tiếp tục",
 	"docker_install_failed":           "Cài đặt Docker thất bại",
 	"ask_start_docker":                "Khởi động Docker daemon?",
 	"starting_docker":                 "Đang khởi động Docker...",

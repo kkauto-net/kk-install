@@ -99,9 +99,21 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 0: License Verification
 	ui.ShowStepHeader(1, 7, ui.Msg("step_license"))
 
+	var licenseData struct {
+		Key       string
+		PublicKey string
+	}
+
+	reexecLicense, reexecPublicKey, reexecOK := consumeReexecLicenseEnv()
+
 	// Pre-fill license from existing env
 	licenseKey := existingEnv["LICENSE_KEY"]
-	if opts.NonInteractive {
+	if reexecOK {
+		licenseKey = reexecLicense
+		ui.ShowInfo(ui.IconKey + " " + ui.Msg("license_already_validated"))
+		licenseData.Key = reexecLicense
+		licenseData.PublicKey = reexecPublicKey
+	} else if opts.NonInteractive {
 		licenseKey = opts.License
 	} else {
 		licenseForm := huh.NewForm(
@@ -126,13 +138,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	var licenseData struct {
-		Key       string
-		PublicKey string
-	}
-
 	// Skip license validation in test environment
-	if os.Getenv("KK_TEST_SKIP_LICENSE_VALIDATION") == "true" {
+	if reexecOK {
+		// License was validated before docker group re-exec.
+	} else if os.Getenv("KK_TEST_SKIP_LICENSE_VALIDATION") == "true" {
 		ui.ShowWarning(ui.Msg("warn_skipping_license"))
 		licenseData.Key = licenseKey
 		licenseData.PublicKey = "TEST-PUBLIC-KEY"
@@ -162,7 +171,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.ShowStepHeader(2, 7, ui.Msg("step_docker_check"))
 	ui.ShowInfo(ui.IconDocker + " " + ui.MsgCheckingDocker())
 
-	if err = ensureInitDocker(opts); err != nil {
+	if err = ensureInitDocker(opts, licenseData.Key, licenseData.PublicKey); err != nil {
 		return err
 	}
 
@@ -611,7 +620,7 @@ func generateS3AccessKeyWithRetry(length int) (string, error) {
 	return "", lastErr
 }
 
-func ensureInitDocker(opts initOptions) error {
+func ensureInitDocker(opts initOptions, licenseKey, licensePublicKey string) error {
 	if opts.Force {
 		if err := DockerValidatorInstance.CheckDockerInstalled(); err != nil {
 			ui.ShowWarning(ui.Msg("docker_not_installed_force_init"))
@@ -702,7 +711,11 @@ func ensureInitDocker(opts initOptions) error {
 		return nil
 	}
 
-	return formatInitDockerError(opts, err)
+	if reexecErr := tryReexecInitWithDockerGroup(err, licenseKey, licensePublicKey); reexecErr != nil {
+		return formatInitDockerError(opts, reexecErr)
+	}
+
+	return nil
 }
 
 func formatInitDockerError(opts initOptions, err error) error {
@@ -723,7 +736,7 @@ func formatInitDockerError(opts initOptions, err error) error {
 			Title:      ui.Msg("docker_permission_pending_title"),
 			Message:    validator.FormatUserErrorForBox(err),
 			Suggestion: validator.UserErrorSuggestion(err),
-			Command:    "newgrp docker && kk init",
+			Command:    `sg docker -c "kk init"`,
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)

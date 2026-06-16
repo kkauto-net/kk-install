@@ -22,6 +22,8 @@ var messagesEN = map[string]string{
 	"docker_installed":                "Docker installed successfully",
 	"docker_installed_daemon_running": "Docker is installed and the daemon is running",
 	"docker_group_activate_note":      "Your user was added to the docker group. Run newgrp docker in this shell, then run kk init again.",
+	"docker_group_reexec_info":        "Activating docker group access and continuing kk init...",
+	"license_already_validated":       "License already validated — continuing",
 	"docker_install_failed":           "Docker installation failed",
 	"ask_start_docker":                "Start Docker daemon?",
 	"starting_docker":                 "Starting Docker daemon...",

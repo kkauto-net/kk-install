@@ -482,13 +482,18 @@ func (v *DockerValidator) addUserToDockerGroup() error {
 }
 
 func (v *DockerValidator) verifyDockerGroupAccess() error {
+	if v.CanAccessDockerViaSG() {
+		return nil
+	}
+	return &UserError{Key: "docker_permission_not_effective"}
+}
+
+// CanAccessDockerViaSG reports whether docker commands work via sg docker.
+func (v *DockerValidator) CanAccessDockerViaSG() bool {
 	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer verifyCancel()
 	verifyCmd := v.CommandContext(verifyCtx, "sh", "-c", "sg docker -c \"docker info\"")
-	if err := verifyCmd.Run(); err != nil {
-		return &UserError{Key: "docker_permission_not_effective"}
-	}
-	return nil
+	return verifyCmd.Run() == nil
 }
 
 // FixDockerPermissions adds the current user to the docker group and verifies access.
