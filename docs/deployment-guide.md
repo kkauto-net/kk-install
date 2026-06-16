@@ -14,6 +14,33 @@ This guide covers installing the `kk` binary and deploying kkengine/n8n Docker C
 | kk license | Format `LICENSE-[A-F0-9]{16}`; validated through the kk license API. |
 | Network access | Needed for license validation, image pulls, installer, and self-update. |
 
+## Docker prerequisites
+
+When `kk init` offers to install Docker automatically, the host must reach `https://get.docker.com` over HTTPS and have `curl` and `sudo` available.
+
+Diagnose connectivity before retrying:
+
+```bash
+curl -I https://get.docker.com
+```
+
+If auto-install fails (network, timeout, or sudo), install Docker manually then rerun `kk init`:
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker
+docker info
+kk init
+```
+
+Optional: extend the auto-install timeout on slow hosts:
+
+```bash
+export KK_DOCKER_INSTALL_TIMEOUT=10m
+kk init
+```
+
 ## Install Binary
 
 ```bash

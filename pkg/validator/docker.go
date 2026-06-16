@@ -3,7 +3,9 @@ package validator
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -59,18 +61,15 @@ func (v *DockerValidator) CheckDockerDaemon() error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		outputStr := strings.ToLower(string(output))
-		// Check if it's a permission error (user not in docker group)
 		if strings.Contains(outputStr, "permission denied") ||
 			strings.Contains(outputStr, "got permission denied") ||
 			strings.Contains(outputStr, "connect: permission denied") {
 			return &UserError{Key: "docker_permission_denied"}
 		}
-		// Check if daemon is not running
 		if strings.Contains(outputStr, "cannot connect") ||
 			strings.Contains(outputStr, "is the docker daemon running") {
 			return &UserError{Key: "docker_not_running"}
 		}
-		// Generic error
 		return &UserError{Key: "docker_not_running"}
 	}
 	return nil
@@ -81,11 +80,9 @@ func (v *DockerValidator) CheckComposeVersion() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Try docker compose (v2) first
 	cmd := v.CommandContext(ctx, "docker", "compose", "version", "--short")
 	output, err := cmd.Output()
 	if err != nil {
-		// Fallback: try docker-compose (v1)
 		cmd = v.CommandContext(ctx, "docker-compose", "version", "--short")
 		output, err = cmd.Output()
 		if err != nil {
@@ -94,15 +91,11 @@ func (v *DockerValidator) CheckComposeVersion() error {
 	}
 
 	version := strings.TrimSpace(string(output))
-
-	// Parse version (e.g., "v2.5.0" or "2.5.0")
 	version = strings.TrimPrefix(version, "v")
 
-	// Extract major version
 	versionRegex := regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)`)
 	matches := versionRegex.FindStringSubmatch(version)
 	if len(matches) < 2 {
-		// Cannot parse version, warn but don't block
 		ui.ShowWarningf(ui.Msg("warn_compose_version_read"), version)
 		return nil
 	}
@@ -123,24 +116,15 @@ type UserError struct {
 	Key        string
 	Message    string
 	Suggestion string
+	Detail     string
 	Args       []any
 }
 
 func (e *UserError) Error() string {
-	msg := e.Message
-	if msg == "" && e.Key != "" {
-		if len(e.Args) > 0 {
-			msg = ui.MsgF(e.Key, e.Args...)
-		} else {
-			msg = ui.Msg(e.Key)
-		}
-	}
-	if e.Suggestion != "" {
-		return msg + " - " + e.Suggestion
-	}
-	suggestionKey := e.Key + "_suggestion"
-	if e.Key != "" && ui.Msg(suggestionKey) != suggestionKey {
-		return msg + " - " + ui.Msg(suggestionKey)
+	msg := UserErrorMessage(e)
+	suggestion := UserErrorSuggestion(e)
+	if suggestion != "" {
+		return msg + " - " + suggestion
 	}
 	return msg
 }
@@ -157,7 +141,6 @@ func UserErrorKey(err error) string {
 }
 
 // EnsureDockerReady validates Docker installation, daemon, and Compose.
-// When AutoFix is enabled, missing Docker or a stopped daemon are remediated automatically.
 func (v *DockerValidator) EnsureDockerReady(opts EnsureDockerOptions) error {
 	maxRetries := opts.maxRetries()
 
@@ -182,8 +165,8 @@ func (v *DockerValidator) EnsureDockerReady(opts EnsureDockerOptions) error {
 }
 
 func (opts EnsureDockerOptions) maxRetries() int {
-	if opts.MaxRetries <= 0 {
-		return 1
+	if opts.MaxRetries < 0 {
+		return 0
 	}
 	return opts.MaxRetries
 }
@@ -280,59 +263,50 @@ func (v *DockerValidator) waitForDockerDaemon(timeout time.Duration) error {
 		}
 	}
 
-	return &UserError{
-		Key:        "docker_not_running",
-		Message:    "Docker daemon chua san sang sau khi khoi dong",
-		Suggestion: "Thu: sudo systemctl start docker && docker info",
-	}
+	return &UserError{Key: "docker_daemon_wait_timeout"}
 }
 
 func (v *DockerValidator) checkInstallPrerequisites() error {
 	if _, err := v.LookPath("curl"); err != nil {
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Thieu curl de cai Docker",
-			Suggestion: "Cai curl roi chay lai hoac cai Docker thu cong: https://docs.docker.com/get-docker/",
-		}
+		return &UserError{Key: "docker_install_err_curl_missing"}
 	}
 	if _, err := v.LookPath("sudo"); err != nil {
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Thieu sudo de cai Docker",
-			Suggestion: "Chay voi quyen root hoac cai Docker thu cong: https://docs.docker.com/get-docker/",
-		}
+		return &UserError{Key: "docker_install_err_sudo_missing"}
 	}
 	return nil
 }
 
-func classifyDockerInstallFailure(output string) *UserError {
+func classifyDockerInstallFailure(output string, runErr error) *UserError {
+	if errors.Is(runErr, context.DeadlineExceeded) {
+		return &UserError{Key: "docker_install_err_timeout"}
+	}
+
 	lower := strings.ToLower(output)
+	if strings.Contains(lower, "context deadline exceeded") {
+		return &UserError{Key: "docker_install_err_timeout"}
+	}
+
 	switch {
 	case strings.Contains(lower, "sudo:") && strings.Contains(lower, "password"):
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Can quyen sudo de cai Docker",
-			Suggestion: "Chay lai voi user co sudo hoac cai thu cong: https://docs.docker.com/get-docker/",
-		}
-	case strings.Contains(lower, "could not resolve host"), strings.Contains(lower, "failed to connect"), strings.Contains(lower, "timed out"):
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Khong the tai script cai Docker",
-			Suggestion: "Kiem tra mang hoac cai thu cong: https://docs.docker.com/get-docker/",
-		}
+		return &UserError{Key: "docker_install_err_sudo_password"}
+	case strings.Contains(lower, "could not resolve host"), strings.Contains(lower, "failed to connect"):
+		return &UserError{Key: "docker_install_err_network"}
+	case strings.Contains(lower, "operation timed out"), strings.Contains(lower, "timed out"):
+		return &UserError{Key: "docker_install_err_timeout"}
 	case strings.Contains(lower, "could not get lock"), strings.Contains(lower, "dpkg lock"), strings.Contains(lower, "another process"):
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Package manager dang bi khoa",
-			Suggestion: "Doi package manager xong roi chay lai hoac cai thu cong: https://docs.docker.com/get-docker/",
-		}
+		return &UserError{Key: "docker_install_err_pkg_lock"}
 	default:
-		return &UserError{
-			Key:        "docker_install_failed",
-			Message:    "Docker installation failed",
-			Suggestion: "Try manual install: https://docs.docker.com/get-docker/",
+		return &UserError{Key: "docker_install_err_generic"}
+	}
+}
+
+func dockerInstallTimeout() time.Duration {
+	if v := os.Getenv("KK_DOCKER_INSTALL_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			return d
 		}
 	}
+	return 5 * time.Minute
 }
 
 // InstallDocker attempts to install Docker using the official convenience script.
@@ -341,10 +315,9 @@ func (v *DockerValidator) InstallDocker() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), dockerInstallTimeout())
 	defer cancel()
 
-	// Print newline before sudo prompt for better formatting
 	fmt.Println()
 
 	cmd := v.CommandContext(ctx, "sh", "-c", "curl -fsSL https://get.docker.com | sudo sh")
@@ -357,7 +330,9 @@ func (v *DockerValidator) InstallDocker() error {
 		if output == "" {
 			output = err.Error()
 		}
-		return classifyDockerInstallFailure(output)
+		userErr := classifyDockerInstallFailure(output, err)
+		userErr.Detail = output
+		return userErr
 	}
 
 	if err := v.FixDockerPermissions(); err != nil {
@@ -381,11 +356,7 @@ func (v *DockerValidator) FixDockerPermissions() error {
 	defer verifyCancel()
 	verifyCmd := v.CommandContext(verifyCtx, "sh", "-c", "sg docker -c \"docker info\"")
 	if err := verifyCmd.Run(); err != nil {
-		return &UserError{
-			Key:        "docker_permission_denied",
-			Message:    "Da them user vao docker group nhung quyen chua co hieu luc",
-			Suggestion: "Chay: newgrp docker hoac dang nhap lai, roi thu lai",
-		}
+		return &UserError{Key: "docker_permission_not_effective"}
 	}
 
 	return nil
@@ -396,20 +367,13 @@ func (v *DockerValidator) StartDockerDaemon() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Print newline before sudo prompt for better formatting
 	fmt.Println()
 
-	// Try systemctl first (most common on Linux)
 	cmd := v.CommandContext(ctx, "sudo", "systemctl", "start", "docker")
 	if err := cmd.Run(); err != nil {
-		// Fallback: try service command
 		cmd = v.CommandContext(ctx, "sudo", "service", "docker", "start")
 		if err := cmd.Run(); err != nil {
-			return &UserError{
-				Key:        "docker_start_failed",
-				Message:    "Failed to start Docker daemon",
-				Suggestion: "Try: sudo systemctl start docker",
-			}
+			return &UserError{Key: "docker_start_failed"}
 		}
 	}
 

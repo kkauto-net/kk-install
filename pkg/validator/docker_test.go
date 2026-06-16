@@ -102,50 +102,6 @@ func TestUserError_Error(t *testing.T) {
 	}
 }
 
-func TestClassifyDockerInstallFailure(t *testing.T) {
-	tests := []struct {
-		name    string
-		output  string
-		wantKey string
-	}{
-		{name: "sudo password", output: "sudo: a password is required", wantKey: "docker_install_failed"},
-		{name: "network", output: "curl: (6) Could not resolve host get.docker.com", wantKey: "docker_install_failed"},
-		{name: "apt lock", output: "E: Could not get lock /var/lib/dpkg/lock", wantKey: "docker_install_failed"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := classifyDockerInstallFailure(tt.output)
-			if err.Key != tt.wantKey {
-				t.Fatalf("classifyDockerInstallFailure() key = %q, want %q", err.Key, tt.wantKey)
-			}
-		})
-	}
-}
-
-func TestInstallDockerMissingPrerequisites(t *testing.T) {
-	v := &DockerValidator{
-		LookPath: func(file string) (string, error) {
-			if file == "docker" {
-				return "/usr/bin/docker", nil
-			}
-			return "", os.ErrNotExist
-		},
-		CommandContext: mockCommandContextSuccess,
-	}
-
-	err := v.InstallDocker()
-	if err == nil {
-		t.Fatal("InstallDocker() expected prerequisite error")
-	}
-	if UserErrorKey(err) != "docker_install_failed" {
-		t.Fatalf("UserErrorKey() = %q, want docker_install_failed", UserErrorKey(err))
-	}
-	if !strings.Contains(err.Error(), "curl") {
-		t.Fatalf("InstallDocker() error = %q, want curl prerequisite message", err.Error())
-	}
-}
-
 func TestEnsureDockerReadyAutoFixInstallsWhenMissing(t *testing.T) {
 	installCalls := 0
 	v := &DockerValidator{

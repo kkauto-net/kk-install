@@ -624,8 +624,10 @@ func ensureInitDocker(opts initOptions) error {
 	}
 
 	ensureOpts := validator.EnsureDockerOptions{
-		AutoFix:    opts.NonInteractive && opts.InstallDocker,
-		MaxRetries: 1,
+		AutoFix: opts.NonInteractive && opts.InstallDocker,
+	}
+	if opts.NonInteractive && opts.InstallDocker {
+		ensureOpts.MaxRetries = 1
 	}
 
 	if !opts.NonInteractive {
@@ -696,48 +698,49 @@ func ensureInitDocker(opts initOptions) error {
 
 func formatInitDockerError(opts initOptions, err error) error {
 	key := validator.UserErrorKey(err)
-	switch key {
-	case "docker_not_installed":
+	switch {
+	case key == "docker_not_installed":
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_not_found"),
 			Message:    ui.Msg("docker_required"),
-			Suggestion: "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
+			Suggestion: ui.Msg("err_docker_manual_install_suggestion"),
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)
 		}
 		return errors.New(ui.Msg("docker_required"))
-	case "docker_not_running", "docker_permission_denied":
+	case key == "docker_not_running", key == "docker_permission_denied", key == "docker_permission_not_effective":
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_daemon_stopped"),
-			Message:    err.Error(),
-			Suggestion: ui.Msg("docker_start_suggestion"),
+			Message:    validator.FormatUserErrorForBox(err),
+			Suggestion: validator.UserErrorSuggestion(err),
 			Command:    "sudo systemctl start docker && kk init --yes --install-docker ...",
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)
 		}
 		return err
-	case "docker_install_failed":
+	case validator.IsDockerInstallError(err):
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_install_failed"),
-			Message:    err.Error(),
-			Suggestion: "Install manually: https://docs.docker.com/get-docker/",
+			Message:    validator.FormatUserErrorForBox(err),
+			Suggestion: validator.UserErrorSuggestion(err),
+			Command:    ui.Msg("docker_check_network_command"),
 		})
 		return err
-	case "docker_start_failed":
+	case key == "docker_start_failed", key == "docker_daemon_wait_timeout":
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_daemon_stopped"),
-			Message:    err.Error(),
-			Suggestion: ui.Msg("docker_start_suggestion"),
+			Message:    validator.FormatUserErrorForBox(err),
+			Suggestion: validator.UserErrorSuggestion(err),
 			Command:    "sudo systemctl start docker && kk init",
 		})
 		return err
-	case "compose_not_found", "compose_version_old":
+	case key == "compose_not_found", key == "compose_version_old":
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_compose_issue"),
-			Message:    err.Error(),
-			Suggestion: "Update Docker to latest version or rerun with --force to bypass preflight checks.",
+			Message:    validator.FormatUserErrorForBox(err),
+			Suggestion: ui.Msg("err_docker_compose_update_suggestion"),
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)
