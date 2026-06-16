@@ -709,7 +709,18 @@ func formatInitDockerError(opts initOptions, err error) error {
 			return NewExitError(exitCodeDockerValidation, err)
 		}
 		return errors.New(ui.Msg("docker_required"))
-	case key == "docker_not_running", key == "docker_permission_denied", key == "docker_permission_not_effective":
+	case key == "docker_permission_not_effective":
+		ui.ShowBoxedError(ui.ErrorSuggestion{
+			Title:      ui.Msg("docker_permission_pending_title"),
+			Message:    validator.FormatUserErrorForBox(err),
+			Suggestion: validator.UserErrorSuggestion(err),
+			Command:    "newgrp docker && kk init",
+		})
+		if opts.NonInteractive {
+			return NewExitError(exitCodeDockerValidation, err)
+		}
+		return err
+	case key == "docker_not_running", key == "docker_permission_denied":
 		ui.ShowBoxedError(ui.ErrorSuggestion{
 			Title:      ui.Msg("docker_daemon_stopped"),
 			Message:    validator.FormatUserErrorForBox(err),

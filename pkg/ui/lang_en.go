@@ -2,14 +2,15 @@ package ui
 
 var messagesEN = map[string]string{
 	// Docker validation
-	"checking_docker":       "Checking Docker...",
-	"docker_ok":             "Docker is ready",
-	"docker_not_installed":  "Docker is not installed",
-	"docker_not_running":    "Docker daemon is not running",
-	"docker_not_found":      "Docker Not Found",
-	"docker_daemon_stopped": "Docker Not Running",
-	"docker_compose_issue":  "Docker Compose Issue",
-	"docker_required":       "Docker is required to continue",
+	"checking_docker":                 "Checking Docker...",
+	"docker_ok":                       "Docker is ready",
+	"docker_not_installed":            "Docker is not installed",
+	"docker_not_running":              "Docker daemon is not running",
+	"docker_not_found":                "Docker Not Found",
+	"docker_daemon_stopped":           "Docker Not Running",
+	"docker_permission_pending_title": "Docker Group Membership Pending",
+	"docker_compose_issue":            "Docker Compose Issue",
+	"docker_required":                 "Docker is required to continue",
 
 	// Docker auto-install
 	"ask_install_docker":      "Install Docker automatically?",
@@ -397,7 +398,7 @@ Next steps:
 	"docker_daemon_wait_timeout":                  "Docker daemon is not ready after startup",
 	"docker_daemon_wait_timeout_suggestion":       "Try: sudo systemctl start docker && docker info",
 	"docker_permission_not_effective":             "User was added to the docker group but permissions are not active yet",
-	"docker_permission_not_effective_suggestion":  "Run: newgrp docker or log in again, then retry",
+	"docker_permission_not_effective_suggestion":  "Run: newgrp docker or log in again, then retry kk init",
 	"err_docker_manual_install_suggestion":        "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
 	"err_docker_compose_update_suggestion":        "Update Docker to the latest version or rerun with --force to bypass preflight checks.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",

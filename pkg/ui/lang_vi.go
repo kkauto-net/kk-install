@@ -2,14 +2,15 @@ package ui
 
 var messagesVI = map[string]string{
 	// Docker validation
-	"checking_docker":       "Đang kiểm tra Docker...",
-	"docker_ok":             "Docker đã sẵn sàng",
-	"docker_not_installed":  "Docker chưa được cài đặt",
-	"docker_not_running":    "Docker daemon không chạy",
-	"docker_not_found":      "Không tìm thấy Docker",
-	"docker_daemon_stopped": "Docker không chạy",
-	"docker_compose_issue":  "Vấn đề Docker Compose",
-	"docker_required":       "Cần Docker để tiếp tục",
+	"checking_docker":                 "Đang kiểm tra Docker...",
+	"docker_ok":                       "Docker đã sẵn sàng",
+	"docker_not_installed":            "Docker chưa được cài đặt",
+	"docker_not_running":              "Docker daemon không chạy",
+	"docker_not_found":                "Không tìm thấy Docker",
+	"docker_daemon_stopped":           "Docker không chạy",
+	"docker_permission_pending_title": "Quyền nhóm docker chưa có hiệu lực",
+	"docker_compose_issue":            "Vấn đề Docker Compose",
+	"docker_required":                 "Cần Docker để tiếp tục",
 
 	// Docker auto-install
 	"ask_install_docker":      "Tự động cài đặt Docker?",
@@ -397,7 +398,7 @@ Bước tiếp theo:
 	"docker_daemon_wait_timeout":                  "Docker daemon chưa sẵn sàng sau khi khởi động",
 	"docker_daemon_wait_timeout_suggestion":       "Thử: sudo systemctl start docker && docker info",
 	"docker_permission_not_effective":             "Đã thêm user vào nhóm docker nhưng quyền chưa có hiệu lực",
-	"docker_permission_not_effective_suggestion":  "Chạy: newgrp docker hoặc đăng nhập lại, rồi thử lại",
+	"docker_permission_not_effective_suggestion":  "Chạy: newgrp docker hoặc đăng nhập lại, rồi chạy lại kk init",
 	"err_docker_manual_install_suggestion":        "Cài Docker tại https://docs.docker.com/get-docker/ hoặc chạy lại với --force để bỏ qua preflight.",
 	"err_docker_compose_update_suggestion":        "Cập nhật Docker lên bản mới nhất hoặc chạy lại với --force để bỏ qua preflight.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",

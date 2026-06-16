@@ -200,12 +200,24 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 	}
 
 	key := UserErrorKey(err)
-	if key == "docker_permission_denied" && (opts.AutoFix || opts.ConfirmStart != nil) {
-		if fixErr := v.FixDockerPermissions(); fixErr != nil {
-			ui.ShowWarningf(ui.Msg("warn_docker_permissions_fix_failed"), fixErr)
-		} else if recheckErr := v.CheckDockerDaemon(); recheckErr == nil {
-			return nil
+	if key == "docker_permission_denied" {
+		if opts.AutoFix || opts.ConfirmStart != nil {
+			fixErr := v.FixDockerPermissions()
+			if fixErr == nil {
+				if recheckErr := v.CheckDockerDaemon(); recheckErr == nil {
+					return nil
+				}
+			} else if UserErrorKey(fixErr) != "docker_permission_not_effective" {
+				ui.ShowWarningf(ui.Msg("warn_docker_permissions_fix_failed"), fixErr)
+			}
 		}
+		if v.isDockerDaemonRunningPrivileged() {
+			return &UserError{Key: "docker_permission_not_effective"}
+		}
+	}
+
+	if key == "docker_not_running" && v.isDockerDaemonRunningPrivileged() {
+		return &UserError{Key: "docker_permission_not_effective"}
 	}
 
 	approved, approveErr := opts.approveStart()
@@ -334,7 +346,27 @@ func attachCommandIO(cmd *exec.Cmd, capture *bytes.Buffer) {
 	}
 }
 
+func sudoCredentialsCached(v *DockerValidator) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := v.CommandContext(ctx, "sudo", "-n", "-v")
+	return cmd.Run() == nil
+}
+
+func (v *DockerValidator) isDockerDaemonRunningPrivileged() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := v.CommandContext(ctx, "sudo", "-n", "docker", "info")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Run() == nil
+}
+
 func ensureSudoAccess(v *DockerValidator, parentCtx context.Context) error {
+	if sudoCredentialsCached(v) {
+		return nil
+	}
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Minute)
 	defer cancel()
 

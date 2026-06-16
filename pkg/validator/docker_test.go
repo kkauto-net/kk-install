@@ -204,6 +204,43 @@ func TestEnsureDockerReadyAutoFixStartsDaemon(t *testing.T) {
 	}
 }
 
+func TestEnsureDockerReadyReturnsPermissionPendingWhenDaemonRunning(t *testing.T) {
+	startCalls := 0
+	v := &DockerValidator{
+		LookPath: mockLookPath,
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if name == "docker" && len(arg) > 0 && arg[0] == "info" {
+				return exec.Command("sh", "-c", "echo permission denied >&2; exit 1")
+			}
+			if strings.Contains(joined, "sudo") && strings.Contains(joined, "docker info") {
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "usermod") {
+				return exec.Command("true")
+			}
+			if strings.Contains(joined, "sg docker") {
+				return exec.Command("false")
+			}
+			if strings.Contains(joined, "systemctl start docker") || strings.Contains(joined, "service docker start") {
+				startCalls++
+			}
+			if strings.Contains(joined, "compose") && strings.Contains(joined, "version") {
+				return exec.Command("sh", "-c", "printf '2.30.0'")
+			}
+			return exec.Command("true")
+		},
+	}
+
+	err := v.EnsureDockerReady(EnsureDockerOptions{AutoFix: true, MaxRetries: 0})
+	if UserErrorKey(err) != "docker_permission_not_effective" {
+		t.Fatalf("UserErrorKey() = %q, want docker_permission_not_effective", UserErrorKey(err))
+	}
+	if startCalls != 0 {
+		t.Fatalf("startCalls = %d, want 0 when daemon is already running", startCalls)
+	}
+}
+
 func TestUserErrorKey(t *testing.T) {
 	if got := UserErrorKey(nil); got != "" {
 		t.Fatalf("UserErrorKey(nil) = %q, want empty", got)
