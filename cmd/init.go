@@ -732,11 +732,19 @@ func formatInitDockerError(opts initOptions, err error) error {
 		}
 		return errors.New(ui.Msg("docker_required"))
 	case key == "docker_permission_not_effective":
+		title := ui.Msg("docker_permission_pending_title")
+		suggestion := validator.UserErrorSuggestion(err)
+		command := dockerGroupReexecHint()
+		if !DockerValidatorInstance.HasDockerGroupRunner() {
+			title = ui.Msg("docker_session_relogin_title")
+			suggestion = ui.Msg("docker_session_relogin_suggestion")
+			command = ui.Msg("docker_session_relogin_command")
+		}
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("docker_permission_pending_title"),
+			Title:      title,
 			Message:    validator.FormatUserErrorForBox(err),
-			Suggestion: validator.UserErrorSuggestion(err),
-			Command:    dockerGroupReexecHint(),
+			Suggestion: suggestion,
+			Command:    command,
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)

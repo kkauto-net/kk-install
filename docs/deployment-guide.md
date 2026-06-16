@@ -41,6 +41,26 @@ export KK_DOCKER_INSTALL_TIMEOUT=10m
 kk init
 ```
 
+### TrueNAS and minimal shells
+
+Some hosts (including TrueNAS) do not ship `sg` or `newgrp`. After Docker install, your user may be in the `docker` group on disk but the current shell session cannot access `/var/run/docker.sock` yet.
+
+`kk init` can auto-enable `KK_DOCKER_SUDO=1` when `sudo docker info` works and no group runner is available. Before `kk start`, either export the variable in your shell:
+
+```bash
+export KK_DOCKER_SUDO=1
+```
+
+or disconnect and reconnect SSH (log out and back in), then rerun `kk init`.
+
+When `kk` is installed through npm (`node_modules/@kkauto/kkcli`), prefer:
+
+```bash
+npm install -g @kkauto/kkcli@latest
+```
+
+instead of `kk selfupdate`, if binary replacement fails across filesystems.
+
 ## Install Binary
 
 ```bash

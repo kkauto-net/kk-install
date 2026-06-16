@@ -88,6 +88,23 @@ func TestExecutorFallbackToDockerComposeV1(t *testing.T) {
 	}
 }
 
+func TestExecutorUsesSudoWhenEnvSet(t *testing.T) {
+	t.Setenv("KK_DOCKER_SUDO", "1")
+	calls := withFakeComposeCommands(t, false, 0, "ok\n")
+	dir := t.TempDir()
+	executor := NewExecutor(dir)
+
+	if err := executor.Down(context.Background()); err != nil {
+		t.Fatalf("Down() error = %v", err)
+	}
+
+	got := normalizeComposeCalls(*calls, executor.ComposeFile)
+	want := []string{"sudo docker compose -f COMPOSE down"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("commands = %#v, want %#v", got, want)
+	}
+}
+
 func TestExecutorPropagatesCommandErrors(t *testing.T) {
 	withFakeComposeCommands(t, false, 7, "compose failed")
 	executor := NewExecutor(t.TempDir())

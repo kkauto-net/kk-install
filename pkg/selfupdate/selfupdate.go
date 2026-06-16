@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -134,7 +136,7 @@ func Update(ctx context.Context, result *UpdateResult) error {
 
 	// Replace the current binary
 	if err := replaceBinary(binaryPath, newBinaryPath); err != nil {
-		return fmt.Errorf("failed to replace binary: %w", err)
+		return fmt.Errorf("failed to replace binary: %w%s", err, binaryReplaceHint(binaryPath))
 	}
 
 	return nil
@@ -245,6 +247,66 @@ func extractBinary(archivePath, destPath string) error {
 	return fmt.Errorf("binary not found in archive")
 }
 
+func binaryReplaceHint(binaryPath string) string {
+	if strings.Contains(binaryPath, "node_modules/@kkauto/kkcli") {
+		return "; try: npm install -g @kkauto/kkcli@latest"
+	}
+	return ""
+}
+
+var (
+	osRenameFn = os.Rename
+	copyFileFn = copyFileAtomic
+)
+
+func isCrossDeviceError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, syscall.EXDEV) {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "cross-device")
+}
+
+func copyFileAtomic(dst, src string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer closeReader(in)
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(out, in); err != nil {
+		closeReader(out)
+		return err
+	}
+	if err := out.Sync(); err != nil {
+		closeReader(out)
+		return err
+	}
+	return out.Close()
+}
+
+func moveOrCopyFile(dst, src string) error {
+	if err := osRenameFn(src, dst); err != nil {
+		if !isCrossDeviceError(err) {
+			return err
+		}
+		if err := copyFileFn(dst, src); err != nil {
+			return err
+		}
+		if err := os.Remove(src); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func replaceBinary(oldPath, newPath string) error {
 	// Check if we have write permission
 	dir := filepath.Dir(oldPath)
@@ -255,14 +317,21 @@ func replaceBinary(oldPath, newPath string) error {
 
 	// Backup old binary
 	backupPath := oldPath + ".old"
-	if err := os.Rename(oldPath, backupPath); err != nil {
-		return err
+	if err := osRenameFn(oldPath, backupPath); err != nil {
+		if !isCrossDeviceError(err) {
+			return err
+		}
+		if err := copyFileFn(backupPath, oldPath); err != nil {
+			return err
+		}
+		if err := os.Remove(oldPath); err != nil {
+			return err
+		}
 	}
 
-	// Move new binary
-	if err := os.Rename(newPath, oldPath); err != nil {
-		// Restore backup
-		if restoreErr := os.Rename(backupPath, oldPath); restoreErr != nil {
+	// Move new binary into place (copy across filesystems when needed).
+	if err := moveOrCopyFile(oldPath, newPath); err != nil {
+		if restoreErr := moveOrCopyFile(oldPath, backupPath); restoreErr != nil {
 			return fmt.Errorf("move new binary: %w; restore backup: %v", err, restoreErr)
 		}
 		return err

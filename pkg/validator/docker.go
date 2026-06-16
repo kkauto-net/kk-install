@@ -59,7 +59,7 @@ func (v *DockerValidator) CheckDockerDaemon() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := v.CommandContext(ctx, "docker", "info")
+	cmd := v.dockerInfoCommand(ctx)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		outputStr := strings.ToLower(string(output))
@@ -82,10 +82,10 @@ func (v *DockerValidator) CheckComposeVersion() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := v.CommandContext(ctx, "docker", "compose", "version", "--short")
+	cmd := v.dockerComposeVersionCommand(ctx)
 	output, err := cmd.Output()
 	if err != nil {
-		cmd = v.CommandContext(ctx, "docker-compose", "version", "--short")
+		cmd = v.dockerComposeV1VersionCommand(ctx)
 		output, err = cmd.Output()
 		if err != nil {
 			return &UserError{Key: "compose_not_found"}
@@ -111,6 +111,27 @@ func (v *DockerValidator) CheckComposeVersion() error {
 	}
 
 	return nil
+}
+
+func (v *DockerValidator) dockerInfoCommand(ctx context.Context) *exec.Cmd {
+	if dockerUsesSudo() {
+		return v.CommandContext(ctx, "sudo", "docker", "info")
+	}
+	return v.CommandContext(ctx, "docker", "info")
+}
+
+func (v *DockerValidator) dockerComposeVersionCommand(ctx context.Context) *exec.Cmd {
+	if dockerUsesSudo() {
+		return v.CommandContext(ctx, "sudo", "docker", "compose", "version", "--short")
+	}
+	return v.CommandContext(ctx, "docker", "compose", "version", "--short")
+}
+
+func (v *DockerValidator) dockerComposeV1VersionCommand(ctx context.Context) *exec.Cmd {
+	if dockerUsesSudo() {
+		return v.CommandContext(ctx, "sudo", "docker-compose", "version", "--short")
+	}
+	return v.CommandContext(ctx, "docker-compose", "version", "--short")
 }
 
 // UserError represents user-friendly error
@@ -213,7 +234,10 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 					return nil
 				}
 			}
-			return &UserError{Key: "docker_permission_not_effective"}
+			if pendingErr := v.handlePermissionPending(); pendingErr != nil {
+				return pendingErr
+			}
+			return nil
 		}
 		if opts.AutoFix || opts.ConfirmStart != nil {
 			fixErr := v.FixDockerPermissions()
@@ -226,12 +250,18 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 			}
 		}
 		if v.isDockerDaemonRunningPrivileged() {
-			return &UserError{Key: "docker_permission_not_effective"}
+			if pendingErr := v.handlePermissionPending(); pendingErr != nil {
+				return pendingErr
+			}
+			return nil
 		}
 	}
 
 	if key == "docker_not_running" && v.isDockerDaemonRunningPrivileged() {
-		return &UserError{Key: "docker_permission_not_effective"}
+		if pendingErr := v.handlePermissionPending(); pendingErr != nil {
+			return pendingErr
+		}
+		return nil
 	}
 
 	approved, approveErr := opts.approveStart()

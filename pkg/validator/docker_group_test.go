@@ -57,6 +57,64 @@ func TestIsUserInDockerGroup(t *testing.T) {
 	}
 }
 
+func TestDockerGroupReexecCommandReloginWhenNoRunner(t *testing.T) {
+	v := &DockerValidator{
+		LookPath: mockLookPathNotFound,
+	}
+
+	got := v.DockerGroupReexecCommand("kk init")
+	if got == `newgrp docker -c "kk init"` || got == "" {
+		t.Fatalf("DockerGroupReexecCommand() = %q, want relogin command", got)
+	}
+}
+
+func TestHasDockerGroupRunner(t *testing.T) {
+	withSG := &DockerValidator{
+		LookPath: func(file string) (string, error) {
+			if file == "sg" {
+				return "/usr/bin/sg", nil
+			}
+			return "", os.ErrNotExist
+		},
+	}
+	if !withSG.HasDockerGroupRunner() {
+		t.Fatal("HasDockerGroupRunner() = false, want true")
+	}
+	if (&DockerValidator{LookPath: mockLookPathNotFound}).HasDockerGroupRunner() {
+		t.Fatal("HasDockerGroupRunner() = true, want false")
+	}
+}
+
+func TestTryActivateDockerSudoFallback(t *testing.T) {
+	t.Setenv("KK_DOCKER_SUDO", "")
+	called := false
+	v := &DockerValidator{
+		LookPath: mockLookPathNotFound,
+		CommandContext: func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+			joined := strings.Join(append([]string{name}, arg...), " ")
+			if strings.Contains(joined, "getent group docker") {
+				return exec.Command("sh", "-c", "printf 'docker:x:999:tieutinh'")
+			}
+			if strings.Contains(joined, "sudo -n docker info") || strings.Contains(joined, "sudo docker info") {
+				called = true
+				return exec.Command("true")
+			}
+			return exec.Command("false")
+		},
+	}
+	t.Setenv("USER", "tieutinh")
+
+	if !v.TryActivateDockerSudoFallback() {
+		t.Fatal("TryActivateDockerSudoFallback() = false, want true")
+	}
+	if !called {
+		t.Fatal("expected sudo docker info probe")
+	}
+	if os.Getenv("KK_DOCKER_SUDO") != "1" {
+		t.Fatal("expected KK_DOCKER_SUDO=1 to be set")
+	}
+}
+
 func TestRunCommandWithDockerGroupMissingRunner(t *testing.T) {
 	v := &DockerValidator{
 		LookPath: mockLookPathNotFound,

@@ -119,6 +119,12 @@ func (e *Executor) buildCmd(ctx context.Context, args ...string) *exec.Cmd {
 		cmdArgs = append([]string{"-f", e.ComposeFile}, args...)
 	}
 
+	if os.Getenv("KK_DOCKER_SUDO") == "1" {
+		cmd := execCommand(ctx, "sudo", append([]string{cmdName}, cmdArgs...)...)
+		cmd.Dir = e.WorkDir
+		return cmd
+	}
+
 	cmd := execCommand(ctx, cmdName, cmdArgs...)
 	cmd.Dir = e.WorkDir
 	return cmd

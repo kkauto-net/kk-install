@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/kkauto-net/kk-install/pkg/ui"
 )
 
 var errDockerGroupRunnerMissing = errors.New("neither sg nor newgrp is available")
@@ -35,6 +37,84 @@ func (v *DockerValidator) CanAccessDockerViaGroupSubcommand() bool {
 	return verifyCmd.Run() == nil
 }
 
+// HasDockerGroupRunner reports whether sg or newgrp is available.
+func (v *DockerValidator) HasDockerGroupRunner() bool {
+	if _, err := v.LookPath("sg"); err == nil {
+		return true
+	}
+	if _, err := v.LookPath("newgrp"); err == nil {
+		return true
+	}
+	return false
+}
+
+func dockerUsesSudo() bool {
+	return os.Getenv("KK_DOCKER_SUDO") == "1"
+}
+
+func (v *DockerValidator) canAccessDockerWithSudo() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := v.CommandContext(ctx, "sudo", "docker", "info")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Run() == nil
+}
+
+func (v *DockerValidator) canAccessDockerWithSudoNoPassword() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := v.CommandContext(ctx, "sudo", "-n", "docker", "info")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Run() == nil
+}
+
+// TryActivateDockerSudoFallback enables KK_DOCKER_SUDO when group runners are unavailable.
+func (v *DockerValidator) TryActivateDockerSudoFallback() bool {
+	if v.HasDockerGroupRunner() || !v.isUserInDockerGroup() {
+		return false
+	}
+	if dockerUsesSudo() {
+		return v.canAccessDockerWithSudo()
+	}
+	if v.canAccessDockerWithSudoNoPassword() {
+		if err := os.Setenv("KK_DOCKER_SUDO", "1"); err != nil {
+			return false
+		}
+		ui.ShowNote(ui.Msg("docker_sudo_fallback_note"))
+		return true
+	}
+	if !isInteractiveTTY() {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := ensureSudoAccess(v, ctx); err != nil {
+		return false
+	}
+	if !v.canAccessDockerWithSudo() {
+		return false
+	}
+	if err := os.Setenv("KK_DOCKER_SUDO", "1"); err != nil {
+		return false
+	}
+	ui.ShowNote(ui.Msg("docker_sudo_fallback_note"))
+	return true
+}
+
+func (v *DockerValidator) handlePermissionPending() error {
+	if v.TryActivateDockerSudoFallback() {
+		if err := v.CheckDockerDaemon(); err == nil {
+			return nil
+		}
+	}
+	return &UserError{Key: "docker_permission_not_effective"}
+}
+
 // DockerGroupReexecCommand returns a shell command to rerun kk init with docker group access.
 func (v *DockerValidator) DockerGroupReexecCommand(initCommand string) string {
 	if initCommand == "" {
@@ -46,7 +126,7 @@ func (v *DockerValidator) DockerGroupReexecCommand(initCommand string) string {
 	if _, err := v.LookPath("newgrp"); err == nil {
 		return fmt.Sprintf(`newgrp docker -c %q`, initCommand)
 	}
-	return "newgrp docker"
+	return ui.Msg("docker_session_relogin_command")
 }
 
 // RunCommandWithDockerGroup runs a shell command with docker group privileges.
