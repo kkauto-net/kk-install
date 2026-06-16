@@ -385,7 +385,7 @@ Next steps:
 	"docker_install_err_sudo_missing":             "sudo is required to install Docker",
 	"docker_install_err_sudo_missing_suggestion":  "Run as root or install Docker manually: https://docs.docker.com/get-docker/",
 	"docker_install_err_sudo_password":            "sudo password is required to install Docker",
-	"docker_install_err_sudo_password_suggestion": "Run with a sudo-enabled user or install manually: https://docs.docker.com/get-docker/",
+	"docker_install_err_sudo_password_suggestion": "Enter your sudo password when prompted. If the prompt does not appear, run sudo -v first or install Docker manually: https://docs.docker.com/get-docker/",
 	"docker_install_err_network":                  "Cannot download the Docker install script",
 	"docker_install_err_network_suggestion":       "Check network access to get.docker.com or install manually: https://docs.docker.com/get-docker/",
 	"docker_install_err_timeout":                  "Docker installation timed out",

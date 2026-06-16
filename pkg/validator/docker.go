@@ -291,6 +291,8 @@ func classifyDockerInstallFailure(output string, runErr error) *UserError {
 	switch {
 	case strings.Contains(lower, "sudo:") && strings.Contains(lower, "password"):
 		return &UserError{Key: "docker_install_err_sudo_password"}
+	case strings.Contains(lower, "sudo:") && strings.Contains(lower, "timed out"):
+		return &UserError{Key: "docker_install_err_sudo_password"}
 	case strings.Contains(lower, "could not resolve host"), strings.Contains(lower, "failed to connect"):
 		return &UserError{Key: "docker_install_err_network"}
 	case strings.Contains(lower, "operation timed out"), strings.Contains(lower, "timed out"):
@@ -332,6 +334,42 @@ func attachCommandIO(cmd *exec.Cmd, capture *bytes.Buffer) {
 	}
 }
 
+func ensureSudoAccess(v *DockerValidator, parentCtx context.Context) error {
+	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Minute)
+	defer cancel()
+
+	if !isInteractiveTTY() {
+		cmd := v.CommandContext(ctx, "sudo", "-n", "true")
+		var stderr bytes.Buffer
+		attachCommandIO(cmd, &stderr)
+		if err := cmd.Run(); err != nil {
+			output := stderr.String()
+			if output == "" {
+				output = err.Error()
+			}
+			userErr := classifyDockerInstallFailure(output, err)
+			userErr.Detail = output
+			return userErr
+		}
+		return nil
+	}
+
+	ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
+	cmd := v.CommandContext(ctx, "sudo", "-v")
+	var stderr bytes.Buffer
+	attachCommandIO(cmd, &stderr)
+	if err := cmd.Run(); err != nil {
+		output := stderr.String()
+		if output == "" {
+			output = err.Error()
+		}
+		userErr := classifyDockerInstallFailure(output, err)
+		userErr.Detail = output
+		return userErr
+	}
+	return nil
+}
+
 // InstallDocker attempts to install Docker using the official convenience script.
 func (v *DockerValidator) InstallDocker() error {
 	if err := v.checkInstallPrerequisites(); err != nil {
@@ -341,9 +379,11 @@ func (v *DockerValidator) InstallDocker() error {
 	ctx, cancel := context.WithTimeout(context.Background(), dockerInstallTimeout())
 	defer cancel()
 
-	if isInteractiveTTY() {
-		ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
-	} else {
+	if err := ensureSudoAccess(v, ctx); err != nil {
+		return err
+	}
+
+	if !isInteractiveTTY() {
 		fmt.Println()
 	}
 
@@ -373,6 +413,10 @@ func (v *DockerValidator) FixDockerPermissions() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	if err := ensureSudoAccess(v, ctx); err != nil {
+		return err
+	}
+
 	userCmd := v.CommandContext(ctx, "sh", "-c", "sudo usermod -aG docker $USER")
 	var stderr bytes.Buffer
 	attachCommandIO(userCmd, &stderr)
@@ -395,9 +439,11 @@ func (v *DockerValidator) StartDockerDaemon() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if isInteractiveTTY() {
-		ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
-	} else {
+	if err := ensureSudoAccess(v, ctx); err != nil {
+		return err
+	}
+
+	if !isInteractiveTTY() {
 		fmt.Println()
 	}
 

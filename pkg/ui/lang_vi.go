@@ -385,7 +385,7 @@ Bước tiếp theo:
 	"docker_install_err_sudo_missing":             "Cần sudo để cài Docker",
 	"docker_install_err_sudo_missing_suggestion":  "Chạy với quyền root hoặc cài Docker thủ công: https://docs.docker.com/get-docker/",
 	"docker_install_err_sudo_password":            "Cần mật khẩu sudo để cài Docker",
-	"docker_install_err_sudo_password_suggestion": "Chạy với user có sudo hoặc cài thủ công: https://docs.docker.com/get-docker/",
+	"docker_install_err_sudo_password_suggestion": "Nhập mật khẩu sudo khi được hỏi. Nếu không thấy prompt, chạy sudo -v trước hoặc cài thủ công: https://docs.docker.com/get-docker/",
 	"docker_install_err_network":                  "Không thể tải script cài Docker",
 	"docker_install_err_network_suggestion":       "Kiểm tra mạng tới get.docker.com hoặc cài thủ công: https://docs.docker.com/get-docker/",
 	"docker_install_err_timeout":                  "Cài Docker quá thời gian chờ",

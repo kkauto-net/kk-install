@@ -18,6 +18,7 @@ func TestClassifyDockerInstallFailure(t *testing.T) {
 		wantKey string
 	}{
 		{name: "sudo password", output: "sudo: a password is required", wantKey: "docker_install_err_sudo_password"},
+		{name: "sudo timed out", output: "sudo: timed out", wantKey: "docker_install_err_sudo_password"},
 		{name: "network", output: "curl: (6) Could not resolve host get.docker.com", wantKey: "docker_install_err_network"},
 		{name: "apt lock", output: "E: Could not get lock /var/lib/dpkg/lock", wantKey: "docker_install_err_pkg_lock"},
 		{name: "timeout context", output: "", runErr: context.DeadlineExceeded, wantKey: "docker_install_err_timeout"},
