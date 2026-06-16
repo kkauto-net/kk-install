@@ -102,7 +102,7 @@ Bước tiếp theo:
 	"pull_failed":               "Không tải được images",
 	"images_up_to_date":         "Tất cả images đã là phiên bản mới nhất",
 	"updates_available":         "Có cập nhật:",
-	"confirm_restart":           "Khởi động lại services với images mới?",
+	"confirm_restart":           "Khởi động lại services để chạy phiên bản mới?",
 	"update_cancelled":          "Hủy cập nhật. Images đã được tải, chạy 'kk restart' để áp dụng",
 	"confirm_update_recreate":   "Tạo lại containers với images mới?",
 	"update_recreate_cancelled": "Hủy cập nhật. Images đã được tải, containers chưa được tạo lại",
@@ -204,7 +204,7 @@ Bước tiếp theo:
 	"step_health_check":   "Kiểm tra sức khỏe",
 	"step_status":         "Trạng thái",
 	"step_pull_images":    "Tải images",
-	"step_recreate":       "Tạo lại containers",
+	"step_recreate":       "Khởi động lại dịch vụ",
 
 	// Stop command
 	"step_stop_services": "Dừng dịch vụ",

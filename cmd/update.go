@@ -18,8 +18,8 @@ import (
 
 var updateCmd = &cobra.Command{
 	Use:         "update",
-	Short:       "Pull latest images and recreate containers",
-	Long:        `Check and download new images from Docker Hub, then recreate services.`,
+	Short:       "Pull latest images and restart services",
+	Long:        `Pull new images when available and optionally restart services to run the new version.`,
 	Annotations: map[string]string{"group": "management"},
 	RunE:        runUpdate,
 }
@@ -106,8 +106,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Step 2: Show updates with boxed table
-	ui.ShowStepHeader(2, 4, ui.Msg("step_status"))
+	// Step 2: Show available updates
+	ui.ShowStepHeader(2, 4, ui.Msg("updates_available"))
 	uiUpdates := make([]ui.ImageUpdate, len(updates))
 	for i, u := range updates {
 		uiUpdates[i] = ui.ImageUpdate{
@@ -119,44 +119,33 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	ui.PrintUpdatesTable(uiUpdates)
 	fmt.Println()
 
-	// Confirm recreate
-	if !forceUpdate {
-		var confirm bool
-		form := huh.NewForm(
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title(ui.Msg("confirm_update_recreate")).
-					Value(&confirm),
-			),
-		)
-
-		formErr := form.Run()
-		if formErr != nil {
-			return formErr
-		}
-
-		if !confirm {
-			fmt.Println(ui.Msg("update_recreate_cancelled"))
-			return nil
-		}
+	confirmed, confirmErr := confirmUpdateRestart()
+	if confirmErr != nil {
+		return confirmErr
+	}
+	if !confirmed {
+		return nil
 	}
 
-	// Step 3: Recreate containers
+	// Step 3: Restart services with new images
 	ui.ShowStepHeader(3, 4, ui.Msg("step_recreate"))
 
 	recreateCtx, recreateCancel := context.WithTimeout(ctx, compose.DefaultTimeout)
 	defer recreateCancel()
 
+	restartSpinner := ui.StartPtermSpinner(ui.Msg("restarting"))
 	err = executor.ForceRecreate(recreateCtx)
 	if err != nil {
+		restartSpinner.Fail(ui.Msg("restart_failed"))
 		ui.ShowBoxedError(ui.ErrorSuggestion{
-			Title:      ui.Msg("recreate_failed"),
+			Title:      ui.Msg("restart_failed"),
 			Message:    ui.SanitizeError(err),
 			Suggestion: ui.Msg("err_check_docker_logs"),
 			Command:    ui.Msg("docker_compose_logs_command"),
 		})
-		return fmt.Errorf("%s: %w", ui.Msg("recreate_failed"), err)
+		return fmt.Errorf("%s: %w", ui.Msg("restart_failed"), err)
 	}
+	restartSpinner.Success(ui.Msg("restart_complete"))
 
 	definedServices := imageState.composeFile.GetServiceNames()
 	monitorUpdateHealth(recreateCtx, imageState.composeFile)
@@ -174,4 +163,27 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func confirmUpdateRestart() (bool, error) {
+	if forceUpdate {
+		return true, nil
+	}
+
+	var confirm bool
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title(ui.Msg("confirm_restart")).
+				Value(&confirm),
+		),
+	)
+	if err := form.Run(); err != nil {
+		return false, err
+	}
+	if !confirm {
+		ui.ShowInfo(ui.Msg("update_cancelled"))
+		return false, nil
+	}
+	return true, nil
 }

@@ -102,7 +102,7 @@ Next steps:
 	"pull_failed":               "Failed to pull images",
 	"images_up_to_date":         "All images are up to date",
 	"updates_available":         "Updates available:",
-	"confirm_restart":           "Restart services with new images?",
+	"confirm_restart":           "Restart services to run the new version?",
 	"update_cancelled":          "Update cancelled. Images downloaded, run 'kk restart' to apply",
 	"confirm_update_recreate":   "Recreate containers with new images?",
 	"update_recreate_cancelled": "Update cancelled. Images downloaded, containers were not recreated",
@@ -204,7 +204,7 @@ Next steps:
 	"step_health_check":   "Health Check",
 	"step_status":         "Status",
 	"step_pull_images":    "Pull Images",
-	"step_recreate":       "Recreate Containers",
+	"step_recreate":       "Restart Services",
 
 	// Stop command
 	"step_stop_services": "Stop Services",
