@@ -632,7 +632,7 @@ func ensureInitDocker(opts initOptions) error {
 
 	if !opts.NonInteractive {
 		ensureOpts.ConfirmInstall = func() (bool, error) {
-			ui.ShowWarning(ui.Msg("docker_not_installed"))
+			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("docker_not_installed"))
 			var installDocker bool
 			installForm := huh.NewForm(
 				huh.NewGroup(
@@ -650,7 +650,7 @@ func ensureInitDocker(opts initOptions) error {
 			return installDocker, nil
 		}
 		ensureOpts.ConfirmStart = func() (bool, error) {
-			ui.ShowWarning(ui.Msg("docker_not_running"))
+			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("docker_not_running"))
 			var startDocker bool
 			startForm := huh.NewForm(
 				huh.NewGroup(
@@ -668,19 +668,28 @@ func ensureInitDocker(opts initOptions) error {
 		}
 		ensureOpts.Install = func() error {
 			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("installing_docker"))
+			ui.ShowNote(ui.Msg("docker_install_in_progress_note"))
+			if validator.IsInteractiveTTY() {
+				ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
+			}
 			err := DockerValidatorInstance.InstallDocker()
 			if err != nil {
-				ui.ShowError(ui.Msg("docker_install_failed"))
 				return err
 			}
-			ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			if DockerValidatorInstance.CheckDockerDaemon() == nil {
+				ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			} else if DockerValidatorInstance.IsDockerDaemonRunningPrivileged() {
+				ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_installed_daemon_running"))
+				ui.ShowNote(ui.Msg("docker_group_activate_note"))
+			} else {
+				ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_installed"))
+			}
 			return nil
 		}
 		ensureOpts.Start = func() error {
 			ui.ShowInfo(ui.IconDocker + " " + ui.Msg("starting_docker"))
 			err := DockerValidatorInstance.StartDockerDaemon()
 			if err != nil {
-				ui.ShowError(ui.Msg("docker_start_failed"))
 				return err
 			}
 			ui.ShowSuccess(ui.IconCheck + " " + ui.Msg("docker_started"))

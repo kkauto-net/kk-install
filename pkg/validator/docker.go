@@ -201,6 +201,20 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 
 	key := UserErrorKey(err)
 	if key == "docker_permission_denied" {
+		if verifyErr := v.verifyDockerGroupAccess(); verifyErr == nil {
+			return nil
+		}
+		if v.isDockerDaemonRunningPrivileged() {
+			if opts.AutoFix || opts.ConfirmStart != nil {
+				if addErr := v.addUserToDockerGroup(); addErr != nil {
+					ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), UserErrorMessage(addErr))
+				}
+				if verifyErr := v.verifyDockerGroupAccess(); verifyErr == nil {
+					return nil
+				}
+			}
+			return &UserError{Key: "docker_permission_not_effective"}
+		}
 		if opts.AutoFix || opts.ConfirmStart != nil {
 			fixErr := v.FixDockerPermissions()
 			if fixErr == nil {
@@ -208,7 +222,7 @@ func (v *DockerValidator) ensureDaemonReady(opts EnsureDockerOptions, maxRetries
 					return nil
 				}
 			} else if UserErrorKey(fixErr) != "docker_permission_not_effective" {
-				ui.ShowWarningf(ui.Msg("warn_docker_permissions_fix_failed"), fixErr)
+				ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), UserErrorMessage(fixErr))
 			}
 		}
 		if v.isDockerDaemonRunningPrivileged() {
@@ -329,6 +343,11 @@ func isInteractiveTTY() bool {
 	return term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
 }
 
+// IsInteractiveTTY reports whether stdin and stdout are both interactive terminals.
+func IsInteractiveTTY() bool {
+	return isInteractiveTTY()
+}
+
 func attachCommandIO(cmd *exec.Cmd, capture *bytes.Buffer) {
 	if !isInteractiveTTY() {
 		if capture != nil {
@@ -351,6 +370,10 @@ func sudoCredentialsCached(v *DockerValidator) bool {
 	defer cancel()
 	cmd := v.CommandContext(ctx, "sudo", "-n", "-v")
 	return cmd.Run() == nil
+}
+
+func (v *DockerValidator) IsDockerDaemonRunningPrivileged() bool {
+	return v.isDockerDaemonRunningPrivileged()
 }
 
 func (v *DockerValidator) isDockerDaemonRunningPrivileged() bool {
@@ -386,7 +409,6 @@ func ensureSudoAccess(v *DockerValidator, parentCtx context.Context) error {
 		return nil
 	}
 
-	ui.ShowNote(ui.Msg("docker_sudo_password_hint"))
 	cmd := v.CommandContext(ctx, "sudo", "-v")
 	var stderr bytes.Buffer
 	attachCommandIO(cmd, &stderr)
@@ -433,15 +455,12 @@ func (v *DockerValidator) InstallDocker() error {
 		return userErr
 	}
 
-	if err := v.FixDockerPermissions(); err != nil {
-		ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), err)
-	}
+	v.configureDockerGroupAfterInstall()
 
 	return nil
 }
 
-// FixDockerPermissions adds the current user to the docker group and verifies access.
-func (v *DockerValidator) FixDockerPermissions() error {
+func (v *DockerValidator) addUserToDockerGroup() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -453,17 +472,37 @@ func (v *DockerValidator) FixDockerPermissions() error {
 	var stderr bytes.Buffer
 	attachCommandIO(userCmd, &stderr)
 	if err := userCmd.Run(); err != nil {
-		return err
+		output := stderr.String()
+		if output == "" {
+			output = err.Error()
+		}
+		return fmt.Errorf("%s", output)
 	}
+	return nil
+}
 
+func (v *DockerValidator) verifyDockerGroupAccess() error {
 	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer verifyCancel()
 	verifyCmd := v.CommandContext(verifyCtx, "sh", "-c", "sg docker -c \"docker info\"")
 	if err := verifyCmd.Run(); err != nil {
 		return &UserError{Key: "docker_permission_not_effective"}
 	}
-
 	return nil
+}
+
+// FixDockerPermissions adds the current user to the docker group and verifies access.
+func (v *DockerValidator) FixDockerPermissions() error {
+	if err := v.addUserToDockerGroup(); err != nil {
+		return err
+	}
+	return v.verifyDockerGroupAccess()
+}
+
+func (v *DockerValidator) configureDockerGroupAfterInstall() {
+	if err := v.addUserToDockerGroup(); err != nil {
+		ui.ShowWarningf(ui.Msg("warn_docker_group_add_failed"), UserErrorMessage(err))
+	}
 }
 
 // StartDockerDaemon attempts to start the Docker daemon
