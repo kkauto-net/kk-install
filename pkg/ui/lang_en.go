@@ -403,7 +403,7 @@ Next steps:
 	"docker_daemon_wait_timeout":                  "Docker daemon is not ready after startup",
 	"docker_daemon_wait_timeout_suggestion":       "Try: sudo systemctl start docker && docker info",
 	"docker_permission_not_effective":             "Docker is running, but your user cannot access it in this shell yet",
-	"docker_permission_not_effective_suggestion":  "Run newgrp docker in this shell, or log in again, then run kk init",
+	"docker_permission_not_effective_suggestion":  "Run newgrp docker in this shell, log in again, or rerun kk init after updating kk",
 	"err_docker_manual_install_suggestion":        "Install Docker from https://docs.docker.com/get-docker/ or rerun with --force to bypass preflight checks.",
 	"err_docker_compose_update_suggestion":        "Update Docker to the latest version or rerun with --force to bypass preflight checks.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",

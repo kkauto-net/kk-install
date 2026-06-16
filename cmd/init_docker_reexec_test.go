@@ -61,6 +61,12 @@ func TestTryReexecInitWithDockerGroupReturnsOriginalErrorWhenSGUnavailable(t *te
 	t.Setenv(dockerGroupReexecEnv, "")
 
 	DockerValidatorInstance = &validator.DockerValidator{
+		LookPath: func(file string) (string, error) {
+			if file == "newgrp" {
+				return "/usr/bin/newgrp", nil
+			}
+			return "", os.ErrNotExist
+		},
 		CommandContext: func(_ context.Context, _ string, _ ...string) *exec.Cmd {
 			return exec.Command("false")
 		},

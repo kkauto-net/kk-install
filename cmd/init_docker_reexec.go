@@ -18,13 +18,8 @@ const (
 	initValidatedLicensePubEnv = "KK_INIT_LICENSE_PUBLIC_KEY"
 )
 
-var runSgDockerGroupWithEnv = func(command string, env []string) error {
-	cmd := exec.Command("sg", "docker", "-c", command)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = env
-	return cmd.Run()
+var runWithDockerGroup = func(command string, env []string) error {
+	return DockerValidatorInstance.RunCommandWithDockerGroup(command, env)
 }
 
 func shouldAttemptDockerGroupReexec(err error) bool {
@@ -37,7 +32,7 @@ func shouldAttemptDockerGroupReexec(err error) bool {
 		return false
 	}
 
-	return DockerValidatorInstance.CanAccessDockerViaSG()
+	return DockerValidatorInstance.CanAccessDockerViaGroupSubcommand()
 }
 
 func buildInitReexecCommand() (string, error) {
@@ -50,6 +45,10 @@ func buildInitReexecCommand() (string, error) {
 		quoted[i] = strconv.Quote(arg)
 	}
 	return strings.Join(quoted, " "), nil
+}
+
+func dockerGroupReexecHint() string {
+	return DockerValidatorInstance.DockerGroupReexecCommand("kk init")
 }
 
 func tryReexecInitWithDockerGroup(dockerErr error, licenseKey, licensePublicKey string) error {
@@ -73,18 +72,18 @@ func tryReexecInitWithDockerGroup(dockerErr error, licenseKey, licensePublicKey 
 		env = append(env, initValidatedLicensePubEnv+"="+licensePublicKey)
 	}
 
-	sgErr := runSgDockerGroupWithEnv(command, env)
+	reexecErr := runWithDockerGroup(command, env)
 
-	if sgErr == nil {
+	if reexecErr == nil {
 		os.Exit(0)
 	}
 
 	var exitErr *exec.ExitError
-	if errors.As(sgErr, &exitErr) {
+	if errors.As(reexecErr, &exitErr) {
 		os.Exit(exitErr.ExitCode())
 	}
 
-	return fmt.Errorf("%w: %v", dockerErr, sgErr)
+	return fmt.Errorf("%w: %v", dockerErr, reexecErr)
 }
 
 func consumeReexecLicenseEnv() (licenseKey, publicKey string, ok bool) {

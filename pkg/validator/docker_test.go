@@ -124,7 +124,7 @@ func TestEnsureDockerReadyAutoFixInstallsWhenMissing(t *testing.T) {
 				installCalls++
 				return exec.Command("true")
 			}
-			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") {
+			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") || strings.Contains(joined, "newgrp docker") {
 				return exec.Command("true")
 			}
 			return exec.Command("true")
@@ -219,7 +219,7 @@ func TestEnsureDockerReadyReturnsPermissionPendingWhenDaemonRunning(t *testing.T
 			if strings.Contains(joined, "usermod") {
 				return exec.Command("true")
 			}
-			if strings.Contains(joined, "sg docker") {
+			if strings.Contains(joined, "sg docker") || strings.Contains(joined, "newgrp docker") {
 				return exec.Command("false")
 			}
 			if strings.Contains(joined, "systemctl start docker") || strings.Contains(joined, "service docker start") {

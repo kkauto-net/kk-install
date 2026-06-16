@@ -403,7 +403,7 @@ Bước tiếp theo:
 	"docker_daemon_wait_timeout":                  "Docker daemon chưa sẵn sàng sau khi khởi động",
 	"docker_daemon_wait_timeout_suggestion":       "Thử: sudo systemctl start docker && docker info",
 	"docker_permission_not_effective":             "Docker đang chạy nhưng user chưa truy cập được trong shell này",
-	"docker_permission_not_effective_suggestion":  "Chạy newgrp docker trong shell này, hoặc đăng nhập lại, rồi chạy lại kk init",
+	"docker_permission_not_effective_suggestion":  "Chạy newgrp docker trong shell này, đăng nhập lại, hoặc cập nhật kk rồi chạy lại kk init",
 	"err_docker_manual_install_suggestion":        "Cài Docker tại https://docs.docker.com/get-docker/ hoặc chạy lại với --force để bỏ qua preflight.",
 	"err_docker_compose_update_suggestion":        "Cập nhật Docker lên bản mới nhất hoặc chạy lại với --force để bỏ qua preflight.",
 	"docker_check_network_command":                "curl -I https://get.docker.com",

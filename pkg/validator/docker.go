@@ -461,6 +461,10 @@ func (v *DockerValidator) InstallDocker() error {
 }
 
 func (v *DockerValidator) addUserToDockerGroup() error {
+	if v.isUserInDockerGroup() {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -490,10 +494,7 @@ func (v *DockerValidator) verifyDockerGroupAccess() error {
 
 // CanAccessDockerViaSG reports whether docker commands work via sg docker.
 func (v *DockerValidator) CanAccessDockerViaSG() bool {
-	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer verifyCancel()
-	verifyCmd := v.CommandContext(verifyCtx, "sh", "-c", "sg docker -c \"docker info\"")
-	return verifyCmd.Run() == nil
+	return v.CanAccessDockerViaGroupSubcommand()
 }
 
 // FixDockerPermissions adds the current user to the docker group and verifies access.

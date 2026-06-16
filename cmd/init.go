@@ -736,7 +736,7 @@ func formatInitDockerError(opts initOptions, err error) error {
 			Title:      ui.Msg("docker_permission_pending_title"),
 			Message:    validator.FormatUserErrorForBox(err),
 			Suggestion: validator.UserErrorSuggestion(err),
-			Command:    `sg docker -c "kk init"`,
+			Command:    dockerGroupReexecHint(),
 		})
 		if opts.NonInteractive {
 			return NewExitError(exitCodeDockerValidation, err)

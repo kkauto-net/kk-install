@@ -569,7 +569,7 @@ func autoInstallDockerValidator(t *testing.T) *validator.DockerValidator {
 			if strings.Contains(joined, "compose") && strings.Contains(joined, "version") {
 				return exec.Command("sh", "-c", "printf '2.30.0'")
 			}
-			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") {
+			if strings.Contains(joined, "usermod") || strings.Contains(joined, "sg docker") || strings.Contains(joined, "newgrp docker") {
 				return exec.Command("true")
 			}
 			return exec.Command("true")
