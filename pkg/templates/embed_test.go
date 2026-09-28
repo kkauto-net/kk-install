@@ -165,16 +165,17 @@ func TestAllConfigCombinations(t *testing.T) {
 	for _, combo := range combinations {
 		t.Run(combo.name, func(t *testing.T) {
 			cfg := Config{
-				EnableSeaweedFS: combo.seaweed,
-				EnableCaddy:     combo.caddy,
-				Domain:          "test.example.com",
-				Timezone:        "Asia/Ho_Chi_Minh",
-				JWTSecret:       "test_jwt_secret_32chars_long!!!!",
-				DBPassword:      "test_db_password_16!",
-				DBRootPassword:  "test_root_password!",
-				RedisPassword:   "test_redis_pass_16!",
-				S3AccessKey:     "TESTACCESSKEY12345678",
-				S3SecretKey:     "testsecretkey1234567890123456789012345678",
+				EnableSeaweedFS:     combo.seaweed,
+				EnableCaddy:         combo.caddy,
+				Domain:              "test.example.com",
+				Timezone:            "Asia/Ho_Chi_Minh",
+				JWTSecret:           "test_jwt_secret_32chars_long!!!!",
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "test_db_password_16!",
+				DBRootPassword:      "test_root_password!",
+				RedisPassword:       "test_redis_pass_16!",
+				S3AccessKey:         "TESTACCESSKEY12345678",
+				S3SecretKey:         "testsecretkey1234567890123456789012345678",
 			}
 
 			tempDir := t.TempDir()
@@ -367,12 +368,13 @@ func TestRenderedComposeLicenseHostIdentityMounts(t *testing.T) {
 
 func TestRenderedEnvDoesNotSetLicenseStateOrOfflineTokenKeys(t *testing.T) {
 	rendered, err := RenderTemplateToString("env", Config{
-		Domain:         "test.com",
-		JWTSecret:      "test_jwt_secret_32chars_long!!!!",
-		LicenseKey:     "LICENSE-TESTKEY12345678",
-		DBPassword:     "test_db_pass",
-		DBRootPassword: "test_db_root_pass",
-		RedisPassword:  "test_redis_pass",
+		Domain:              "test.com",
+		JWTSecret:           "test_jwt_secret_32chars_long!!!!",
+		EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		LicenseKey:          "LICENSE-TESTKEY12345678",
+		DBPassword:          "test_db_pass",
+		DBRootPassword:      "test_db_root_pass",
+		RedisPassword:       "test_redis_pass",
 	})
 	if err != nil {
 		t.Fatalf("Failed to render env: %v", err)
@@ -386,6 +388,40 @@ func TestRenderedEnvDoesNotSetLicenseStateOrOfflineTokenKeys(t *testing.T) {
 	} {
 		if strings.Contains(rendered, forbidden) {
 			t.Fatalf("rendered env must not include %s", forbidden)
+		}
+	}
+}
+
+func TestRenderedEnvContainsEncryptionMasterKey(t *testing.T) {
+	key := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	rendered, err := RenderTemplateToString("env", Config{
+		Domain:              "test.com",
+		JWTSecret:           "test_jwt_secret_32chars_long!!!!",
+		EncryptionMasterKey: key,
+		LicenseKey:          "LICENSE-TESTKEY12345678",
+		DBPassword:          "test_db_pass",
+		DBRootPassword:      "test_db_root_pass",
+		RedisPassword:       "test_redis_pass",
+	})
+	if err != nil {
+		t.Fatalf("Failed to render env: %v", err)
+	}
+	if !strings.Contains(rendered, "ENCRYPTION_MASTER_KEY="+key) {
+		t.Fatalf("rendered env must include ENCRYPTION_MASTER_KEY, got:\n%s", rendered)
+	}
+}
+
+func TestIsValidEncryptionMasterKey(t *testing.T) {
+	valid := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	if !IsValidEncryptionMasterKey(valid) {
+		t.Fatalf("valid key rejected: %q", valid)
+	}
+	if !IsValidEncryptionMasterKey("ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789") {
+		t.Fatalf("uppercase hex key should be accepted")
+	}
+	for _, invalid := range []string{"", "short", valid[:63], valid + "00", strings.Repeat("zz", 32)} {
+		if IsValidEncryptionMasterKey(invalid) {
+			t.Fatalf("invalid key accepted: %q", invalid)
 		}
 	}
 }
@@ -484,18 +520,19 @@ func TestCaddyfileSyntax(t *testing.T) {
 // TestGoldenFiles compares rendered output against golden files
 func TestGoldenFiles(t *testing.T) {
 	cfg := Config{
-		EnableSeaweedFS: true,
-		EnableCaddy:     true,
-		Domain:          "example.com",
-		Timezone:        "Asia/Ho_Chi_Minh",
-		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
-		LicenseKey:      "LICENSE-TESTKEY12345678",
-		ServerPublicKey: "test_public_key_encrypted",
-		DBPassword:      "test_db_pass",
-		DBRootPassword:  "test_db_root_pass",
-		RedisPassword:   "test_redis_pass",
-		S3AccessKey:     "TESTACCESSKEY12345678",
-		S3SecretKey:     "testsecretkey1234567890123456789012345678",
+		EnableSeaweedFS:     true,
+		EnableCaddy:         true,
+		Domain:              "example.com",
+		Timezone:            "Asia/Ho_Chi_Minh",
+		JWTSecret:           "test_jwt_secret_32chars_long!!!!",
+		EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		LicenseKey:          "LICENSE-TESTKEY12345678",
+		ServerPublicKey:     "test_public_key_encrypted",
+		DBPassword:          "test_db_pass",
+		DBRootPassword:      "test_db_root_pass",
+		RedisPassword:       "test_redis_pass",
+		S3AccessKey:         "TESTACCESSKEY12345678",
+		S3SecretKey:         "testsecretkey1234567890123456789012345678",
 	}
 
 	goldenTests := []struct {
@@ -540,31 +577,58 @@ func TestValidateSecrets(t *testing.T) {
 		{
 			name: "valid config",
 			cfg: Config{
-				JWTSecret:      "this_is_a_32_character_secret!!!", // 32 chars
-				DBPassword:     "password_16chars",                 // 16 chars
-				DBRootPassword: "password_16chars",
-				RedisPassword:  "password_16chars",
+				JWTSecret:           "this_is_a_32_character_secret!!!", // 32 chars
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "password_16chars", // 16 chars
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
 			},
 			wantErr: false,
 		},
 		{
 			name: "jwt secret too short",
 			cfg: Config{
-				JWTSecret:      "short",
-				DBPassword:     "password_16chars",
-				DBRootPassword: "password_16chars",
-				RedisPassword:  "password_16chars",
+				JWTSecret:           "short",
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "password_16chars",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
 			},
 			wantErr: true,
 			errMsg:  "JWT_SECRET must be at least 32 characters",
 		},
 		{
+			name: "encryption key too short",
+			cfg: Config{
+				JWTSecret:           "this_is_a_32_character_secret!!!",
+				EncryptionMasterKey: "short",
+				DBPassword:          "password_16chars",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
+			},
+			wantErr: true,
+			errMsg:  "ENCRYPTION_MASTER_KEY must be 64 hex characters",
+		},
+		{
+			name: "encryption key non-hex rejected",
+			cfg: Config{
+				JWTSecret:           "this_is_a_32_character_secret!!!",
+				EncryptionMasterKey: "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+				DBPassword:          "password_16chars",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
+			},
+			wantErr: true,
+			errMsg:  "ENCRYPTION_MASTER_KEY must be 64 hex characters",
+		},
+		{
 			name: "db password too short",
 			cfg: Config{
-				JWTSecret:      "this_is_a_32_character_secret!!!",
-				DBPassword:     "short",
-				DBRootPassword: "password_16chars",
-				RedisPassword:  "password_16chars",
+				JWTSecret:           "this_is_a_32_character_secret!!!",
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "short",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
 			},
 			wantErr: true,
 			errMsg:  "DB_PASSWORD must be at least 16 characters",
@@ -572,13 +636,14 @@ func TestValidateSecrets(t *testing.T) {
 		{
 			name: "s3 validation only when seaweedfs enabled",
 			cfg: Config{
-				EnableSeaweedFS: true,
-				JWTSecret:       "this_is_a_32_character_secret!!!",
-				DBPassword:      "password_16chars",
-				DBRootPassword:  "password_16chars",
-				RedisPassword:   "password_16chars",
-				S3AccessKey:     "short", // too short
-				S3SecretKey:     "short",
+				EnableSeaweedFS:     true,
+				JWTSecret:           "this_is_a_32_character_secret!!!",
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "password_16chars",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
+				S3AccessKey:         "short", // too short
+				S3SecretKey:         "short",
 			},
 			wantErr: true,
 			errMsg:  "S3_ACCESS_KEY must be at least 16 characters",
@@ -586,13 +651,14 @@ func TestValidateSecrets(t *testing.T) {
 		{
 			name: "s3 not validated when seaweedfs disabled",
 			cfg: Config{
-				EnableSeaweedFS: false,
-				JWTSecret:       "this_is_a_32_character_secret!!!",
-				DBPassword:      "password_16chars",
-				DBRootPassword:  "password_16chars",
-				RedisPassword:   "password_16chars",
-				S3AccessKey:     "short", // short but ignored
-				S3SecretKey:     "short",
+				EnableSeaweedFS:     false,
+				JWTSecret:           "this_is_a_32_character_secret!!!",
+				EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				DBPassword:          "password_16chars",
+				DBRootPassword:      "password_16chars",
+				RedisPassword:       "password_16chars",
+				S3AccessKey:         "short", // short but ignored
+				S3SecretKey:         "short",
 			},
 			wantErr: false,
 		},

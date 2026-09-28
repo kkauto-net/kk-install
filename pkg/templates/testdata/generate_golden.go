@@ -18,6 +18,7 @@ func main() {
 		Domain:          "example.com",
 		Timezone:        "Asia/Ho_Chi_Minh",
 		JWTSecret:       "test_jwt_secret_32chars_long!!!!",
+		EncryptionMasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 		LicenseKey:      "LICENSE-TESTKEY12345678",
 		ServerPublicKey: "test_public_key_encrypted",
 		DBPassword:      "test_db_pass",

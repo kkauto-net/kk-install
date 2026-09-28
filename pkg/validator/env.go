@@ -2,6 +2,7 @@ package validator
 
 import (
 	"bufio"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ var RequiredEnvVars = []string{
 	"DB_PASSWORD",
 	"DB_ROOT_PASSWORD",
 	"REDIS_PASSWORD",
+	"ENCRYPTION_MASTER_KEY",
 }
 
 // OptionalEnvVars lists optional environment variables with defaults
@@ -86,7 +88,20 @@ func ValidateEnvFile(dir string) error {
 		ui.ShowWarningf(ui.Msg("warn_weak_password"), strings.Join(weakPasswords, ", "))
 	}
 
+	if val, ok := envVars["ENCRYPTION_MASTER_KEY"]; ok && !isValidEncryptionMasterKey(val) {
+		ui.ShowWarning(ui.Msg("warn_invalid_encryption_key"))
+	}
+
 	return nil
+}
+
+// isValidEncryptionMasterKey reports whether s is 64 hex chars (32 bytes for AES-256).
+func isValidEncryptionMasterKey(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
 }
 
 func parseEnvFile(path string) (map[string]string, error) {

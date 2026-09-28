@@ -74,7 +74,7 @@ Do not convert every legacy error to a typed error without a product requirement
 - Never print full license keys in command errors.
 - Mask licenses as `LICENSE-************6789` when display is unavoidable.
 - Do not recommend argv license input for automation.
-- Do not print generated values for `JWT_SECRET`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, or n8n encryption keys in logs/errors.
+- Do not print generated values for `JWT_SECRET`, `ENCRYPTION_MASTER_KEY`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, or n8n encryption keys in logs/errors.
 - Generated kkengine and n8n `.env` files must remain `0600`.
 - `~/.kk/config.yaml` is currently `0644`; keep it non-secret unless permissions and migration are redesigned.
 - Installer and self-update checksum verification must fail closed before installing or replacing the `kk` binary.

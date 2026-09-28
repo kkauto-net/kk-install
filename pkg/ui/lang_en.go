@@ -175,15 +175,16 @@ Next steps:
 	"license_check_key":         "Please check your license key and try again",
 
 	// Credentials / Environment Configuration
-	"ask_use_random":      "Use auto-generated secrets?",
-	"ask_use_random_desc": "Secure random secrets have been generated for all fields",
-	"no_edit":             "No, let me edit",
-	"group_system":        "System Configuration",
-	"group_db_secrets":    "Database Secrets",
-	"group_s3_secrets":    "S3 Storage Secrets",
-	"error_jwt_secret":    "Failed to generate JWT secret",
-	"error_s3_access_key": "Failed to generate S3 access key",
-	"error_s3_secret_key": "Failed to generate S3 secret key",
+	"ask_use_random":       "Use auto-generated secrets?",
+	"ask_use_random_desc":  "Secure random secrets have been generated for all fields",
+	"no_edit":              "No, let me edit",
+	"group_system":         "System Configuration",
+	"group_db_secrets":     "Database Secrets",
+	"group_s3_secrets":     "S3 Storage Secrets",
+	"error_jwt_secret":     "Failed to generate JWT secret",
+	"error_encryption_key": "Failed to generate encryption master key",
+	"error_s3_access_key":  "Failed to generate S3 access key",
+	"error_s3_secret_key":  "Failed to generate S3 secret key",
 
 	// Force mode messages
 	"docker_not_installed_force_init":      "Docker not installed (force mode - continuing)",
@@ -364,6 +365,7 @@ Next steps:
 	"warn_env_permissions":               "Warning: .env permissions too open (%o)",
 	"warn_env_permissions_fix":           "Set permissions: chmod 600 .env (owner read/write only)",
 	"warn_weak_password":                 "Warning: weak password for: %s (should be >= 16 characters)",
+	"warn_invalid_encryption_key":        "Warning: ENCRYPTION_MASTER_KEY must be 64 hex characters (32 bytes for AES-256)",
 	"warn_env_world_readable":            "Warning: .env may be readable by others.",
 	"warn_env_world_readable_fix":        "Run: chmod 600 %s",
 	"warn_disk_low":                      "Warning: low disk space (%.1fGB). Recommend at least %dGB.",

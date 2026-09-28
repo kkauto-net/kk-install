@@ -21,13 +21,41 @@ func TestValidateEnvFile(t *testing.T) {
 
 	t.Run("Valid file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		content := "DB_PASSWORD=verylongpassword123456\nDB_ROOT_PASSWORD=verylongrootpass123\nREDIS_PASSWORD=verylongredispass123"
+		content := "DB_PASSWORD=verylongpassword123456\nDB_ROOT_PASSWORD=verylongrootpass123\nREDIS_PASSWORD=verylongredispass123\nENCRYPTION_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 		envFile := filepath.Join(tmpDir, ".e"+"nv")
 		writeTestFile(t, envFile, []byte(content), 0600)
 
 		err := ValidateEnvFile(tmpDir)
 		if err != nil {
 			t.Errorf("Expected no error for valid file, got %v", err)
+		}
+	})
+
+	t.Run("Missing encryption key", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		content := "DB_PASSWORD=verylongpassword123456\nDB_ROOT_PASSWORD=verylongrootpass123\nREDIS_PASSWORD=verylongredispass123"
+		envFile := filepath.Join(tmpDir, ".e"+"nv")
+		writeTestFile(t, envFile, []byte(content), 0600)
+
+		err := ValidateEnvFile(tmpDir)
+		if err == nil {
+			t.Error("Expected error for missing ENCRYPTION_MASTER_KEY")
+		}
+		if ue, ok := err.(*UserError); ok {
+			if ue.Key != "env_missing_vars" {
+				t.Errorf("Expected error key 'env_missing_vars', got %q", ue.Key)
+			}
+		}
+	})
+
+	t.Run("Invalid encryption key warns only", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		content := "DB_PASSWORD=verylongpassword123456\nDB_ROOT_PASSWORD=verylongrootpass123\nREDIS_PASSWORD=verylongredispass123\nENCRYPTION_MASTER_KEY=short"
+		envFile := filepath.Join(tmpDir, ".e"+"nv")
+		writeTestFile(t, envFile, []byte(content), 0600)
+
+		if err := ValidateEnvFile(tmpDir); err != nil {
+			t.Errorf("Expected no error for invalid key format (warn only), got %v", err)
 		}
 	})
 

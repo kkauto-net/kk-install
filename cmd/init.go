@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -342,6 +343,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	encryptionKey := existingEnv["ENCRYPTION_MASTER_KEY"]
+	if !templates.IsValidEncryptionMasterKey(encryptionKey) {
+		var err error
+		encryptionKey, err = generateEncryptionMasterKeyWithRetry()
+		if err != nil {
+			return fmt.Errorf("%s: %w", ui.Msg("error_encryption_key"), err)
+		}
+	}
+
 	dbPass := existingEnv["DB_PASSWORD"]
 	if len(dbPass) < 16 {
 		var err error
@@ -415,6 +425,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 				Title("JWT_SECRET").
 				Value(&jwtSecret).
 				Validate(validateMinLength(32, "JWT_SECRET")),
+			huh.NewInput().
+				Title("ENCRYPTION_MASTER_KEY").
+				Value(&encryptionKey).
+				Validate(validateEncryptionMasterKey),
 		).Title(ui.Msg("group_system")))
 
 		// Group 2: Database Secrets
@@ -460,18 +474,19 @@ func runInit(cmd *cobra.Command, args []string) error {
 	spinner = startInitSpinner(ui.IconWrite + " " + ui.Msg("generating_files"))
 
 	tmplCfg := templates.Config{
-		EnableSeaweedFS: enableSeaweedFS,
-		EnableCaddy:     enableCaddy,
-		Domain:          domain,
-		Timezone:        timezone,
-		JWTSecret:       jwtSecret,
-		LicenseKey:      licenseData.Key,
-		ServerPublicKey: licenseData.PublicKey,
-		DBPassword:      dbPass,
-		DBRootPassword:  dbRootPass,
-		RedisPassword:   redisPass,
-		S3AccessKey:     s3AccessKey,
-		S3SecretKey:     s3SecretKey,
+		EnableSeaweedFS:     enableSeaweedFS,
+		EnableCaddy:         enableCaddy,
+		Domain:              domain,
+		Timezone:            timezone,
+		JWTSecret:           jwtSecret,
+		EncryptionMasterKey: encryptionKey,
+		LicenseKey:          licenseData.Key,
+		ServerPublicKey:     licenseData.PublicKey,
+		DBPassword:          dbPass,
+		DBRootPassword:      dbRootPass,
+		RedisPassword:       redisPass,
+		S3AccessKey:         s3AccessKey,
+		S3SecretKey:         s3SecretKey,
 	}
 
 	if err := renderTemplates(tmplCfg, cwd); err != nil {
@@ -618,6 +633,37 @@ func generateS3AccessKeyWithRetry(length int) (string, error) {
 		lastErr = err
 	}
 	return "", lastErr
+}
+
+// generateEncryptionMasterKey generates 32 random bytes encoded as 64 hex chars for AES-256.
+func generateEncryptionMasterKey() (string, error) {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(key), nil
+}
+
+// generateEncryptionMasterKeyWithRetry generates encryption key with retry logic
+func generateEncryptionMasterKeyWithRetry() (string, error) {
+	const maxRetries = 3
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		key, err := generateEncryptionMasterKey()
+		if err == nil {
+			return key, nil
+		}
+		lastErr = err
+	}
+	return "", lastErr
+}
+
+// validateEncryptionMasterKey validates 64 hex chars for huh edit form
+func validateEncryptionMasterKey(s string) error {
+	if !templates.IsValidEncryptionMasterKey(s) {
+		return fmt.Errorf("ENCRYPTION_MASTER_KEY must be %d hex characters (0-9, a-f)", templates.EncryptionMasterKeyHexLength)
+	}
+	return nil
 }
 
 func ensureInitDocker(opts initOptions, licenseKey, licensePublicKey string) error {

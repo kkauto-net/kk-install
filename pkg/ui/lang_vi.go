@@ -175,15 +175,16 @@ Bước tiếp theo:
 	"license_check_key":         "Vui lòng kiểm tra license key và thử lại",
 
 	// Credentials / Environment Configuration
-	"ask_use_random":      "Sử dụng mật khẩu tự động tạo?",
-	"ask_use_random_desc": "Các mật khẩu ngẫu nhiên an toàn đã được tạo sẵn",
-	"no_edit":             "Không, để tôi chỉnh sửa",
-	"group_system":        "Cấu hình hệ thống",
-	"group_db_secrets":    "Mật khẩu Database",
-	"group_s3_secrets":    "Mật khẩu S3 Storage",
-	"error_jwt_secret":    "Không thể tạo JWT secret",
-	"error_s3_access_key": "Không thể tạo S3 access key",
-	"error_s3_secret_key": "Không thể tạo S3 secret key",
+	"ask_use_random":       "Sử dụng mật khẩu tự động tạo?",
+	"ask_use_random_desc":  "Các mật khẩu ngẫu nhiên an toàn đã được tạo sẵn",
+	"no_edit":              "Không, để tôi chỉnh sửa",
+	"group_system":         "Cấu hình hệ thống",
+	"group_db_secrets":     "Mật khẩu Database",
+	"group_s3_secrets":     "Mật khẩu S3 Storage",
+	"error_jwt_secret":     "Không thể tạo JWT secret",
+	"error_encryption_key": "Không thể tạo encryption master key",
+	"error_s3_access_key":  "Không thể tạo S3 access key",
+	"error_s3_secret_key":  "Không thể tạo S3 secret key",
 
 	// Force mode messages
 	"docker_not_installed_force_init":      "Docker chưa cài đặt (force mode - tiếp tục)",
@@ -364,6 +365,7 @@ Bước tiếp theo:
 	"warn_env_permissions":               "Cảnh báo: quyền .env quá mở (%o)",
 	"warn_env_permissions_fix":           "Thiết lập quyền: chmod 600 .env (chỉ owner đọc/ghi)",
 	"warn_weak_password":                 "Cảnh báo: mật khẩu yếu cho: %s (nên >= 16 ký tự)",
+	"warn_invalid_encryption_key":        "Cảnh báo: ENCRYPTION_MASTER_KEY phải là 64 ký tự hex (32 bytes cho AES-256)",
 	"warn_env_world_readable":            "Cảnh báo: .env có thể bị người khác đọc.",
 	"warn_env_world_readable_fix":        "Chạy: chmod 600 %s",
 	"warn_disk_low":                      "Cảnh báo: disk thấp (%.1fGB). Khuyến nghị ít nhất %dGB.",

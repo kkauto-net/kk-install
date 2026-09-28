@@ -582,3 +582,39 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
+
+func TestGenerateEncryptionMasterKey(t *testing.T) {
+	key, err := generateEncryptionMasterKeyWithRetry()
+	if err != nil {
+		t.Fatalf("generateEncryptionMasterKeyWithRetry() error = %v", err)
+	}
+	if !templates.IsValidEncryptionMasterKey(key) {
+		t.Fatal("generated key failed validation")
+	}
+	seen := map[string]bool{key: true}
+	for i := 0; i < 3; i++ {
+		next, err := generateEncryptionMasterKey()
+		if err != nil {
+			t.Fatalf("generateEncryptionMasterKey() error = %v", err)
+		}
+		if !templates.IsValidEncryptionMasterKey(next) {
+			t.Fatal("generated key failed validation")
+		}
+		seen[next] = true
+	}
+	if len(seen) < 2 {
+		t.Fatal("expected random keys to differ across generations")
+	}
+}
+
+func TestValidateEncryptionMasterKey(t *testing.T) {
+	valid := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	if err := validateEncryptionMasterKey(valid); err != nil {
+		t.Fatalf("validateEncryptionMasterKey(valid) error = %v", err)
+	}
+	for _, invalid := range []string{"", "short", valid[:63], valid + "00", strings.Repeat("zz", 32)} {
+		if err := validateEncryptionMasterKey(invalid); err == nil {
+			t.Fatalf("validateEncryptionMasterKey(%q) expected error", invalid)
+		}
+	}
+}

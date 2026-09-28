@@ -2,6 +2,7 @@ package templates
 
 import (
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +22,8 @@ type Config struct {
 	Domain   string
 	Timezone string
 
-	JWTSecret string
+	JWTSecret           string
+	EncryptionMasterKey string
 
 	// License
 	LicenseKey      string
@@ -43,12 +45,26 @@ const (
 	MinDBPasswordLength  = 16
 	MinS3AccessKeyLength = 16
 	MinS3SecretKeyLength = 32
+	// EncryptionMasterKeyHexLength is 64 hex chars = 32 bytes for AES-256.
+	EncryptionMasterKeyHexLength = 64
 )
+
+// IsValidEncryptionMasterKey reports whether s is 64 hex chars (32 bytes).
+func IsValidEncryptionMasterKey(s string) bool {
+	if len(s) != EncryptionMasterKeyHexLength {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
+}
 
 // ValidateSecrets validates that all secrets meet minimum security requirements
 func (c Config) ValidateSecrets() error {
 	if len(c.JWTSecret) < MinJWTSecretLength {
 		return fmt.Errorf("JWT_SECRET must be at least %d characters (got %d)", MinJWTSecretLength, len(c.JWTSecret))
+	}
+	if !IsValidEncryptionMasterKey(c.EncryptionMasterKey) {
+		return fmt.Errorf("ENCRYPTION_MASTER_KEY must be %d hex characters (32 bytes, got %d)", EncryptionMasterKeyHexLength, len(c.EncryptionMasterKey))
 	}
 	if len(c.DBPassword) < MinDBPasswordLength {
 		return fmt.Errorf("DB_PASSWORD must be at least %d characters (got %d)", MinDBPasswordLength, len(c.DBPassword))
